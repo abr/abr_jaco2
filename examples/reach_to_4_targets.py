@@ -7,9 +7,10 @@ to its default resting position.
 import numpy as np
 
 import abr_control
+import abr_jaco2
 
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.jaco2.config.robot_config()
+robot_config = abr_jaco2.robot_config()
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc.controller(
     robot_config, kp=600, vmax=0.35)
@@ -19,7 +20,7 @@ ctrlr = abr_control.controllers.osc.controller(
 ctrlr.control(np.zeros(6), np.zeros(6), target_state=np.zeros(6))
 
 # create our interface for the jaco2
-interface = abr_control.interfaces.jaco2.interface(robot_config)
+interface = abr_jaco2.interface(robot_config)
 # connect to the jaco
 interface.connect()
 # move to the home position
