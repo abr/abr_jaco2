@@ -14,6 +14,8 @@ class robot_config(robot_config.robot_config):
         super(robot_config, self).__init__(num_joints=6, num_links=7,
                                            robot_name='jaco2', **kwargs)
 
+        self._T = {}  # dictionary for storing calculated transforms
+        
         self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
                               '/saved_functions')
 
@@ -293,14 +295,15 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
-        # orientation part of the Jacobian
-        # accounting for which axis is rotated around at each joint
-        self.J_orientation = [[0, 0, 1],  # joint 0 rotates around z axis
-                              [0, 0, 1],  # joint 1 rotates around z axis
-                              [0, 0, 1],  # joint 2 rotates around z axis
-                              [0, 0, 1],  # joint 3 rotates around z axis
-                              [0, 0, 1],  # joint 4 rotates around z axis
-                              [0, 0, 1]]  # joint 5 rotates around z axis
+        # orientation part of the Jacobian (compensating for orientations)
+        kz = sp.Matrix([0, 0, 1])
+        self.J_orientation = [
+            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
+            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
+            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 angular velocity
+            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 angular velocity
+            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 angular velocity
+            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 angular velocity
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
