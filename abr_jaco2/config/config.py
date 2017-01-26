@@ -9,13 +9,17 @@ import abr_jaco2
 class robot_config(robot_config.robot_config):
     """ Robot config file for the Kinova Jaco^2 V2"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, hand_attached=True, **kwargs):
 
-        super(robot_config, self).__init__(num_joints=6, num_links=7,
+        self.hand_attached = hand_attached
+        num_links = 7 if hand_attached is True else 6
+        super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
-        
+
+        self.hand_attached = hand_attached
+
         self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
                               '/saved_functions')
 
@@ -59,9 +63,9 @@ class robot_config(robot_config.robot_config):
                 [0.211, 0.000, 0.000, 0.000, 0.000, 0.000],
                 [0.000, 0.211, 0.000, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.211, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.000, -0.004, 0.000, 1.000],
+                [0.000, 0.000, 0.000, -0.003, 0.000, 1.000],
                 [0.000, 0.000, 0.000, 0.000, -1.000, 0.000],
-                [0.000, 0.000, 0.000, 1.000, 0.000, 0.004]]),
+                [0.000, 0.000, 0.000, 1.000, 0.000, 0.003]]),
             sp.Matrix([  # link4
                 [0.069, 0.000, 0.000, 0.000, 0.000, 0.000],
                 [0.000, 0.069, 0.000, 0.000, 0.000, 0.000],
@@ -75,14 +79,15 @@ class robot_config(robot_config.robot_config):
                 [0.000, 0.000, 0.069, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.870, 0.500, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.000, -1.000],
-                [0.000, 0.000, 0.000, -0.500, 0.870, 0.000]]),
-            sp.Matrix([  # hand
+                [0.000, 0.000, 0.000, -0.500, 0.870, 0.000]])]
+        if self.hand_attached is True:
+            self._M_links.append(sp.Matrix([  # hand
                 [0.727, 0.000, 0.000, 0.000, 0.000, 0.000],
                 [0.000, 0.727, 0.000, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.727, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.190, 0.980, 0.000],
                 [0.000, 0.000, 0.000, -0.980, 0.190, 0.020],
-                [0.000, 0.000, 0.000, 0.020, 0.000, 1.000]])]
+                [0.000, 0.000, 0.000, 0.020, 0.000, 1.000]]))
 
         self._M_joints = [
             sp.Matrix([  # motor 0
@@ -130,7 +135,7 @@ class robot_config(robot_config.robot_config):
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
-        self.L = np.array([
+        self.L = [
             [0.0, 0.0, 7.8369e-02],  # link 0 offset
             [-3.2712e-05, -1.7324e-05, 7.8381e-02],  # joint 0 offset
             [2.1217e-05, 4.8455e-05, -7.9515e-02],  # link 1 offset
@@ -142,9 +147,10 @@ class robot_config(robot_config.robot_config):
             [-4.0053e-04, 1.2581e-02, -3.5270e-02],  # link 4 offset
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
-            [-1.9534e-03, 5.0298e-03, -3.7176e-02],  # joint 5 offset
-            [-3.6363e-05, 7.5728e-05, -1.2875e-05]])  # link 6 offset
-            # dtype='float32')
+            [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
+        if self.hand_attached is True:  # add in hand offset
+            self.L.append([0.000684, 0.0, 0.008222])
+        self.L = np.array(self.L)
 
         # ---- Joint Transform Matrices ----
 
@@ -282,18 +288,19 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix: joint 5 -> link 6
         # account for rotations due to q
-        self.Tj5l6a = sp.Matrix([
-            [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
-            [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]])
-        # no axes change, account for offsets
-        self.Tj5l6b = sp.Matrix([
-            [-1, 0, 0, self.L[12, 0]],
-            [0, -1, 0, self.L[12, 1]],
-            [0, 0, 1, self.L[12, 2]],
-            [0, 0, 0, 1]])
-        self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
+        if self.hand_attached is True:
+            self.Tj5l6a = sp.Matrix([
+                [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
+                [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]])
+            # no axes change, account for offsets
+            self.Tj5l6b = sp.Matrix([
+                [-1, 0, 0, self.L[12, 0]],
+                [0, -1, 0, self.L[12, 1]],
+                [0, 0, 1, self.L[12, 2]],
+                [0, 0, 0, 1]])
+            self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
@@ -352,12 +359,12 @@ class robot_config(robot_config.robot_config):
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5)
-            elif name == 'joint5':
+            elif name == 'joint5' or (name == 'EE' and self.hand_attached is False):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5)
-            elif name == 'link6' or name == 'EE':
+            elif self.hand_attached and (name == 'link6' or name == 'EE'):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *

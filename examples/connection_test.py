@@ -1,3 +1,5 @@
+""" Tests the basic connection and disconnect from the Jaco2 """
+
 import numpy as np
 import time
 
