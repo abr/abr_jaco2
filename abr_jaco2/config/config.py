@@ -95,6 +95,7 @@ class robot_config(robot_config.robot_config):
             [0, 1, 0, self.L[1, 2]],
             [-sp.sin(sp.pi + self.q[0]), 0, sp.cos(sp.pi + self.q[0]), 0],
             [0, 0, 0, 1]])
+        self.T01 = self.T01a * self.T01b
 
         # Transform matrix : joint 1 -> joint 2
         # transformation due to rotation in reference frame
@@ -111,6 +112,7 @@ class robot_config(robot_config.robot_config):
              self.L[2, 1]*sp.cos(sp.pi + self.q[1])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
+        self.T12 = self.T12a * self.T12b
 
         # Transform matrix : joint 2 -> joint 3
         # transformation due to rotation in reference frame
@@ -127,6 +129,7 @@ class robot_config(robot_config.robot_config):
             [-sp.sin(sp.pi + self.q[2]), 0, sp.cos(sp.pi + self.q[2]),
              self.L[3, 1]*sp.cos(sp.pi + self.q[2])],
             [0, 0, 0, 1]])
+        self.T23 = self.T23a * self.T23b
 
         # Transform matrix : joint 3 -> joint 4
         # NOTE: reference frame is rotated by 55 degrees (0.959931rad)
@@ -145,6 +148,7 @@ class robot_config(robot_config.robot_config):
              -self.L[4, 1]*sp.cos(sp.pi + self.q[3])],
             [0, 0, 1, self.L[4, 2]],
             [0, 0, 0, 1]])
+        self.T34 = self.T34a * self.T34b
 
         # Transform matrix : joint 4 -> joint 5
         # transformation due to rotation in reference frame
@@ -162,6 +166,7 @@ class robot_config(robot_config.robot_config):
              -self.L[5, 1]*sp.cos(sp.pi + self.q[4])],
             [0, 0, 1, self.L[5, 2]],
             [0, 0, 0, 1]])
+        self.T45 = self.T45b * self.T45a
 
         # Transform matrix : joint 6 -> end-effector
         self.T5EE = sp.Matrix([
@@ -249,27 +254,22 @@ class robot_config(robot_config.robot_config):
         if name == 'joint0':
             T = self.TorgO
         elif name == 'joint1':
-            T = self.TorgO * self.T01a * self.T01b
+            T = self.TorgO * self.T01
         elif name == 'joint2':
-            T = self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
+            T = self.TorgO * self.T01 * self.T12
         elif name == 'joint3':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.T23b)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23)
         elif name == 'joint4':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.T23b * self.T34b * self.T34a)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23 * self.T34)
         elif name == 'joint5':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.T23b * self.T34b * self.T34a * self.T45b
-                 * self.T45a)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23 * self.T34 *
+                 self.T45)
         elif name == 'EE' or name == 'link6':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.T23b * self.T34b * self.T34a * self.T45b
-                 * self.T45a * self.T5EE)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23 * self.T34 *
+                 self.T45 * self.T5EE)
         elif name == 'camera':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.T23b * self.T34b * self.T34a * self.T45b
-                 * self.T45a * self.T5EE * self.TEEcamera)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23 * self.T34 *
+                 self.T45 * self.T5EE * self.TEEcamera)
 
         # ---- COM Transforms ----
 
@@ -278,16 +278,14 @@ class robot_config(robot_config.robot_config):
         elif name == 'link1':
             T = self.TorgO * self.T01a * self.Tl01
         elif name == 'link2':
-            T = self.TorgO * self.T01a * self.T01b * self.T12a * self.Tl12
+            T = self.TorgO * self.T01 * self.T12a * self.Tl12
         elif name == 'link3':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.Tl23)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23a * self.Tl23)
         elif name == 'link4':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.T23b * self.Tl34)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23 * self.Tl34)
         elif name == 'link5':
-            T = (self.TorgO * self.T01a * self.T01b * self.T12a * self.T12b
-                 * self.T23a * self.T23b * self.T34b * self.T34a * self.Tl45)
+            T = (self.TorgO * self.T01 * self.T12 * self.T23 * self.T34 *
+                 self.Tl45)
 
         else:
             raise Exception('Invalid transformation name: %s' % name)

@@ -49,18 +49,6 @@ Jaco2::Jaco2() {
     errorMessage.push_back("CURRENT");
     errorMessage.push_back("TORQUE");
 
-    // set constants in force message to increase loop speed
-    for (int ii=0; ii<6; ii++)
-    {
-        ForceMessage[ii].Command =
-            RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
-        ForceMessage[ii].SourceAddress = SOURCE_ADDRESS;
-        ForceMessage[ii].DataLong[1] = 0x00000000; //not used
-        ForceMessage[ii].DataLong[3] = ((unsigned long) torqueDamping |
-            ((unsigned long) controlMode << 8) |
-            ((unsigned long) torqueKp << 16)); //U16|U8|U8
-    }
-
     //We load the API.
     commLayer_Handle = dlopen(
         "./Kinova.API.CommLayerUbuntu.so",
@@ -98,6 +86,18 @@ Jaco2::Jaco2() {
         ApplyQMessage[ii].DestinationAddress = joint[ii];
         ApplyQMessage[ii].DataLong[2] = 0x1;
         ApplyQMessage[ii].DataLong[3] = 0x00000000;
+    }
+
+    // set constants in force message to increase loop speed
+    for (int ii=0; ii<6; ii++)
+    {
+        ForceMessage[ii].Command =
+            RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
+        ForceMessage[ii].SourceAddress = SOURCE_ADDRESS;
+        ForceMessage[ii].DataLong[1] = 0x00000000; //not used
+        ForceMessage[ii].DataLong[3] = ((unsigned long) torqueDamping |
+            ((unsigned long) controlMode << 8) |
+            ((unsigned long) torqueKp << 16)); //U16|U8|U8
     }
 
     // Set up get position message
@@ -519,6 +519,7 @@ void Jaco2::ApplyU(float u[6])
     //usleep(delay);
     MyRS485_Read(ReceivedInitMessage, packets_read, ReadCount);
 
+    memset(updated, 0, (size_t)sizeof(int)*6);
     for(int jj = 0; jj < ReadCount; jj++)
     {
         if(ReceivedInitMessage[jj].Command == RS485_MSG_SEND_ALL_VALUES_1)
@@ -527,7 +528,14 @@ void Jaco2::ApplyU(float u[6])
             currentJoint = ReceivedInitMessage[jj].SourceAddress - 16;
             pos[currentJoint] = ReceivedInitMessage[jj].DataFloat[1];
             vel[currentJoint] = ReceivedInitMessage[jj].DataFloat[2];
-            messageReceived +=1;
+            // TODO: change this to make sure that a message is received for each joint
+            // i.e. change messageReceived to an array, set messageReceived[currentJoint] = 1
+            // and check the sum for a break
+            updated[currentJoint] = 1;
+            for (int ii=0; ii<6; i++)
+            {
+                messageReceived += updated[currentJoint];
+            }
             if(messageReceived == 6)
             {
                 break;
