@@ -15,6 +15,7 @@ cdef extern from "jaco2_rs485.h":
 
         float pos[6]
         float vel[6]
+        float torque_load[6]
 
 
 cdef class pyJaco2:
@@ -50,3 +51,7 @@ cdef class pyJaco2:
         feedback = {'q': self.thisptr.pos,
                     'dq': self.thisptr.vel}
         return feedback
+
+    def GetTorqueLoad(self):
+        t_feedback = {'torque_load' : self.thisptr.torque_load}
+        return t_feedback

@@ -59,6 +59,7 @@ class Jaco2 {
         bool switchValidation;
         float pos[6]; //From Halls sensor
         float vel[6];
+        float torque_load[6];
         bool read_input;
         int packets_sent;
         int packets_read;

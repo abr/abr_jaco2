@@ -93,6 +93,7 @@ Jaco2::Jaco2() {
     {
         ForceMessage[ii].Command =
             RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
+        ForceMessage[ii].DestinationAddress = joint[ii];
         ForceMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ForceMessage[ii].DataLong[1] = 0x00000000; //not used
         ForceMessage[ii].DataLong[3] = ((unsigned long) torqueDamping |
@@ -506,42 +507,35 @@ void Jaco2::ApplyU(float u[6])
 {
     // Step 4: Enjoy torque control mode!
     for (int ii=0; ii<6; ii++)
-    {
-        ForceMessage[ii].DestinationAddress = joint[ii];
+    {        
         ForceMessage[ii].DataFloat[0] = pos[ii];
         ForceMessage[ii].DataFloat[2] = u[ii]; //32F torque command [1Nm]
-
     }
 
     messageReceived = 0;
+
     MyRS485_Write(ForceMessage, packets_sent, WriteCount);
-    usleep(1250);
-    //usleep(delay);
+    usleep(1250); // TO DO: EXPERIMENT WITH DIFFERENT DELAY
+
     MyRS485_Read(ReceivedInitMessage, packets_read, ReadCount);
 
     memset(updated, 0, (size_t)sizeof(int)*6);
+
     for(int jj = 0; jj < ReadCount; jj++)
     {
+        
         if(ReceivedInitMessage[jj].Command == RS485_MSG_SEND_ALL_VALUES_1)
         {
             //actuator 0 is 16
             currentJoint = ReceivedInitMessage[jj].SourceAddress - 16;
-            pos[currentJoint] = ReceivedInitMessage[jj].DataFloat[1];
-            vel[currentJoint] = ReceivedInitMessage[jj].DataFloat[2];
-            // TODO: change this to make sure that a message is received for each joint
-            // i.e. change messageReceived to an array, set messageReceived[currentJoint] = 1
-            // and check the sum for a break
-            updated[currentJoint] = 1;
-            for (int ii=0; ii<6; i++)
-            {
-                messageReceived += updated[currentJoint];
-            }
-            if(messageReceived == 6)
-            {
-                break;
+            if (updated[currentJoint] == 0) {                
+                pos[currentJoint] = ReceivedInitMessage[jj].DataFloat[1];
+                vel[currentJoint] = ReceivedInitMessage[jj].DataFloat[2];
+                torque_load[currentJoint] = ReceivedInitMessage[jj].DataFloat[3];
+                updated[currentJoint] = 1;
             }
         }
-        if(ReceivedInitMessage[jj].Command == REPORT_ERROR)
+        else if(ReceivedInitMessage[jj].Command == REPORT_ERROR)
         {
             // ERROR MESSAGES
             if(ReceivedInitMessage[jj].DataLong[1] != 0)
@@ -636,6 +630,7 @@ void Jaco2::GetFeedback(int messageType)
                     cout << "Torque   = " << MessageListIn[jj].DataFloat[3] << endl;*/
                     pos[currentJoint] = MessageListIn[jj].DataFloat[1];
                     vel[currentJoint] = MessageListIn[jj].DataFloat[2];
+                    torque_load[currentJoint] = MessageListIn[jj].DataFloat[3];
                     messageReceived +=1;
                     updated[currentJoint] = 1;
                 }

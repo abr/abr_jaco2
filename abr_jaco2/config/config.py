@@ -11,6 +11,7 @@ class robot_config(robot_config.robot_config):
 
     def __init__(self, hand_attached=True, **kwargs):
 
+        self.hand_attached = hand_attached
         num_links = 7 if hand_attached is True else 6
         super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)

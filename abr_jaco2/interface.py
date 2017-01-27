@@ -79,3 +79,7 @@ class interface(interface.interface):
         read in from the arm as a dictionary, with keys 'q' and 'dq'.
         """
         return self.jaco2.GetFeedback()
+
+    def get_torque_load(self):
+        """Returns the torque at each joint"""
+        return self.jaco2.GetTorqueLoad()
