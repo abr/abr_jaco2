@@ -147,9 +147,8 @@ class robot_config(robot_config.robot_config):
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
-            # TODO: change this to be the offset of the hand
-        if self.hand_attached is True:
-            self.L.append([0.000684, 0.0, 0.008222]) # hand offset is (x, y, z)
+        if self.hand_attached is True:  # add in hand offset
+            self.L.append([0.000684, 0.0, 0.008222])
         self.L = np.array(self.L)
 
         # ---- Joint Transform Matrices ----
