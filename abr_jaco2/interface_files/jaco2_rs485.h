@@ -44,19 +44,16 @@ class Jaco2 {
         vector<string> errorMessage;
 
         // main functions
-        void Connect();
-        void InitForceMode(float setTorque[6]);
-        void InitPositionMode();
         void ApplyQ(float q_target[6]);
         void ApplyU(float u[6]);
-        void GetFeedback(int messageType);//, unsigned char DESTINATION_ADDRESS, float q[6], float dq[6]);
+        void Connect();
         void Disconnect();
-        void GetPos();
+        int GetFeedback();
+        void InitForceMode(float setTorque[6]);
+        void InitPositionMode();
+        int SendAndReceive(RS485_Message message[6], bool loop);
 
         // read variables
-        int flag;
-        bool torqueValidation;
-        bool switchValidation;
         float pos[6]; //From Halls sensor
         float vel[6];
         float torque_load[6];
@@ -73,6 +70,7 @@ class Jaco2 {
         // variables used during the communication process.
         int WriteCount;
         int ReadCount;
+        bool communicationSuccessful;
         unsigned char joint[6];
 
         // RS485 arrays of structs
