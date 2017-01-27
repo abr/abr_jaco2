@@ -53,5 +53,5 @@ cdef class pyJaco2:
         return feedback
 
     def GetTorqueLoad(self):
-        torque_load = {self.thisptr.torque_load}
-        return torque_load
+        t_feedback = {'torque_load' : self.thisptr.torque_load}
+        return t_feedback

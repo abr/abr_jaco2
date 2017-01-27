@@ -1241,6 +1241,7 @@ static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_range[] = "range";
 static const char __pyx_k_import[] = "__import__";
 static const char __pyx_k_ValueError[] = "ValueError";
+static const char __pyx_k_torque_load[] = "torque_load";
 static const char __pyx_k_RuntimeError[] = "RuntimeError";
 static const char __pyx_k_ndarray_is_not_C_contiguous[] = "ndarray is not C contiguous";
 static const char __pyx_k_unknown_dtype_code_in_numpy_pxd[] = "unknown dtype code in numpy.pxd (%d)";
@@ -1263,6 +1264,7 @@ static PyObject *__pyx_n_s_numpy;
 static PyObject *__pyx_n_s_q;
 static PyObject *__pyx_n_s_range;
 static PyObject *__pyx_n_s_test;
+static PyObject *__pyx_n_s_torque_load;
 static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
 static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
@@ -1951,8 +1953,8 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18GetFeedback(struct __pyx_obj_
  *         return feedback
  * 
  *     def GetTorqueLoad(self):             # <<<<<<<<<<<<<<
- *         torque_load = {self.thisptr.torque_load}
- *         return torque_load
+ *         t_feedback = {'torque_load' : self.thisptr.torque_load}
+ *         return t_feedback
  */
 
 /* Python wrapper */
@@ -1969,7 +1971,7 @@ static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_21GetTorqueLoad(PyObject *__pyx
 }
 
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_20GetTorqueLoad(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self) {
-  PyObject *__pyx_v_torque_load = NULL;
+  PyObject *__pyx_v_t_feedback = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -1979,34 +1981,34 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_20GetTorqueLoad(struct __pyx_ob
   /* "jaco2_cython.pyx":56
  * 
  *     def GetTorqueLoad(self):
- *         torque_load = {self.thisptr.torque_load}             # <<<<<<<<<<<<<<
- *         return torque_load
+ *         t_feedback = {'torque_load' : self.thisptr.torque_load}             # <<<<<<<<<<<<<<
+ *         return t_feedback
  */
-  __pyx_t_1 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->torque_load, 6); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PySet_New(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->torque_load, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 56, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PySet_Add(__pyx_t_2, __pyx_t_1) < 0) __PYX_ERR(0, 56, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_v_torque_load = ((PyObject*)__pyx_t_2);
-  __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_torque_load, __pyx_t_2) < 0) __PYX_ERR(0, 56, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_v_t_feedback = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
 
   /* "jaco2_cython.pyx":57
  *     def GetTorqueLoad(self):
- *         torque_load = {self.thisptr.torque_load}
- *         return torque_load             # <<<<<<<<<<<<<<
+ *         t_feedback = {'torque_load' : self.thisptr.torque_load}
+ *         return t_feedback             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_v_torque_load);
-  __pyx_r = __pyx_v_torque_load;
+  __Pyx_INCREF(__pyx_v_t_feedback);
+  __pyx_r = __pyx_v_t_feedback;
   goto __pyx_L0;
 
   /* "jaco2_cython.pyx":55
  *         return feedback
  * 
  *     def GetTorqueLoad(self):             # <<<<<<<<<<<<<<
- *         torque_load = {self.thisptr.torque_load}
- *         return torque_load
+ *         t_feedback = {'torque_load' : self.thisptr.torque_load}
+ *         return t_feedback
  */
 
   /* function exit code */
@@ -2016,7 +2018,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_20GetTorqueLoad(struct __pyx_ob
   __Pyx_AddTraceback("jaco2_rs485.pyJaco2.GetTorqueLoad", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_torque_load);
+  __Pyx_XDECREF(__pyx_v_t_feedback);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -4493,6 +4495,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_q, __pyx_k_q, sizeof(__pyx_k_q), 0, 0, 1, 1},
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
+  {&__pyx_n_s_torque_load, __pyx_k_torque_load, sizeof(__pyx_k_torque_load), 0, 0, 1, 1},
   {&__pyx_kp_u_unknown_dtype_code_in_numpy_pxd, __pyx_k_unknown_dtype_code_in_numpy_pxd, sizeof(__pyx_k_unknown_dtype_code_in_numpy_pxd), 0, 1, 0, 0},
   {0, 0, 0, 0, 0, 0, 0}
 };
@@ -4710,8 +4713,8 @@ PyMODINIT_FUNC PyInit_jaco2_rs485(void)
  *         return feedback
  * 
  *     def GetTorqueLoad(self):             # <<<<<<<<<<<<<<
- *         torque_load = {self.thisptr.torque_load}
- *         return torque_load
+ *         t_feedback = {'torque_load' : self.thisptr.torque_load}
+ *         return t_feedback
  */
   __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);

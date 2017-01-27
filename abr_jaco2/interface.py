@@ -82,4 +82,4 @@ class interface(interface.interface):
 
     def get_torque_load(self):
         """Returns the torque at each joint"""
-        return self.jaco2.GetTorqueLoad
+        return self.jaco2.GetTorqueLoad()
