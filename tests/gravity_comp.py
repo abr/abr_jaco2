@@ -22,7 +22,9 @@ ctrlr.control(np.zeros(6), np.zeros(6))
 
 # create our VREP interface
 interface = abr_jaco2.interface(robot_config)
+
 interface.connect()
+interface.init_position_mode()
 
 # Values must be in range of -360 to 360 degrees
 read_positions = np.array([
@@ -33,12 +35,12 @@ calc_euclid_error = False
 # ---------- MAIN BODY ----------
 # Move to home position
 interface.apply_q(robot_config.home_position)
-interface.disconnect()
+#interface.disconnect()
 
 try:
     for ii in range(0, len(read_positions)):
         # move to read position ii
-        interface.connect()
+        #interface.connect()
         print('Moving to read position ', ii)
 
         if calc_euclid_error is True:
@@ -75,8 +77,9 @@ try:
             interface.apply_u(np.array(u, dtype='float32'))      
 
         interface.init_position_mode()
-        interface.apply_q(robot_config.home_position)
-        interface.disconnect()
+        #interface.apply_q(robot_config.home_position)
+        #interface.disconnect()
 
 finally:
+    interface.disconnect()
     print('DONE!')

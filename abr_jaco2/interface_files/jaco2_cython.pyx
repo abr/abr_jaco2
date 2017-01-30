@@ -11,7 +11,6 @@ cdef extern from "jaco2_rs485.h":
         void ApplyQ(float target_q[6])
         void ApplyU(float u[6])
         void Disconnect()
-        void GetPos()
 
         float pos[6]
         float vel[6]
@@ -44,15 +43,12 @@ cdef class pyJaco2:
     def Disconnect(self):
         self.thisptr.Disconnect()
 
-    def GetPos(self):
-        self.thisptr.GetPos()
-
     def GetFeedback(self):
         feedback = {'q': self.thisptr.pos,
                     'dq': self.thisptr.vel}
         return feedback
 
     def GetTorqueLoad(self):
-        # does not work when t_feedback = self.thisptr.torque_load TO DO: INVESTIGATE
+        # does not work when t_feedback = self.thisptr.torque_load TODO: INVESTIGATE
         t_feedback = {'torque_load' : self.thisptr.torque_load}
         return t_feedback
