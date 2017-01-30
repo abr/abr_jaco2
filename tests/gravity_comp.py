@@ -27,9 +27,9 @@ interface.connect()
 # Values must be in range of -360 to 360 degrees
 read_positions = np.array([
                     [250.0, 140.0, 100.0, 230.0, 40.0, 0.0],
-                    [200.0, 140.0, 100.0, 230.0, 40.0, 0.0],
+                    [250.0, 120.0, 100.0, 230.0, 40.0, 0.0],
                     [305.0, 105.0, 105.0, 230.0, 25.0, -0.0]], dtype="float32")
-
+calc_euclid_error = False
 # ---------- MAIN BODY ----------
 # Move to home position
 interface.apply_q(robot_config.home_position)
@@ -41,14 +41,22 @@ try:
         interface.connect()
         print('Moving to read position ', ii)
 
-        torque_load = np.array(np.zeros(6), dtype="float32")
-        old_torque_load = np.array(np.zeros(6), dtype="float32")
-        for jj in range (0, 1000):
-            old_torque_load = torque_load
-            interface.apply_q(read_positions[ii])    
+        if calc_euclid_error is True:
+            torque_load = np.array(np.zeros(6), dtype="float32")
+            old_torque_load = np.array(np.zeros(6), dtype="float32")
+            for jj in range (0, 1000):
+                old_torque_load = torque_load
+                interface.apply_q(read_positions[ii])    
+                t_feedback = interface.get_torque_load()
+                torque_load = np.array(t_feedback['torque_load'], dtype="float32")
+                print("Euclid Dist: ", np.linalg.norm(torque_load - old_torque_load))
+
+        else:
+            interface.apply_q(read_positions[ii])
             t_feedback = interface.get_torque_load()
-            torque_load = np.array(t_feedback['torque_load'], dtype="float32")
-            print("Euclid Dist: ", np.linalg.norm(torque_load - old_torque_load))
+            torque_load = np.array(t_feedback['torque_load'], dtype="float32")    
+            t_feedback = interface.get_torque_load()
+            
 
         interface.init_force_mode(expected_torque = torque_load)
         loop_count = 0

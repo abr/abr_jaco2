@@ -176,7 +176,7 @@ Jaco2::Jaco2() {
         TestTorquesMessage[ii].SourceAddress = SOURCE_ADDRESS;
         TestTorquesMessage[ii].DestinationAddress = joint[ii];
         //not used
-        TestTorquesMessage[ii].DataLong[1] = 0x00000000;
+        //TestTorquesMessage[ii].DataLong[1] = 0x00000000;
         //32F torque command [Nm]
         TestTorquesMessage[ii].DataFloat[2] = 0;
         TestTorquesMessage[ii].DataLong[3] = ((unsigned long) torqueDamping |
@@ -315,8 +315,8 @@ void Jaco2::ApplyQ(float q_target[6])
     for (int ii = 0; ii<6; ii++)
     {
         Joint6Command[ii] = pos[ii];
-        cout << "target " << ii << " is: " << q_target[ii]<< endl;
-        cout << "Current pos: " << pos[ii] << endl;
+        //cout << "target " << ii << " is: " << q_target[ii]<< endl;
+        //cout << "Current pos: " << pos[ii] << endl;
         ApplyQMessage[ii].DataFloat[0] = Joint6Command[ii];
         ApplyQMessage[ii].DataFloat[1] = Joint6Command[ii];
     }
@@ -443,16 +443,36 @@ void Jaco2::InitForceMode(float setTorque[6])
     for (int ii=0; ii<6; ii++)
     {
         TestTorquesMessage[ii].DataFloat[0] = pos[ii];
+        TestTorquesMessage[ii].DataLong[1] = setTorque[ii];
     }
 
-    cout << "STEP 1: Send Torque Command for Verification" << endl;
+    cout << "STEP 1: Send Torque Command for Reading" << endl;
 
     MyRS485_Write(TestTorquesMessage, packets_sent, WriteCount);
     usleep(delay);
+    GetFeedback(RS485_MSG_SEND_ALL_VALUES_1);
+    for (int ii = 0; ii<6; ii++)
+    {
+        if (updated[ii] == 0)
+        {
+            cout << "ApplyQ: Error while obtaining actuator " << ii
+                     << " position" <<endl;
+        }
+    }
 
+    for (int ii=0; ii<6; ii++)
+    {
+        TestTorquesMessage[ii].DataFloat[0] = pos[ii];
+        TestTorquesMessage[ii].DataLong[1] = torque_load[ii];
+    }
+
+    cout << "STEP 2: Send Torque Command for Verification" << endl;
+
+    MyRS485_Write(TestTorquesMessage, packets_sent, WriteCount);
+    usleep(delay);
     // STEP 2: Validate the torque command
     //float setTorque[6] = {-0.138, -0.116, 3.339, -0.365, -0.113, 0.061};
-    for (int ii=0; ii<6; ii++)
+    /*for (int ii=0; ii<6; ii++)
     {
         ValidateTorquesMessage[ii].DataFloat[0] = setTorque[ii];//0;
     }
@@ -476,7 +496,7 @@ void Jaco2::InitForceMode(float setTorque[6])
                 cout << "InitForceMode: Error while obtaining torque Validation for joint " << ii <<endl;
             }
         }
-    }
+    }*/
 
     // STEP 3: Switch to torque control mode
     cout << "STEP 3: Waiting for Torque Verification" << endl;
