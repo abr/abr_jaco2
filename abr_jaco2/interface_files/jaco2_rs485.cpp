@@ -7,7 +7,7 @@ AUTHORS: Pawel Jaworski, Travis DeWolf, Martine Blouin
 Jaco2::Jaco2() {
 
     //set common variables
-    delay = 2000;
+    delay = 1250;
     packets_sent = 6;
     packets_read = 18; //3 responses (14, 15, 16) expected per motor
     currentMotor = 6; // only 6 joints so if source address is not < 6 after
@@ -76,10 +76,12 @@ Jaco2::Jaco2() {
     // Set up static parts of messages sent across
     // Set up the message used by ApplyQ
     for (int ii = 0; ii<6; ii++) {
-        ApplyQMessage[ii].Command = 0x0014;//RS485_MSG_GET_POSITION_COMMAND_ALL_VALUES;
+        ApplyQMessage[ii].Command =
+            POSITION_COMMAND;
         ApplyQMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ApplyQMessage[ii].DestinationAddress = joint[ii];
-        ApplyQMessage[ii].DataLong[2] = 0x1;
+        // ApplyQMessage[ii].DataLong[2] = 0x1;
+        ApplyQMessage[ii].DataLong[2] = 0x00000000;
         ApplyQMessage[ii].DataLong[3] = 0x00000000;
     }
 
@@ -268,46 +270,38 @@ void Jaco2::InitForceMode() {
 
 void Jaco2::ApplyQ(float q_target[6]) {
     // STEP 0: Get initial position
-    cout << "STEP 0: Get current position" << endl;
+    cout << "Moving to target positions : " << q_target << endl;
     SendAndReceive(GetPositionMessage, true);
 
     // STEP 1: move to rest position
-    int TargetReached = 0;
     int ctr = 0;
-    float Joint6Command[6];
-    for (int ii = 0; ii<6; ii++) {
-        Joint6Command[ii] = pos[ii];
-        ApplyQMessage[ii].DataFloat[0] = Joint6Command[ii];
-        ApplyQMessage[ii].DataFloat[1] = Joint6Command[ii];
-    }
-
-    while(TargetReached < 6) {
-        TargetReached = 0;
+    int targetsReached = 0;
+    memset(offsets, 0.05, (size_t)sizeof(float)*6);
+    while(targetsReached < 6) {
         // increment joint command by 1 degree until target reached
-        for (int ii = 0; ii<6; ii++) {
-            // compare target to current angle to see if should add or subtract
-            if(q_target[ii] > (fmod(int(pos[ii]),360))) {
-                Joint6Command[ii] += 0.05;
+        for (int ii = 0; ii < 6; ii++) {
+            // if target and offset directions are opposite, flip offset
+            if (offsets[ii] * (q_target[ii] - fmod(int(pos[ii]), 360)) < 0) {
+                offsets[ii] *= -1;
             }
-            else if(q_target[ii] < (fmod(int(pos[ii]),360))) {
-                Joint6Command[ii] -= 0.05;
-            }
-
-            //We assign the new command (increment added)
-            ApplyQMessage[ii].DataFloat[0] = Joint6Command[ii];
-            ApplyQMessage[ii].DataFloat[1] = Joint6Command[ii];
+            // update the message DataFloat [0] and [1] with new target
+            memset(ApplyQMessage[ii].DataFloat, pos[ii] + offsets[ii],
+                   (size_t)sizeof(float)*2);
         }
 
         SendAndReceive(ApplyQMessage, true);
 
+        targetsReached = 0;
         for (int jj = 0; jj < 6; jj++) {
-            if (abs(fmod(int(pos[jj]),360) - q_target[jj]) < 2.0 ) {
-                TargetReached += 1;
+            // check to see if motor is at the target
+            if (abs(fmod(int(pos[jj]), 360) - q_target[jj]) < 2.0) {
+                offsets[jj] = 0.0;  // if we are stop moving
+                targetsReached += 1;  // increment target counter
             }
             else if (ctr == 1000) {
-                cout << "Actuator: " << jj << " position is: " << pos[jj]
-                     << " with target: " << q_target[jj]
-                     << " mod 360: " << fmod(int(pos[jj]),360) << endl;
+                // if we're not, every 1000 timesteps print out
+                cout << "Motor " << jj << " position: " << pos[jj];
+                cout << ", target: " << q_target[jj] << endl;
                 ctr = 0;
             }
         }
@@ -405,6 +399,8 @@ void Jaco2::ProcessFeedback() {
                 // in case of an error, go on to the next packet
                 break;
 
+            case POSITION_AND_CURRENT :
+
             case SEND_ACTUAL_POSITION :
 
                 pos[currentMotor] = MessageListIn[ii].DataFloat[1];
@@ -492,6 +488,6 @@ void Jaco2::PrintError(int index, int currentMotor) {
         cout << "\nERROR\n";
         cout << MessageListIn[index].DataLong[1] << " ";
         cout << errorMessage[MessageListIn[index].DataLong[1]] << " ";
-        cout << "for motor " << currentMotor;
+        cout << "for motor " << currentMotor << endl;
     }
 }

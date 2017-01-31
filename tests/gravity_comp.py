@@ -29,13 +29,13 @@ interface = abr_jaco2.interface(robot_config)
 interface.connect()
 interface.init_position_mode()
 
-loop_limit = 10
+loop_limit = 1000
 
 # Values must be in range of -360 to 360 degrees
 read_positions = np.array([
                     [250.0, 140.0, 100.0, 230.0, 40.0, 0.0],
-                    [250.0, 120.0, 100.0, 230.0, 40.0, 0.0],
-                    [305.0, 105.0, 105.0, 230.0, 25.0, -0.0]], dtype="float32")
+                    [250.0, 200.0, 200.0, 150.0, 40.0, 0.0],
+                    [305.0, 210.0, 250.0, 100.0, 25.0, -0.0]], dtype="float32")
 
 joint_angles = np.zeros((6, loop_limit, len(read_positions)))
 
