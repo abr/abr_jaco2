@@ -270,99 +270,44 @@ void Jaco2::InitForceMode() {
 
 void Jaco2::ApplyQ(float q_target[6]) {
     // STEP 0: Get initial position
-    cout << "STEP 0: Get current position" << endl;
+    cout << "Moving to target positions : " << q_target << endl;
     SendAndReceive(GetPositionMessage, true);
 
     // STEP 1: move to rest position
-    int TargetReached = 0;
     int ctr = 0;
-    float Joint6Command[6];
-    for (int ii = 0; ii<6; ii++) {
-        Joint6Command[ii] = pos[ii];
-        ApplyQMessage[ii].DataFloat[0] = Joint6Command[ii];
-        ApplyQMessage[ii].DataFloat[1] = Joint6Command[ii];
-    }
-
-    while(TargetReached < 6) {
-        TargetReached = 0;
+    int targetsReached = 0;
+    memset(offsets, 0.05, (size_t)sizeof(float)*6);
+    while(targetsReached < 6) {
         // increment joint command by 1 degree until target reached
-        for (int ii = 0; ii<6; ii++) {
-            // compare target to current angle to see if should add or subtract
-            if(q_target[ii] > (fmod(int(pos[ii]),360))) {
-                Joint6Command[ii] += 0.05;
+        for (int ii = 0; ii < 6; ii++) {
+            // if target and offset directions are opposite, flip offset
+            if (offsets[ii] * (q_target[ii] - fmod(int(pos[ii]), 360)) < 0) {
+                offsets[ii] *= -1;
             }
-            else if(q_target[ii] < (fmod(int(pos[ii]),360))) {
-                Joint6Command[ii] -= 0.05;
-            }
-
-            //We assign the new command (increment added)
-            ApplyQMessage[ii].DataFloat[0] = Joint6Command[ii];
-            ApplyQMessage[ii].DataFloat[1] = Joint6Command[ii];
+            // update the message DataFloat [0] and [1] with new target
+            memset(ApplyQMessage[ii].DataFloat, pos[ii] + offsets[ii],
+                   (size_t)sizeof(float)*2);
         }
 
         SendAndReceive(ApplyQMessage, true);
 
+        targetsReached = 0;
         for (int jj = 0; jj < 6; jj++) {
-            if (abs(fmod(int(pos[jj]),360) - q_target[jj]) < 2.0 ) {
-                TargetReached += 1;
+            // check to see if motor is at the target
+            if (abs(fmod(int(pos[jj]), 360) - q_target[jj]) < 2.0) {
+                offsets[jj] = 0.0;  // if we are stop moving
+                targetsReached += 1;  // increment target counter
             }
             else if (ctr == 1000) {
-                cout << "Actuator: " << jj << " position is: " << pos[jj]
-                     << " with target: " << q_target[jj]
-                     << " mod 360: " << fmod(int(pos[jj]),360) << endl;
+                // if we're not, every 1000 timesteps print out
+                cout << "Motor " << jj << " position: " << pos[jj];
+                cout << ", target: " << q_target[jj] << endl;
                 ctr = 0;
             }
         }
         ctr += 1;
     }
 }
-//
-//
-// void Jaco2::ApplyQ(float q_target[6]) {
-//     // STEP 0: Get initial position
-//     cout << "STEP 0: Get current position" << endl;
-//     SendAndReceive(GetPositionMessage, true);
-//
-//     // STEP 1: calculate which direction each joint is going
-//     int offsets[6];
-//
-//     // STEP 2: incrementally move each motor to target
-//     int ctr = 0;
-//     int TargetReached = 0;
-//     while(TargetReached < 6) {
-//         TargetReached = 0;
-//
-//         memset(offsets, 0.05, (size_t)sizeof(float)*6);
-//         for (int ii = 0; ii < 6; ii++) {
-//             if(q_target[ii] < (fmod(int(pos[ii]),360))) {
-//                 offsets[ii] *= -1;
-//             }
-//         }
-//
-//         // increment joint command by 1 degree until target reached
-//         for (int ii = 0; ii < 6; ii++) {
-//             // We assign the new command (increment added)
-//             ApplyQMessage[ii].DataFloat[0] = pos[ii] + offsets[ii];
-//             ApplyQMessage[ii].DataFloat[1] = pos[ii] + offsets[ii];
-//         }
-//         SendAndReceive(ApplyQMessage, true);
-//
-//         for (int ii = 0; ii < 6; ii++) {
-//             // if target has been reached
-//             if (abs(fmod(int(pos[ii]),360) - q_target[ii]) < 2.0) {
-//                 TargetReached += 1; // update the counter
-//                 offsets[ii] = 0.0; // set the offset for this motor = 0
-//             }
-//             else if (ctr == 1000) {
-//                 cout << "Motor " << ii << " position is: " << pos[ii]
-//                      << " with target: " << q_target[ii]
-//                      << " mod 360: " << fmod(int(pos[ii]),360) << endl;
-//                 ctr = 0;
-//             }
-//         }
-//         ctr += 1;
-//     }
-// }
 
 // Wraps the set of input torques u up into a message and sends it to the Jaco2
 void Jaco2::ApplyU(float u[6]) {

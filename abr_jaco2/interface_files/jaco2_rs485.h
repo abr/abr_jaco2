@@ -40,7 +40,7 @@ class Jaco2 {
         int messageReceived2;
         int ActuatorInitialized;
         int updated[6];
-        int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
+        int offsets[6];
         int currentMotor;
         vector<string> errorMessage;
 
