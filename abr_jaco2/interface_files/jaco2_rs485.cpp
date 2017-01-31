@@ -7,7 +7,7 @@ AUTHORS: Pawel Jaworski, Travis DeWolf, Martine Blouin
 Jaco2::Jaco2() {
 
     //set common variables
-    delay = 2000;
+    delay = 1600;
     packets_sent = 6;
     packets_read = 18; //3 responses (14, 15, 16) expected per motor
     currentMotor = 6; // only 6 joints so if source address is not < 6 after
@@ -76,10 +76,12 @@ Jaco2::Jaco2() {
     // Set up static parts of messages sent across
     // Set up the message used by ApplyQ
     for (int ii = 0; ii<6; ii++) {
-        ApplyQMessage[ii].Command = 0x0014;//RS485_MSG_GET_POSITION_COMMAND_ALL_VALUES;
+        ApplyQMessage[ii].Command =
+            RS485_MSG_GET_POSITION_COMMAND_ALL_VALUES;
         ApplyQMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ApplyQMessage[ii].DestinationAddress = joint[ii];
-        ApplyQMessage[ii].DataLong[2] = 0x1;
+        // ApplyQMessage[ii].DataLong[2] = 0x1;
+        ApplyQMessage[ii].DataLong[2] = 0x00000000;
         ApplyQMessage[ii].DataLong[3] = 0x00000000;
     }
 
@@ -314,6 +316,53 @@ void Jaco2::ApplyQ(float q_target[6]) {
         ctr += 1;
     }
 }
+//
+//
+// void Jaco2::ApplyQ(float q_target[6]) {
+//     // STEP 0: Get initial position
+//     cout << "STEP 0: Get current position" << endl;
+//     SendAndReceive(GetPositionMessage, true);
+//
+//     // STEP 1: calculate which direction each joint is going
+//     int offsets[6];
+//
+//     // STEP 2: incrementally move each motor to target
+//     int ctr = 0;
+//     int TargetReached = 0;
+//     while(TargetReached < 6) {
+//         TargetReached = 0;
+//
+//         memset(offsets, 0.05, (size_t)sizeof(float)*6);
+//         for (int ii = 0; ii < 6; ii++) {
+//             if(q_target[ii] < (fmod(int(pos[ii]),360))) {
+//                 offsets[ii] *= -1;
+//             }
+//         }
+//
+//         // increment joint command by 1 degree until target reached
+//         for (int ii = 0; ii < 6; ii++) {
+//             // We assign the new command (increment added)
+//             ApplyQMessage[ii].DataFloat[0] = pos[ii] + offsets[ii];
+//             ApplyQMessage[ii].DataFloat[1] = pos[ii] + offsets[ii];
+//         }
+//         SendAndReceive(ApplyQMessage, true);
+//
+//         for (int ii = 0; ii < 6; ii++) {
+//             // if target has been reached
+//             if (abs(fmod(int(pos[ii]),360) - q_target[ii]) < 2.0) {
+//                 TargetReached += 1; // update the counter
+//                 offsets[ii] = 0.0; // set the offset for this motor = 0
+//             }
+//             else if (ctr == 1000) {
+//                 cout << "Motor " << ii << " position is: " << pos[ii]
+//                      << " with target: " << q_target[ii]
+//                      << " mod 360: " << fmod(int(pos[ii]),360) << endl;
+//                 ctr = 0;
+//             }
+//         }
+//         ctr += 1;
+//     }
+// }
 
 // Wraps the set of input torques u up into a message and sends it to the Jaco2
 void Jaco2::ApplyU(float u[6]) {
@@ -405,6 +454,8 @@ void Jaco2::ProcessFeedback() {
                 // in case of an error, go on to the next packet
                 break;
 
+            case POSITION_AND_CURRENT :
+
             case SEND_ACTUAL_POSITION :
 
                 pos[currentMotor] = MessageListIn[ii].DataFloat[1];
@@ -492,6 +543,6 @@ void Jaco2::PrintError(int index, int currentMotor) {
         cout << "\nERROR\n";
         cout << MessageListIn[index].DataLong[1] << " ";
         cout << errorMessage[MessageListIn[index].DataLong[1]] << " ";
-        cout << "for motor " << currentMotor;
+        cout << "for motor " << currentMotor << endl;
     }
 }
