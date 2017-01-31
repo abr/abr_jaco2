@@ -1,5 +1,5 @@
 /*
-AUTHORS: Martine Blouin, Pawel Jaworski, Travis DeWolf
+AUTHORS: Pawel Jaworski, Travis DeWolf, Martine Blouin
 */
 
 #include "jaco2_rs485.h"
@@ -10,7 +10,7 @@ Jaco2::Jaco2() {
     delay = 2000;
     packets_sent = 6;
     packets_read = 18; //3 responses (14, 15, 16) expected per motor
-    currentJoint = 6; // only 6 joints so if source address is not < 6 after
+    currentMotor = 6; // only 6 joints so if source address is not < 6 after
                       // reading should receive error due do array size
 
     memset(updated, 0, (size_t)sizeof(int)*6);
@@ -51,8 +51,7 @@ Jaco2::Jaco2() {
         "./Kinova.API.CommLayerUbuntu.so",
         RTLD_NOW|RTLD_GLOBAL);
 
-    if (!commLayer_Handle)
-    {
+    if (!commLayer_Handle) {
         fprintf(stderr, "dlopen failed: %s\n", dlerror());
         exit(EXIT_FAILURE);
     }
@@ -76,18 +75,16 @@ Jaco2::Jaco2() {
 
     // Set up static parts of messages sent across
     // Set up the message used by ApplyQ
-    for (int ii = 0; ii<6; ii++)
-    {
+    for (int ii = 0; ii<6; ii++) {
         ApplyQMessage[ii].Command = 0x0014;//RS485_MSG_GET_POSITION_COMMAND_ALL_VALUES;
-        ApplyQMessage[ii].SourceAddress = 0x00;
+        ApplyQMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ApplyQMessage[ii].DestinationAddress = joint[ii];
         ApplyQMessage[ii].DataLong[2] = 0x1;
         ApplyQMessage[ii].DataLong[3] = 0x00000000;
     }
 
     // set constants in force message to increase loop speed
-    for (int ii=0; ii<6; ii++)
-    {
+    for (int ii=0; ii<6; ii++) {
         ForceMessage[ii].Command =
             RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
         ForceMessage[ii].DestinationAddress = joint[ii];
@@ -99,8 +96,7 @@ Jaco2::Jaco2() {
     }
 
     // Set up get position message
-    for (int ii=0; ii<6; ii++)
-    {
+    for (int ii=0; ii<6; ii++) {
         GetPositionMessage[ii].Command = 0x0001;
         GetPositionMessage[ii].SourceAddress = SOURCE_ADDRESS;
         GetPositionMessage[ii].DestinationAddress = joint[ii];
@@ -111,8 +107,7 @@ Jaco2::Jaco2() {
      }
 
     // Set up robot initialization message
-    for (int ii = 0; ii<6; ii++)
-    {
+    for (int ii = 0; ii<6; ii++) {
         //Initialize the INIT message
         InitMessage[ii].Command = RS485_MSG_GET_ACTUALPOSITION;
         InitMessage[ii].SourceAddress = SOURCE_ADDRESS;//0 means the API
@@ -126,8 +121,7 @@ Jaco2::Jaco2() {
     }
 
     // Set up initialize position mode message
-    for (int ii=0; ii<6; ii++)
-    {
+    for (int ii=0; ii<6; ii++) {
         InitPositionMessage[ii].Command = SWITCH_CONTROL_MODE_REQUEST;
         InitPositionMessage[ii].SourceAddress = SOURCE_ADDRESS;
         InitPositionMessage[ii].DestinationAddress = joint[ii];
@@ -140,8 +134,7 @@ Jaco2::Jaco2() {
     }
 
     // Set up the initialize torque mode message
-    for(int ii=0; ii<6; ii++)
-    {
+    for(int ii=0; ii<6; ii++) {
         InitTorqueMessage[ii].Command = SWITCH_CONTROL_MODE_REQUEST;
         InitTorqueMessage[ii].SourceAddress = SOURCE_ADDRESS;
         InitTorqueMessage[ii].DestinationAddress = joint[ii];//DESTINATION_ADDRESS;
@@ -153,8 +146,7 @@ Jaco2::Jaco2() {
     }
 
     // Set torque safety parameters
-    for (int ii=0; ii<6; ii++)
-    {
+    for (int ii=0; ii<6; ii++) {
         SafetyMessage[ii].Command = SEND_TORQUE_CONFIG_SAFETY;
         SafetyMessage[ii].SourceAddress = SOURCE_ADDRESS;
         SafetyMessage[ii].DestinationAddress = joint[ii];
@@ -165,8 +157,7 @@ Jaco2::Jaco2() {
     }
 
     // Set up the test torque message
-    for (int ii=0; ii<6; ii++)
-    {
+    for (int ii=0; ii<6; ii++) {
         TestTorquesMessage[ii].Command =
             RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
         TestTorquesMessage[ii].SourceAddress = SOURCE_ADDRESS;
@@ -181,8 +172,7 @@ Jaco2::Jaco2() {
     }
 
     // Set up the validate torque message
-    for (int ii=0; ii<6; ii++)
-    {
+    for (int ii=0; ii<6; ii++) {
         ValidateTorquesMessage[ii].Command = GET_TORQUE_VALIDATION_REQUEST;
         ValidateTorquesMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ValidateTorquesMessage[ii].DestinationAddress = joint[ii];  //DESTINATION_ADDRESS;
@@ -195,22 +185,19 @@ Jaco2::Jaco2() {
 
 Jaco2::~Jaco2() { }
 
-void Jaco2::Connect()
-{
+void Jaco2::Connect() {
     cout << "RS-485 communication Initialization" << endl;
     //Flag used during initialization.
     int result;
 
     //If all functions are loaded correctly.
     if(fptrInitCommunication != NULL || MyRS485_Activate != NULL ||
-       MyRS485_Read != NULL || MyRS485_Write != NULL)
-    {
+       MyRS485_Read != NULL || MyRS485_Write != NULL) {
         //Initialization of the API
         result = fptrInitCommunication();
 
         //If API's initialization is correct.
-        if(result == NO_ERROR_KINOVA)
-        {
+        if(result == NO_ERROR_KINOVA) {
             cout << "USB initialization completed" << endl << endl;
 
             /*We activate the RS-485 comm API. From here you cannot control the
@@ -224,53 +211,28 @@ void Jaco2::Connect()
             cout << "Initializing Jaco2...";
             SendAndReceive(InitMessage, true);
         }
-        else
-        {
+        else {
             cout << "Error " << result << " while Initializing" << endl;
         }
     }
-    else
-    {
+    else {
         cout << "Errors while loading API's function" << endl;
     }
     cout << "Connection successful";
 }
 
-void Jaco2::Disconnect()
-{
+void Jaco2::Disconnect() {
     fptrCloseCommunication();
     cout << "Connection closed" << endl;
 }
 
-int Jaco2::SendAndReceive(RS485_Message message[6], bool loop)
-{
-    /* This function sends a message out to the arm, reads the feedback,
-     * and has the option to loop repeatedly until message read successfully
-     * by all of the motors. */
-
-    int joints_updated = 0;
-    while(joints_updated < 6)
-    {
-        MyRS485_Write(message, packets_sent, WriteCount);
-        usleep(delay);
-        joints_updated = GetFeedback();
-        if (loop == false)
-        {
-            break;
-        }
-    }
-    return joints_updated;
-}
-
-void Jaco2::InitPositionMode()
-{
+void Jaco2::InitPositionMode() {
     cout << "Initialize position control mode..." << endl;
     SendAndReceive(InitPositionMessage, true);
     cout << "Position control mode activated" << endl;
 }
 
-void Jaco2::InitForceMode(float setTorque[6])
-{
+void Jaco2::InitForceMode() {
     // STEP 0: Get current position
     cout << "STEP 0: Get current position" << endl;
     SendAndReceive(GetPositionMessage, true);
@@ -279,18 +241,16 @@ void Jaco2::InitForceMode(float setTorque[6])
     cout << "STEP 1: Set torque safety parameters" << endl;
     SendAndReceive(SafetyMessage, true);
 
-    // STEP 2: Send torque values to compare with sensor readings
-    cout << "STEP 2: Send torque values to compare with sensor readings" << endl;
     int joints_updated0 = 0;
-    while (joints_updated0 < 6)
-    {
+    while (joints_updated0 < 6) {
+        // STEP 2: Send torque values to compare with sensor readings
+        cout << "STEP 2: Send torque values to compare with sensor readings"
+             << endl;
         int joints_updated1 = 0;
-        while(joints_updated1 < 6)
-        {
-            // motor 1 is flipped so input torques need to be * - 1
+        while(joints_updated1 < 6) {
+            // NOTE: motor 1 is flipped so input torques need to be * - 1
             torque_load[1] *= -1;
-            for (int ii=0; ii<6; ii++)
-            {
+            for (int ii=0; ii<6; ii++) {
                 TestTorquesMessage[ii].DataFloat[0] = pos[ii];
                 TestTorquesMessage[ii].DataLong[1] = torque_load[ii];
             }
@@ -298,62 +258,38 @@ void Jaco2::InitForceMode(float setTorque[6])
         }
 
         // STEP 3: Send request to switch to torque control mode
-        cout << "STEP 3: Send request to switch to torque control mode" << endl;
+        cout << "STEP 3: Send request to switch to torque control mode"
+             << endl;
         joints_updated0 = SendAndReceive(InitTorqueMessage, false);
     }
 
     cout << "SUCCESS: Switching to Torque Mode" << endl;
 }
 
-
-void Jaco2::ApplyQ(float q_target[6])
-{
+void Jaco2::ApplyQ(float q_target[6]) {
     // STEP 0: Get initial position
-    int joints_updated = 0;
-    while(joints_updated < 6)
-    {
-        // reset to zero, want all to be set in a single read
-        MyRS485_Write(GetPositionMessage, packets_sent, WriteCount);
-        usleep(delay);
-        joints_updated = GetFeedback();
-
-        for (int ii = 0; ii<6; ii++)
-        {
-            if (updated[ii] == 0)
-            {
-                cout << "ApplyQ: Error while obtaining actuator " << ii
-                         << " position" <<endl;
-            }
-        }
-
-    }
+    cout << "STEP 0: Get current position" << endl;
+    SendAndReceive(GetPositionMessage, true);
 
     // STEP 1: move to rest position
     int TargetReached = 0;
     int ctr = 0;
     float Joint6Command[6];
-    for (int ii = 0; ii<6; ii++)
-    {
+    for (int ii = 0; ii<6; ii++) {
         Joint6Command[ii] = pos[ii];
-        //cout << "target " << ii << " is: " << q_target[ii]<< endl;
-        //cout << "Current pos: " << pos[ii] << endl;
         ApplyQMessage[ii].DataFloat[0] = Joint6Command[ii];
         ApplyQMessage[ii].DataFloat[1] = Joint6Command[ii];
     }
 
-    while(TargetReached < 6)
-    {
+    while(TargetReached < 6) {
         TargetReached = 0;
         // increment joint command by 1 degree until target reached
-        for (int ii = 0; ii<6; ii++)
-        {
+        for (int ii = 0; ii<6; ii++) {
             // compare target to current angle to see if should add or subtract
-            if(q_target[ii] > (fmod(int(pos[ii]),360)))
-            {
+            if(q_target[ii] > (fmod(int(pos[ii]),360))) {
                 Joint6Command[ii] += 0.05;
             }
-            else if(q_target[ii] < (fmod(int(pos[ii]),360)))
-            {
+            else if(q_target[ii] < (fmod(int(pos[ii]),360))) {
                 Joint6Command[ii] -= 0.05;
             }
 
@@ -364,16 +300,11 @@ void Jaco2::ApplyQ(float q_target[6])
 
         SendAndReceive(ApplyQMessage, true);
 
-        for (int jj = 0; jj < 6; jj++)
-        {
-            if (abs(fmod(int(pos[jj]),360) - q_target[jj]) < 2.0 )
-            {
+        for (int jj = 0; jj < 6; jj++) {
+            if (abs(fmod(int(pos[jj]),360) - q_target[jj]) < 2.0 ) {
                 TargetReached += 1;
-                // cout << "Actuator " << jj << " at home, Position is " << pos[jj]
-                //      << ", Target is: " << q_target[jj] <<endl;
             }
-            else if (ctr == 1000)
-            {
+            else if (ctr == 1000) {
                 cout << "Actuator: " << jj << " position is: " << pos[jj]
                      << " with target: " << q_target[jj]
                      << " mod 360: " << fmod(int(pos[jj]),360) << endl;
@@ -384,188 +315,183 @@ void Jaco2::ApplyQ(float q_target[6])
     }
 }
 
-void Jaco2::ApplyU(float u[6])
-{
-    // load the torque signal into our outbound message
-    for (int ii=0; ii<6; ii++)
-    {
+// Wraps the set of input torques u up into a message and sends it to the Jaco2
+void Jaco2::ApplyU(float u[6]) {
+    // load the torque signal into outbound message
+    for (int ii=0; ii<6; ii++) {
         ForceMessage[ii].DataFloat[0] = pos[ii];
         ForceMessage[ii].DataFloat[2] = u[ii]; //32F torque command [1Nm]
     }
 
     MyRS485_Write(ForceMessage, packets_sent, WriteCount);
     usleep(1250); // TO DO: EXPERIMENT WITH DIFFERENT DELAY
+    MyRS485_Read(MessageListIn, packets_read, ReadCount);
 
-    MyRS485_Read(ReceivedInitMessage, packets_read, ReadCount);
-
+    // The response for a SEND_POSITION_AND_TORQUE (0x0014) command is 3
+    // messages per motor [0x0015, 0x0016, 0x0017]. Read through all
+    // feedback, and if data for a motor hasn't been received yet update
+    // then update the position and velocity variables for that motor. Use
+    // reduced processing here rather than through ProcessFeedback for speed.
+    // NOTE: torque_load is not updated while reading this feedback
     memset(updated, 0, (size_t)sizeof(int)*6);
-    for(int jj = 0; jj < ReadCount; jj++)
-    {
-
-        if(ReceivedInitMessage[jj].Command == RS485_MSG_SEND_ALL_VALUES_1)
-        {
+    for(int ii = 0; ii < ReadCount; ii++) {
+        if(MessageListIn[ii].Command == RS485_MSG_SEND_ALL_VALUES_1) {
             //actuator 0 is 16
-            currentJoint = ReceivedInitMessage[jj].SourceAddress - 16;
-            if (updated[currentJoint] == 0) {
-                pos[currentJoint] = ReceivedInitMessage[jj].DataFloat[1];
-                vel[currentJoint] = ReceivedInitMessage[jj].DataFloat[2];
-                torque_load[currentJoint] = ReceivedInitMessage[jj].DataFloat[3];
-                updated[currentJoint] = 1;
+            currentMotor = MessageListIn[ii].SourceAddress - 16;
+            if (updated[currentMotor] == 0) {
+                pos[currentMotor] = MessageListIn[ii].DataFloat[1];
+                vel[currentMotor] = MessageListIn[ii].DataFloat[2];
+                updated[currentMotor] = 1;
             }
         }
-        else if(ReceivedInitMessage[jj].Command == REPORT_ERROR)
-        {
-            // ERROR MESSAGES
-            if(ReceivedInitMessage[jj].DataLong[1] != 0)
-            {
-                cout << "SERVO " << currentJoint << " ERROR NUMBER : "
-                     << ReceivedInitMessage[jj].DataLong[1] << " "
-                     << errorMessage[ReceivedInitMessage[jj].DataLong[1]]
-                     << " ERROR" << endl;
-                cout << "RESPONSE: " << ReceivedInitMessage[jj].DataLong[2]
-                     << endl;
-            }
-            else
-            {
-                cout << "No Error" << endl;
-            }
+        else if(MessageListIn[ii].Command == REPORT_ERROR) {
+            PrintError(ii, currentMotor);
         }
     }
 }
 
-int Jaco2::GetFeedback()
-{
-    /* This function reads in the system feedback and processes it,
-     * and returns the number of joints for which data was read. */
+// Sends a message out to the arm, reads and processes the feedback,
+// and has the option to loop repeatedly until message returns successfully
+// for each of the motors. Returns the number of motors message
+// was successfully sent to and received from.
+int Jaco2::SendAndReceive(RS485_Message message[6], bool loop) {
 
-    MyRS485_Read(MessageListIn, packets_read, ReadCount);
+    int joints_updated = 0;
+    while(joints_updated < 6) {
+        MyRS485_Write(message, packets_sent, WriteCount);
+        usleep(delay);
+        MyRS485_Read(MessageListIn, packets_read, ReadCount);
+        ProcessFeedback();
+
+        for (int ii = 0; ii < 6; ii++) {
+            joints_updated += updated[ii];
+            if (updated[ii] == 0) {
+                cout << "Warning: Data for joint " << ii << " not updated."
+                    << endl;
+            }
+        }
+
+        if (loop == false) {
+            break;
+        }
+    }
+    return joints_updated;
+}
+
+// Reads the class variable MessageListIn, checks for errors and then
+// processes appropriately based of Command type. Updates class variables
+// when appropriate and sets the elements of updated = 1 if data for the
+// corresponding motor was read successfully, and = 0 if there was a
+// problem reading data for that motor.
+void Jaco2::ProcessFeedback() {
 
     // reset variables for this time through
     memset(updated, 0, (size_t)sizeof(int)*6);
-
     // cycle through all of the received messages and
     // assign the received values to the corresponding joint
-    for(int jj = 0; jj < ReadCount; jj++)
-    {
+    for(int ii = 0; ii < ReadCount; ii++) {
         // actuator 0 is 16
-        currentJoint = MessageListIn[jj].SourceAddress - 16;
-        if (currentJoint > 5)
-        {
+        currentMotor = MessageListIn[ii].SourceAddress - 16;
+        if (currentMotor > 5) {
             cout << "JOINT FEEDBACK RECEIVED FOR UNKNOWN JOINT "
-                 << currentJoint << endl;
+                 << currentMotor << endl;
             continue;
         }
 
-        switch (MessageListIn[jj].Command)
-        {
+        switch (MessageListIn[ii].Command) {
 
             case REPORT_ERROR :
-                if(MessageListIn[jj].DataLong[1] != 0)
-                {
-                    cout << "ERROR NUMBER : " << MessageListIn[jj].DataLong[1]
-                        << " " << errorMessage[MessageListIn[jj].DataLong[1]]
-                        << " ERROR" << endl;
-                    cout << "RESPONSE: " << MessageListIn[jj].DataLong[2]
-                         << endl;
-                }
+                PrintError(ii, currentMotor);
                 // in case of an error, go on to the next packet
                 break;
 
             case SEND_ACTUAL_POSITION :
 
-                pos[currentJoint] = MessageListIn[jj].DataFloat[1];
-                torque_load[currentJoint] = MessageListIn[jj].DataFloat[3];
-                updated[currentJoint] = 1;
+                pos[currentMotor] = MessageListIn[ii].DataFloat[1];
+                torque_load[currentMotor] = MessageListIn[ii].DataFloat[3];
+                updated[currentMotor] = 1;
 
                 break;
 
             case RS485_MSG_SEND_ALL_VALUES_1:
 
-                pos[currentJoint] = MessageListIn[jj].DataFloat[1];
-                vel[currentJoint] = MessageListIn[jj].DataFloat[2];
-                torque_load[currentJoint] = MessageListIn[jj].DataFloat[3];
-                updated[currentJoint] = 1;
+                pos[currentMotor] = MessageListIn[ii].DataFloat[1];
+                vel[currentMotor] = MessageListIn[ii].DataFloat[2];
+                torque_load[currentMotor] = MessageListIn[ii].DataFloat[3];
+                updated[currentMotor] = 1;
 
                 break;
 
             case SEND_TORQUE_VALIDATION :
 
                 // safety measure checks
-                if (MessageListIn[jj].DataLong[0] == 1)
-                {
+                if (MessageListIn[ii].DataLong[0] == 1) {
                     cout << "Torque Validation True for Servo "
-                        << currentJoint << " , Response: "
-                        << MessageListIn[jj].DataLong[0] << endl;
-                    updated[currentJoint] = 1;
+                        << currentMotor << " , Response: "
+                        << MessageListIn[ii].DataLong[0] << endl;
+                    updated[currentMotor] = 1;
                 }
-                else if (MessageListIn[jj].DataLong[0] == 0)
-                {
+                else if (MessageListIn[ii].DataLong[0] == 0) {
                     cout << "Torque Validation False for Servo "
-                        << currentJoint << " , Response: "
-                        << MessageListIn[jj].DataLong[0] << endl;
+                        << currentMotor << " , Response: "
+                        << MessageListIn[ii].DataLong[0] << endl;
                 }
-                else
-                {
+                else {
                     cout << "ERROR READING TORQUE VALIDATION REPLY FOR SERVO: "
-                        << currentJoint << " , RESPONSE: "
-                        << MessageListIn[jj].DataLong[0] << endl;
+                        << currentMotor << " , RESPONSE: "
+                        << MessageListIn[ii].DataLong[0] << endl;
                 }
 
                 break;
 
             case SWITCH_CONTROL_MODE_REPLY :
 
-                if (MessageListIn[jj].DataLong[0] == 257)
-                {
+                if (MessageListIn[ii].DataLong[0] == 257) {
                     cout << "Switch Control Mode TORQUE True for Servo "
-                            << currentJoint << " , Response: "
-                            << MessageListIn[jj].DataLong[0] << endl;
-                    updated[currentJoint] = 1;
+                            << currentMotor << " , Response: "
+                            << MessageListIn[ii].DataLong[0] << endl;
+                    updated[currentMotor] = 1;
                 }
-                else if (MessageListIn[jj].DataLong[0] == 1)
-                {
+                else if (MessageListIn[ii].DataLong[0] == 1) {
                     cout << "Switch Control Mode POSITION True for Servo "
-                            << currentJoint << " , Response: "
-                            << MessageListIn[jj].DataLong[0] << endl;
-                    updated[currentJoint] = 1;
+                            << currentMotor << " , Response: "
+                            << MessageListIn[ii].DataLong[0] << endl;
+                    updated[currentMotor] = 1;
                 }
-                else if (MessageListIn[jj].DataLong[0] == 0)
-                {
+                else if (MessageListIn[ii].DataLong[0] == 0) {
                     cout << "Switch Control Mode False for Servo "
-                        << currentJoint << " , Response: "
-                        << MessageListIn[jj].DataLong[0] << endl;
+                        << currentMotor << " , Response: "
+                        << MessageListIn[ii].DataLong[0] << endl;
                 }
-                else
-                {
+                else {
                     cout << "ERROR READING SWITCH CONTROL MODE REPLY FOR SERVO "
-                        << currentJoint << " , RESPONSE: "
-                        << MessageListIn[jj].DataLong[0] << endl;
+                        << currentMotor << " , RESPONSE: "
+                        << MessageListIn[ii].DataLong[0] << endl;
                 }
                 break;
 
             case GET_TORQUE_CONFIG_SAFETY :
 
-                updated[currentJoint] = 1;
-                cout << "Safety passed for servo " << currentJoint << endl;
+                updated[currentMotor] = 1;
+                cout << "Safety passed for servo " << currentMotor << endl;
 
                 break;
 
             default :
 
-                cout << "Unknown command : " << ReceivedInitMessage[jj].Command
+                cout << "Unknown command : " << MessageListIn[ii].Command
                      << endl;
         }
     }
+}
 
-    int joints_updated = 0;
-    for (int ii = 0; ii < 6; ii++)
-    {
-        joints_updated += updated[ii];
-        if (updated[ii] == 0)
-        {
-            cout << "Warning: Data for joint " << ii << " not updated."
-                 << endl;
-        }
+// Process the error message, if it's an actual error then print out
+// information (it is possible that an error message is not an actual error)
+void Jaco2::PrintError(int index, int currentMotor) {
+    if (MessageListIn[index].DataLong[1] != 0) {
+        cout << "\nERROR\n";
+        cout << MessageListIn[index].DataLong[1] << " ";
+        cout << errorMessage[MessageListIn[index].DataLong[1]] << " ";
+        cout << "for motor " << currentMotor;
     }
-    return joints_updated;
 }
