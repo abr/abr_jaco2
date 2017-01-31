@@ -20,7 +20,7 @@ num_count = len(q[0])  # number of loop counts to stay in torque mode
 num_positions = len(q[0][0])   # number of read positions
 filename = 'baseline'
 x = np.linspace(0.0, 1.0, num_count - 1)
-colours = np.array([['bo', 'go', 'ro', 'ko', 'mo', 'co'],
+colours = np.array([['b--', 'g--', 'r--', 'k--', 'm--', 'c--'],
                     ['b', 'g', 'r', 'k', 'm', 'c']])
 
 q_des = np.transpose(q_des)
@@ -31,13 +31,14 @@ for hh in range(0, num_positions):
     plt.subplot(211)
     for ii in range(0, num_joints):
         plt.plot(x, q[ii, 1:, hh], colours[0, ii],
-                 label='Joint %i Actual' % ii)
+                 label='Joint %i' % ii)
         plt.plot(x, q_des[ii, hh] * np.ones(num_count - 1),
                  colours[1, ii])
         plt.xlabel('norm(loop count)')
         plt.ylabel('joint angle [rad]')
         plt.title('Joint angles for target position %i' % hh)
-        plt.legend(shadow=True)
+        plt.legend(shadow=True, bbox_to_anchor=(1.02, 1), loc=2, 
+            borderaxespad=0.)        
     plt.subplot(212)
     for ii in range(0, num_joints):
         plt.plot(x, q[ii, 1:, hh] - q_des[ii, hh],
@@ -45,18 +46,7 @@ for hh in range(0, num_positions):
         plt.xlabel('norm(loop count)')
         plt.ylabel('q - q_des [rad]')
         plt.title('Joint angle errors for target position %i' % hh)
-        plt.legend(shadow=True)
-        # total_error_over_time = np.linalg.norm(
-        #     q_des[hh,ii] - q[ii, :, hh], axis=1)
-        # total_error = np.sum(total_error_over_time)
+        plt.legend(shadow=True, bbox_to_anchor=(1.02, 1), loc=2, 
+            borderaxespad=0.)
+plt.tight_layout()
 plt.show()
-"""error = np.sum((q_des[:, None, :] - q)**2, axis=1)
-print("error: ", error)
-print('x ', len(error))
-print('y ', len(error[0]))
-print('z ', len(error[0][0]))"""
-# calculate the error
-# error_of each joint = q_des - q
-# plot this over time, separate plot for each different target position
-# total_error_over_time = np.linalg.norm(q_des - q, axis=1)
-# total_error = np.sum(total_error_over_time)

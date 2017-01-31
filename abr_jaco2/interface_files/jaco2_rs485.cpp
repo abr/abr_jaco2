@@ -7,7 +7,7 @@ AUTHORS: Pawel Jaworski, Travis DeWolf, Martine Blouin
 Jaco2::Jaco2() {
 
     //set common variables
-    delay = 1600;
+    delay = 1250;
     packets_sent = 6;
     packets_read = 18; //3 responses (14, 15, 16) expected per motor
     currentMotor = 6; // only 6 joints so if source address is not < 6 after
@@ -77,7 +77,7 @@ Jaco2::Jaco2() {
     // Set up the message used by ApplyQ
     for (int ii = 0; ii<6; ii++) {
         ApplyQMessage[ii].Command =
-            RS485_MSG_GET_POSITION_COMMAND_ALL_VALUES;
+            POSITION_COMMAND;
         ApplyQMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ApplyQMessage[ii].DestinationAddress = joint[ii];
         // ApplyQMessage[ii].DataLong[2] = 0x1;
