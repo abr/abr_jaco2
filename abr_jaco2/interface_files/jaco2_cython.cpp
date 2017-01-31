@@ -1269,7 +1269,7 @@ static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
 static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_expected_torques); /* proto */
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8InitPositionMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyQ(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_target_q); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12ApplyU(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_u); /* proto */
@@ -1413,7 +1413,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
  *     def Connect(self):
  *         self.thisptr.Connect()             # <<<<<<<<<<<<<<
  * 
- *     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):
+ *     def InitForceMode(self):
  */
   __pyx_v_self->thisptr->Connect();
 
@@ -1435,97 +1435,55 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
 /* "jaco2_cython.pyx":31
  *         self.thisptr.Connect()
  * 
- *     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):             # <<<<<<<<<<<<<<
- *         self.thisptr.InitForceMode(&expected_torques[0])
+ *     def InitForceMode(self):             # <<<<<<<<<<<<<<
+ *         self.thisptr.InitForceMode()
  * 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode(PyObject *__pyx_v_self, PyObject *__pyx_v_expected_torques); /*proto*/
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode(PyObject *__pyx_v_self, PyObject *__pyx_v_expected_torques) {
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("InitForceMode (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_expected_torques), __pyx_ptype_5numpy_ndarray, 1, "expected_torques", 0))) __PYX_ERR(0, 31, __pyx_L1_error)
-  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_expected_torques));
+  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self));
 
   /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_expected_torques) {
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_expected_torques;
-  __Pyx_Buffer __pyx_pybuffer_expected_torques;
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  Py_ssize_t __pyx_t_1;
-  int __pyx_t_2;
   __Pyx_RefNannySetupContext("InitForceMode", 0);
-  __pyx_pybuffer_expected_torques.pybuffer.buf = NULL;
-  __pyx_pybuffer_expected_torques.refcount = 0;
-  __pyx_pybuffernd_expected_torques.data = NULL;
-  __pyx_pybuffernd_expected_torques.rcbuffer = &__pyx_pybuffer_expected_torques;
-  {
-    __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_expected_torques.rcbuffer->pybuffer, (PyObject*)__pyx_v_expected_torques, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 31, __pyx_L1_error)
-  }
-  __pyx_pybuffernd_expected_torques.diminfo[0].strides = __pyx_pybuffernd_expected_torques.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_expected_torques.diminfo[0].shape = __pyx_pybuffernd_expected_torques.rcbuffer->pybuffer.shape[0];
 
   /* "jaco2_cython.pyx":32
  * 
- *     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):
- *         self.thisptr.InitForceMode(&expected_torques[0])             # <<<<<<<<<<<<<<
+ *     def InitForceMode(self):
+ *         self.thisptr.InitForceMode()             # <<<<<<<<<<<<<<
  * 
  *     def InitPositionMode(self):
  */
-  __pyx_t_1 = 0;
-  __pyx_t_2 = -1;
-  if (__pyx_t_1 < 0) {
-    __pyx_t_1 += __pyx_pybuffernd_expected_torques.diminfo[0].shape;
-    if (unlikely(__pyx_t_1 < 0)) __pyx_t_2 = 0;
-  } else if (unlikely(__pyx_t_1 >= __pyx_pybuffernd_expected_torques.diminfo[0].shape)) __pyx_t_2 = 0;
-  if (unlikely(__pyx_t_2 != -1)) {
-    __Pyx_RaiseBufferIndexError(__pyx_t_2);
-    __PYX_ERR(0, 32, __pyx_L1_error)
-  }
-  __pyx_v_self->thisptr->InitForceMode((&(*__Pyx_BufPtrCContig1d(float *, __pyx_pybuffernd_expected_torques.rcbuffer->pybuffer.buf, __pyx_t_1, __pyx_pybuffernd_expected_torques.diminfo[0].strides))));
+  __pyx_v_self->thisptr->InitForceMode();
 
   /* "jaco2_cython.pyx":31
  *         self.thisptr.Connect()
  * 
- *     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):             # <<<<<<<<<<<<<<
- *         self.thisptr.InitForceMode(&expected_torques[0])
+ *     def InitForceMode(self):             # <<<<<<<<<<<<<<
+ *         self.thisptr.InitForceMode()
  * 
  */
 
   /* function exit code */
   __pyx_r = Py_None; __Pyx_INCREF(Py_None);
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  { PyObject *__pyx_type, *__pyx_value, *__pyx_tb;
-    __Pyx_PyThreadState_declare
-    __Pyx_PyThreadState_assign
-    __Pyx_ErrFetch(&__pyx_type, &__pyx_value, &__pyx_tb);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_expected_torques.rcbuffer->pybuffer);
-  __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("jaco2_rs485.pyJaco2.InitForceMode", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  goto __pyx_L2;
-  __pyx_L0:;
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_expected_torques.rcbuffer->pybuffer);
-  __pyx_L2:;
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
 /* "jaco2_cython.pyx":34
- *         self.thisptr.InitForceMode(&expected_torques[0])
+ *         self.thisptr.InitForceMode()
  * 
  *     def InitPositionMode(self):             # <<<<<<<<<<<<<<
  *         self.thisptr.InitPositionMode()
@@ -1560,7 +1518,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8InitPositionMode(struct __pyx_
   __pyx_v_self->thisptr->InitPositionMode();
 
   /* "jaco2_cython.pyx":34
- *         self.thisptr.InitForceMode(&expected_torques[0])
+ *         self.thisptr.InitForceMode()
  * 
  *     def InitPositionMode(self):             # <<<<<<<<<<<<<<
  *         self.thisptr.InitPositionMode()
@@ -4337,7 +4295,7 @@ static void __pyx_tp_dealloc_11jaco2_rs485_pyJaco2(PyObject *o) {
 
 static PyMethodDef __pyx_methods_11jaco2_rs485_pyJaco2[] = {
   {"Connect", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_5Connect, METH_NOARGS, 0},
-  {"InitForceMode", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode, METH_O, 0},
+  {"InitForceMode", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode, METH_NOARGS, 0},
   {"InitPositionMode", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_9InitPositionMode, METH_NOARGS, 0},
   {"ApplyQ", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyQ, METH_O, 0},
   {"ApplyU", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_13ApplyU, METH_O, 0},

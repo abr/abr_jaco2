@@ -477,10 +477,10 @@ void Jaco2::ProcessFeedback() {
 
                 break;
 
-            default :
+            //default :
 
-                cout << "Unknown command : " << MessageListIn[ii].Command
-                     << endl;
+                //cout << "Unknown command : " << MessageListIn[ii].Command
+                //     << endl;
         }
     }
 }

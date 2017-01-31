@@ -47,25 +47,10 @@ class interface(interface.interface):
         """
         self.jaco2.ApplyQ(q)
 
-    def init_force_mode(self, expected_torque=None):
-        """ Changes the arm to torque control mode, where forces
-        can be sent in specifying what torque to apply at each joint.
-
-        expected_torque np.array: the torque expected at each motor
-                                  in the current position
+    def init_force_mode(self):
+        """ Changes the arm to torque control mode
         """
-
-        if expected_torque is None:
-            # 2lb weight + hand
-            expected_torque = np.array(
-                [1.0, -0.8, 0.9, 0.0, 0.0, 0.0],
-                dtype="float32")
-            # 3lb weight + hand
-            # expected_torque = np.array(
-            #     [0.9, -2.4, 1.9, 0.0, 0.0, 0.0],
-            #     dtype="float32"))
-
-        self.jaco2.InitForceMode(expected_torque)
+        self.jaco2.InitForceMode()
 
     def init_position_mode(self):
         """ Changes the arm into position control mode, where
