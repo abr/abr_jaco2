@@ -40,7 +40,7 @@ class Jaco2 {
         int ActuatorInitialized;
         int updated[6];
         int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
-        int currentJoint;
+        int currentMotor;
         vector<string> errorMessage;
 
         // main functions
@@ -48,8 +48,9 @@ class Jaco2 {
         void ApplyU(float u[6]);
         void Connect();
         void Disconnect();
-        int GetFeedback();
-        void InitForceMode(float setTorque[6]);
+        void PrintError(int index, int currentMotor);
+        void ProcessFeedback();
+        void InitForceMode();
         void InitPositionMode();
         int SendAndReceive(RS485_Message message[6], bool loop);
 
