@@ -27,7 +27,7 @@ q_des = np.transpose(q_des)
 error = np.sum((q_des[:, None, :] - q)**2, axis=1)
 
 for hh in range(0, num_positions):
-    plt.figure()
+    plt.figure(figsize=(11,9))
     plt.subplot(211)
     for ii in range(0, num_joints):
         plt.plot(x, q[ii, 1:, hh], colours[0, ii],
