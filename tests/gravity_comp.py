@@ -7,8 +7,7 @@ import time
 import abr_control
 import abr_jaco2
 # --- NAME TEST FOR SAVING ---
-test_name = "baseline"
-
+test_name = "low_inertia_test2"
 
 # ---------- INITIALIZATION ----------
 # initialize our robot config for the ur5
@@ -16,12 +15,19 @@ robot_config = abr_jaco2.robot_config(
     regenerate_functions=True, use_cython=True,
     use_simplify=False, hand_attached=False)
 
-# instantiate the REACH controller
-ctrlr = abr_control.controllers.floating(robot_config)
+# instantiate the controller
 
-# run controller once to generate functions / take care of overhead
-# outside of the main loop (so the torque mode isn't exited)
+#if using osc controller
+#ctrlr = abr_control.controllers.osc(robot_config, kp=2, kv=0.5, vmax=0.5)
+#ctrlr.control(np.zeros(6), np.zeros(6), target_x=np.zeros(3))
+
+#if using floating controller
+ctrlr = abr_control.controllers.floating(robot_config)
 ctrlr.control(np.zeros(6), np.zeros(6))
+
+#if using dynamic_floating controller
+#ctrlr = abr_control.controllers.dynamic_floating(robot_config)
+#ctrlr.control(np.zeros(6), np.zeros(6))
 
 # create our VREP interface
 interface = abr_jaco2.interface(robot_config)
@@ -29,7 +35,7 @@ interface = abr_jaco2.interface(robot_config)
 interface.connect()
 interface.init_position_mode()
 
-loop_limit = 1000
+loop_limit = 2000
 
 # Values must be in range of -360 to 360 degrees
 read_positions = np.array([
@@ -38,6 +44,7 @@ read_positions = np.array([
                     [305.0, 210.0, 250.0, 100.0, 25.0, -0.0]], dtype="float32")
 
 joint_angles = np.zeros((6, loop_limit, len(read_positions)))
+times = np.zeros((loop_limit, len(read_positions)))
 
 # ---------- MAIN BODY ----------
 # Move to home position
@@ -54,7 +61,8 @@ try:
             
         interface.init_force_mode()
         loop_count = 0
-
+        start = time.time()
+        
         while loop_count < loop_limit - 1:
             loop_count += 1
 
@@ -64,9 +72,14 @@ try:
             dq = np.array(feedback['dq']) * np.pi / 180.0
 
             # generate a control signal
+            # osc
+            #u = ctrlr.control(q=joint_angles[:, loop_count, ii], dq=dq, 
+            #    target_x=[-.467, .22, .78])
+            # floating and dynamic_floating
             u = ctrlr.control(q=joint_angles[:, loop_count, ii], dq=dq)
 
             interface.apply_u(np.array(u, dtype='float32'))      
+            times[loop_count, ii] = time.time() - start
 
         interface.init_position_mode()
         #interface.apply_q(robot_config.home_position)
@@ -95,3 +108,5 @@ finally:
                             q_actual=joint_angles)
     np.savez_compressed('data/gravity_comp/%s/q_desired' % (test_name),
                             q_desired= (read_positions % 360) * np.pi / 180.0)
+    np.savez_compressed('data/gravity_comp/%s/time' % (test_name),
+                            time=times)
