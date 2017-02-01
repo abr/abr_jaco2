@@ -89,46 +89,46 @@ class robot_config(robot_config.robot_config):
                 [0.000, 0.000, 0.000, -0.980, 0.190, 0.020],
                 [0.000, 0.000, 0.000, 0.020, 0.000, 1.000]]))
 
-        self._M_joints = [
+        self._M_joints = [  # mass of rings added
             sp.Matrix([  # motor 0
-                [0.574, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.574, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.574, 0.000, 0.000, 0.000],
+                [0.586, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.586, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.586, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 1.000, -0.090],
                 [0.000, 0.000, 0.000, 0.010, 0.090, 1.000],
                 [0.000, 0.000, 0.000, 1.000, 0.000, -0.010]]),
             sp.Matrix([  # motor 1
-                [0.560, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.560, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.560, 0.000, 0.000, 0.000],
+                [0.572, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.572, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.572, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.083, -0.550],
                 [0.000, 0.000, 0.000, 0.010, 0.550, 0.830],
                 [0.000, 0.000, 0.000, 1.000, 0.000, -0.010]]),
             sp.Matrix([  # motor2
-                [0.574, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.574, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.574, 0.000, 0.000, 0.000],
+                [0.586, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.586, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.586, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 1.000, -0.090],
                 [0.000, 0.000, 0.000, 0.010, 0.090, 1.000],
                 [0.000, 0.000, 0.000, 1.000, 0.000, -0.010]]),
             sp.Matrix([  # motor3
-                [0.341, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.341, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.341, 0.000, 0.000, 0.000],
+                [0.348, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.348, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.348, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.030, 0.420, 0.910],
                 [0.000, 0.000, 0.000, 0.270, -0.880, 0.400],
                 [0.000, 0.000, 0.000, 0.960, 0.230, -0.140]]),
             sp.Matrix([  # motor4
-                [0.341, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.341, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.341, 0.000, 0.000, 0.000],
+                [0.348, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.348, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.348, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.030, 0.420, 0.910],
                 [0.000, 0.000, 0.000, 0.270, -0.880, 0.400],
                 [0.000, 0.000, 0.000, 0.960, 0.230, -0.140]]),
             sp.Matrix([  # motor5
-                [0.341, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.341, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.341, 0.000, 0.000, 0.000],
+                [0.348, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.348, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.348, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.030, 0.420, 0.910],
                 [0.000, 0.000, 0.000, 0.270, -0.880, 0.400],
                 [0.000, 0.000, 0.000, 0.960, 0.230, -0.140]])]
@@ -152,6 +152,15 @@ class robot_config(robot_config.robot_config):
             self.L.append([0.000684, 0.0, 0.008222])
         self.L = np.array(self.L)
 
+        self.L_motors = [
+            [0.0, 0.0, -0.00856],   # motor0
+            [0.0, 0.0, -0.00806],   # motor1
+            [0.0, 0.0, -0.00856],   # motor2
+            [0.0, 0.0, -0.00566],   # motor3
+            [0.0, 0.0, -0.00566],   # motor4
+            [0.0, 0.0, -0.00566]]   # motor5
+
+        self.L_motors = np.array(self.L_motors)
         # ---- Joint Transform Matrices ----
 
         # Transform matrix : origin -> link 0
@@ -302,6 +311,56 @@ class robot_config(robot_config.robot_config):
                 [0, 0, 0, 1]])
             self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
+        # ---- Motor Transform Matrices ----
+
+        # Transform matrix : joint0 -> motor0
+        # no change of axes, account for offsets
+        self.Tj0m0 = sp.Matrix([
+            [1, 0, 0, self.L_motors[0, 0]],
+            [0, 1, 0, self.L_motors[0, 1]],
+            [0, 0, 1, self.L_motors[0, 2]],
+            [0, 0, 0, 1]])
+
+        # Transform matrix : joint1 -> motor1
+        # no change of axes, account for offsets
+        self.Tj1m1 = sp.Matrix([
+            [1, 0, 0, self.L_motors[1, 0]],
+            [0, 1, 0, self.L_motors[1, 1]],
+            [0, 0, 1, self.L_motors[1, 2]],
+            [0, 0, 0, 1]])
+
+        # Transform matrix : joint2 -> motor2
+        # no change of axes, account for offsets
+        self.Tj2m2 = sp.Matrix([
+            [1, 0, 0, self.L_motors[2, 0]],
+            [0, 1, 0, self.L_motors[2, 1]],
+            [0, 0, 1, self.L_motors[2, 2]],
+            [0, 0, 0, 1]])
+
+        # Transform matrix : joint3 -> motor3
+        # no change of axes, account for offsets
+        self.Tj3m3 = sp.Matrix([
+            [1, 0, 0, self.L_motors[3, 0]],
+            [0, 1, 0, self.L_motors[3, 1]],
+            [0, 0, 1, self.L_motors[3, 2]],
+            [0, 0, 0, 1]])
+
+        # Transform matrix : joint4 -> motor4
+        # no change of axes, account for offsets
+        self.Tj4m4 = sp.Matrix([
+            [1, 0, 0, self.L_motors[4, 0]],
+            [0, 1, 0, self.L_motors[4, 1]],
+            [0, 0, 1, self.L_motors[4, 2]],
+            [0, 0, 0, 1]])
+
+        # Transform matrix : joint5 -> motor5
+        # no change of axes, account for offsets
+        self.Tj5m5 = sp.Matrix([
+            [1, 0, 0, self.L_motors[5, 0]],
+            [0, 1, 0, self.L_motors[5, 1]],
+            [0, 0, 1, self.L_motors[5, 2]],
+            [0, 0, 0, 1]])
+
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
         self.J_orientation = [
@@ -322,12 +381,13 @@ class robot_config(robot_config.robot_config):
             if name == 'link0':
                 self._T[name] = self.Torgl0
             elif name == 'joint0':
-                self._T[name] = self.Torgl0 * self.Tl0j0
+                self._T[name] = self.Torgl0 * self.Tl0j0 * self.Tj0m0
             elif name == 'link1':
                 self._T[name] = self.Torgl0 * self.Tl0j0 * self.Tj0l1
             elif name == 'joint1':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1)
+                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
+                    self.Tj1m1)
             elif name == 'link2':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
@@ -335,7 +395,7 @@ class robot_config(robot_config.robot_config):
             elif name == 'joint2':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2)
+                    self.Tj1l2 * self.Tl2j2 * self.Tj2m2)
             elif name == 'link3':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
@@ -343,7 +403,8 @@ class robot_config(robot_config.robot_config):
             elif name == 'joint3':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3)
+                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
+                    self.Tj3m3)
             elif name == 'link4':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
@@ -353,13 +414,19 @@ class robot_config(robot_config.robot_config):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4)
+                    self.Tj3l4 * self.Tl4j4 * self.Tj4m4)
             elif name == 'link5':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5)
-            elif name == 'joint5' or (name == 'EE' and self.hand_attached is False):
+            elif name == 'joint5':
+                self._T[name] = (
+                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
+                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
+                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5 *
+                    self.Tj5m5)
+            elif name == 'EE' and self.hand_attached is False:
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
