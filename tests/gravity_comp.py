@@ -13,7 +13,7 @@ test_name = "baseline"
 # ---------- INITIALIZATION ----------
 # initialize our robot config for the ur5
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=False, use_cython=True,
+    regenerate_functions=True, use_cython=True,
     use_simplify=False, hand_attached=False)
 
 # instantiate the REACH controller
