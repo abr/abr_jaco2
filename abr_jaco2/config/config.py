@@ -161,7 +161,7 @@ class robot_config(robot_config.robot_config):
             [0.0, 0.0, -0.00566]]   # motor5
 
         self.L_motors = np.array(self.L_motors)
-        # ---- Joint Transform Matrices ----
+        # ---- Transform Matrices ----
 
         # Transform matrix : origin -> link 0
         # no change of axes, account for offsets
@@ -431,7 +431,8 @@ class robot_config(robot_config.robot_config):
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5)
-            elif self.hand_attached and (name == 'link6' or name == 'EE'):
+            elif name == 'link6' or (self.hand_attached is True and
+                                     name == 'EE'):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
