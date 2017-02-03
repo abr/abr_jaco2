@@ -15,7 +15,7 @@ robot_config = abr_jaco2.robot_config(
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=0, kv=.5, vmax=0.35)
+    robot_config, kp=10.0, kv=2, vmax=1.0)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
@@ -39,7 +39,7 @@ target_index = 0
 at_target_count = 0
 
 # list of targets to move to
-targets = [[-.467, .22, .78],
+targets = [[-.4, .2, .70],
            [-.467, -.22, .78],
            [.467, -.22, .78],
            [.467, .22, .78],
@@ -49,7 +49,7 @@ print('Moving to first target: ', target_xyz)
 
 try:
     ctr = 0
-    while ctr < 1000:
+    while 1:
         ctr += 1
         feedback = interface.get_feedback()
         q = (np.array(feedback['q']) % 360) * np.pi / 180.0
@@ -76,6 +76,8 @@ try:
         ee_track.append(hand_xyz)
         targets_track.append(target_xyz)
         count += 1
+        if count %100 == 0:
+            print('error: ', error)
 
 except Exception as e:
     print(e)

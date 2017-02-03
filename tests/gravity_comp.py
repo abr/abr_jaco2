@@ -7,7 +7,7 @@ import time
 import abr_control
 import abr_jaco2
 # --- NAME TEST FOR SAVING ---
-test_name = "float_with_time"
+test_name = "low_inertia_test2"
 
 # ---------- INITIALIZATION ----------
 # initialize our robot config for the ur5

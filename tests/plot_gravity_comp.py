@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn
 
-filename = 'float_with_time'
+filename = 'low_inertia_test1'
 
 # Load Data
 q_des = np.load('data/gravity_comp/%s/q_desired.npz' %
@@ -24,8 +24,6 @@ num_positions = len(q[0][0])   # number of read positions
 filename = 'baseline'
 colours = np.array([['b--', 'g--', 'r--', 'k--', 'm--', 'c--'],
                     ['b', 'g', 'r', 'k', 'm', 'c']])
-
-print('1: ', len(t[:, 0]), ' 2: ', len(q[0, :, 0]), ' 3: ', q_des[0, 0])
 
 q_des = np.transpose(q_des)
 error = np.sum((q_des[:, None, :] - q)**2, axis=1)
