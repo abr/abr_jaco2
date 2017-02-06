@@ -27,9 +27,7 @@ class robot_config(robot_config.robot_config):
                             for ii in range(self.num_joints)]
         # Kinova Home Position - straight up
         self.home_position = np.array([70.0, 180.0, 180.0,
-                                       270.0, 0.0, 0.0], dtype="float32")
-        self.home_torques = np.array([-0.138, -0.116, 3.339,
-                                      -0.365, -0.113, 0.061], dtype="float32")
+                                       270.0, 0.0, 1.0], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits

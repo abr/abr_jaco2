@@ -15,18 +15,8 @@ Jaco2::Jaco2() {
 
     memset(updated, 0, (size_t)sizeof(int)*6);
 
-    // torqueDamping = 1750;
-    torqueDamping = 200000;
-    controlMode = 0x01;
-    // torqueKp = 1750; // torque kp 1.75 * 1000
-    torqueKp = 0x01;
-
-    // set max torque in Nm
-    memset(maxT, 100.0, (size_t)sizeof(float)*6);
-
     WriteCount = 0;
     ReadCount = 0;
-    communicationSuccessful = false;
 
     //joint addresses from base to wrist
     joint[0] = 0x10;
@@ -35,6 +25,31 @@ Jaco2::Jaco2() {
     joint[3] = 0x13;
     joint[4] = 0x14;
     joint[5] = 0x15;
+
+    //set torque parameters
+    //max torque in Nm
+    memset(maxT, 100.0, (size_t)sizeof(float)*6);
+
+    controlMode = 0x01;
+
+    torqueDamping[0] = 0x00;
+    torqueDamping[1] = 0x00;
+    torqueDamping[2] = 0x00;
+    torqueDamping[3] = 0x00;
+    torqueDamping[4] = 0x00;
+    torqueDamping[5] = 0x00;
+
+    torqueKp[0] = 1000;
+    torqueKp[1] = 1500;
+    torqueKp[2] = 1000;
+    torqueKp[3] = 1750;
+    torqueKp[4] = 1750;
+    torqueKp[5] = 1750;
+
+    staticFriction = 0.0;
+    maxStaticFriction = 2.0;
+    feed_current_voltage_conversion = 125.0;
+    feed_velocity_under_gain = 0.8;
 
     // error messages from arm
     errorMessage.push_back("NO");
@@ -94,12 +109,10 @@ Jaco2::Jaco2() {
         ForceMessage[ii].DestinationAddress = joint[ii];
         ForceMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ForceMessage[ii].DataLong[1] = 0x00000000; //not used
-        // ForceMessage[ii].DataLong[3] = ((unsigned long) torqueDamping |
-        //     ((unsigned long) controlMode << 8) |
-        //     ((unsigned long) torqueKp << 16)); //U16|U8|U8
-        ForceMessage[ii].DataLong[3] = ((unsigned long) torqueKp |
+        ForceMessage[ii].DataLong[3] = //U16|U8|U8
+            ((unsigned long) torqueKp[ii] << 16) |
             ((unsigned long) controlMode << 8) |
-            ((unsigned long) torqueDamping << 16)); //U16|U8|U8
+            ((unsigned long) torqueDamping[ii]);
     }
 
     // Set up get position message
@@ -169,16 +182,12 @@ Jaco2::Jaco2() {
             RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
         TestTorquesMessage[ii].SourceAddress = SOURCE_ADDRESS;
         TestTorquesMessage[ii].DestinationAddress = joint[ii];
-        //not used
-        //TestTorquesMessage[ii].DataLong[1] = 0x00000000;
-        //32F torque command [Nm]
-        TestTorquesMessage[ii].DataFloat[2] = 0;
-        // TestTorquesMessage[ii].DataLong[3] = ((unsigned long) torqueDamping |
-        //     ((unsigned long) controlMode << 8) | ((unsigned long)
-        //     torqueKp << 16)); //U16|U8|U8
-        TestTorquesMessage[ii].DataLong[3] = ((unsigned long) torqueKp |
-            ((unsigned long) controlMode << 8) | ((unsigned long)
-            torqueDamping << 16)); //U16|U8|U8
+        TestTorquesMessage[ii].DataLong[1] = 0x00000000;  // not used
+        TestTorquesMessage[ii].DataFloat[2] = 0; //32F torque command [Nm]
+        TestTorquesMessage[ii].DataLong[3] = //U16|U8|U8
+            ((unsigned long) torqueKp[ii] << 16) |
+            ((unsigned long) controlMode << 8) |
+            ((unsigned long) torqueDamping[ii]);
     }
 
     // Set up the torque config feedforward advanced message
@@ -187,16 +196,10 @@ Jaco2::Jaco2() {
             SEND_TORQUE_CONFIG_FEEDFORWARD_ADVANCED;
         TorquesConfigFeedforwardAdvanced[ii].SourceAddress = SOURCE_ADDRESS;
         TorquesConfigFeedforwardAdvanced[ii].DestinationAddress = joint[ii];
-        //not used
-        // TorquesConfigFeedforwardAdvancedge[ii].DataLong[1] = 0x00000000;
-        //32F torque command [Nm]
-        TorquesConfigFeedforwardAdvanced[ii].DataFloat[2] = 0;
-        // TorquesConfigFeedforwardAdvancedage[ii].DataLong[3] = ((unsigned long) torqueDamping |
-        //     ((unsigned long) controlMode << 8) | ((unsigned long)
-        //     torqueKp << 16)); //U16|U8|U8
-        TorquesConfigFeedforwardAdvanced[ii].DataLong[3] = ((unsigned long) torqueKp |
-            ((unsigned long) controlMode << 8) | ((unsigned long)
-            torqueDamping << 16)); //U16|U8|U8
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[0] = feed_velocity_under_gain;
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[1] = feed_current_voltage_conversion;
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[2] = staticFriction;
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[3] = maxStaticFriction;
     }
 
     // Set up the validate torque message
@@ -262,23 +265,23 @@ void Jaco2::InitPositionMode() {
 
 void Jaco2::InitForceMode() {
     // STEP 0: Get current position
-    cout << "STEP 0: Get current position" << endl;
+    cout << "STEP 0/4: Get current position" << endl;
     SendAndReceive(GetPositionMessage, true);
 
-    // STEP 1: Set torque safety parameters
-    cout << "STEP 1: Set torque safety parameters" << endl;
-    SendAndReceive(SafetyMessage, true);
-
     // Let's also try setting the static friction parameter
-    // cout << "STEP 1: Set torque config feedforward advanced parameters" << endl;
+    cout << "STEP 1/4: Set torque config feedforward advanced parameters" << endl;
     // no need for a response, because I have no idea what's supposed to be
     // returned, this is lacking a lot of documentation
-    // SendAndReceive(TorquesConfigFeedforwardAdvanced, false);
+    SendAndReceive(TorquesConfigFeedforwardAdvanced, false);
+
+    // STEP 1: Set torque safety parameters
+    cout << "STEP 2/4: Set torque safety parameters" << endl;
+    SendAndReceive(SafetyMessage, true);
 
     int joints_updated0 = 0;
     while (joints_updated0 < 6) {
         // STEP 2: Send torque values to compare with sensor readings
-        cout << "STEP 2: Send torque values to compare with sensor readings"
+        cout << "STEP 3/4: Send torque values to compare with sensor readings"
              << endl;
         int joints_updated1 = 0;
         while(joints_updated1 < 6) {
@@ -292,7 +295,7 @@ void Jaco2::InitForceMode() {
         }
 
         // STEP 3: Send request to switch to torque control mode
-        cout << "STEP 3: Send request to switch to torque control mode"
+        cout << "STEP 4/4: Send request to switch to torque control mode"
              << endl;
         joints_updated0 = SendAndReceive(InitTorqueMessage, false);
     }
