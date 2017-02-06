@@ -27,6 +27,7 @@ using namespace std;
 #define SWITCH_CONTROL_MODE_REQUEST 0x0203
 #define SWITCH_CONTROL_MODE_REPLY 0x0204
 #define SEND_TORQUE_CONFIG_SAFETY 0x0208
+#define SEND_TORQUE_CONFIG_FEEDFORWARD_ADVANCED 0x0213
 #define POSITION_LIMIT 0x0021
 #define REPORT_ERROR 0x0030
 #define GET_TORQUE_CONFIG_SAFETY 0x003F
@@ -40,7 +41,7 @@ class Jaco2 {
         int messageReceived2;
         int ActuatorInitialized;
         int updated[6];
-        int offsets[6];
+        int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
         int currentMotor;
         vector<string> errorMessage;
 
@@ -64,7 +65,7 @@ class Jaco2 {
         int packets_read;
 
         // torque variables
-        unsigned char torqueDamping;
+        unsigned long torqueDamping;
         unsigned char controlMode;
         unsigned short torqueKp;
         float maxT[6];
@@ -86,6 +87,7 @@ class Jaco2 {
         RS485_Message ReceivedInitMessage[18];
         RS485_Message SafetyMessage[6];
         RS485_Message TestTorquesMessage[6];
+        RS485_Message TorquesConfigFeedforwardAdvanced[6];
         RS485_Message ValidateTorquesMessage[6];
 
         // A handle needed to open the API(library).

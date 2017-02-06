@@ -15,7 +15,7 @@ robot_config = abr_jaco2.robot_config(
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=10.0, kv=2, vmax=1.0)
+    robot_config, kp=10.0, kv=3.0, vmax=1)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
