@@ -13,7 +13,9 @@ robot_config = abr_jaco2.robot_config(
     regenerate_functions=True, use_cython=True,
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
-ctrlr = abr_control.controllers.joint(robot_config, kp=4.0, kv=2.0)
+kp = 20.0
+kv = 4.5
+ctrlr = abr_control.controllers.joint(robot_config, kp=kp, kv=kv)
 
 ctrlr.control(np.zeros(robot_config.num_joints),
               np.zeros(robot_config.num_joints),
@@ -22,19 +24,19 @@ ctrlr.control(np.zeros(robot_config.num_joints),
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
 
-target_pos = np.array([2.0, 2.75, 3.45, 1.0, .5, .5], dtype='float32')
+target_pos = np.array([2.0, 2.75, 3.45, 1.0, .85, .5], dtype='float32')
 target_vel = None
 
 # connect to the jaco
 interface.connect()
 interface.init_position_mode()
-interface.apply_q(robot_config.home_position)
 
 # set up arrays for tracking end-effector and target position
 q_track = []
 ctr = 0
 
 try:
+    interface.apply_q(robot_config.home_position)
     interface.init_force_mode()
     while 1:
         ctr += 1
@@ -42,7 +44,7 @@ try:
         q = (np.array(feedback['q']) % 360) * np.pi / 180.0
         dq = np.array(feedback['dq']) * np.pi / 180.0
 
-        hand_xyz = robot_config.Tx('EE', q=q)
+        #hand_xyz = robot_config.Tx('EE', q=q)
 
         u = ctrlr.control(q=q, dq=dq,
                           target_pos=target_pos, target_vel=target_vel)
@@ -50,6 +52,7 @@ try:
 
         if ctr%1000 == 0:
             print('q: ', q)
+            print('u: ', u)
         # set orientation of hand object to match EE
         """quaternion = robot_config.orientation('EE', q=q)
         angles = abr_control.utils.transformations.euler_from_quaternion(
@@ -72,9 +75,11 @@ finally:
         # import seaborn
 
         q_track = np.array(q_track)
-        plt.plot(q_track)
+        plt.title('Kp = %f Kv = %f' % (kp, kv))
+        plt.plot((q_track + np.pi) % (np.pi * 2) - np.pi)
         plt.plot(np.ones(q_track.shape) *
                  ((target_pos + np.pi) % (np.pi * 2) - np.pi),
-                 'r--')
+                 '--')
+        plt.legend(range(6))
         plt.tight_layout()
         plt.show()

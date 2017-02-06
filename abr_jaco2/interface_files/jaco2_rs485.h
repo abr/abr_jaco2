@@ -65,16 +65,20 @@ class Jaco2 {
         int packets_read;
 
         // torque variables
-        unsigned long torqueDamping;
+        unsigned char torqueDamping[6];
         unsigned char controlMode;
-        unsigned short torqueKp;
+        unsigned short torqueKp[6];
+        float staticFriction;
+        float maxStaticFriction;
+        float feed_current_voltage_conversion;
+        float feed_velocity_under_gain;
+
         float maxT[6];
 
         // variables used during the communication process.
         int WriteCount;
         int ReadCount;
-        bool communicationSuccessful;
-        unsigned char joint[6];
+        unsigned char joint[6];        
 
         // RS485 arrays of structs
         RS485_Message ApplyQMessage[6];
