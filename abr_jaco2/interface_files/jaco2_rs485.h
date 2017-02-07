@@ -78,7 +78,7 @@ class Jaco2 {
         // variables used during the communication process.
         int WriteCount;
         int ReadCount;
-        unsigned char joint[6];        
+        unsigned char joint[6];
 
         // RS485 arrays of structs
         RS485_Message ApplyQMessage[6];

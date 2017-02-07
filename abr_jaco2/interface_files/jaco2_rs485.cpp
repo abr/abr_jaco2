@@ -32,12 +32,12 @@ Jaco2::Jaco2() {
 
     controlMode = 0x01;
 
-    torqueDamping[0] = 0x01;
-    torqueDamping[1] = 0x01;
-    torqueDamping[2] = 0x01;
-    torqueDamping[3] = 0x01;
-    torqueDamping[4] = 0x01;
-    torqueDamping[5] = 0x01;
+    torqueDamping[0] = 0x00;
+    torqueDamping[1] = 0x00;
+    torqueDamping[2] = 0x00;
+    torqueDamping[3] = 0x00;
+    torqueDamping[4] = 0x00;
+    torqueDamping[5] = 0x00;
 
     torqueKp[0] = 1000;
     torqueKp[1] = 1500;
@@ -47,7 +47,7 @@ Jaco2::Jaco2() {
     torqueKp[5] = 1750;
 
     staticFriction = 0.0;
-    maxStaticFriction = 0.0;
+    maxStaticFriction = 2.0;
     feed_current_voltage_conversion = 125.0;
     feed_velocity_under_gain = 0.8;
 

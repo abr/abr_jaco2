@@ -11,15 +11,15 @@ import abr_jaco2
 
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=True, use_cython=True,
+    regenerate_functions=False, use_cython=True,
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=10.0, kv=3.0, vmax=1)
+    robot_config, kp=20.0, kv=4.5, vmax=1)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_x=np.zeros(3))
+ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
 
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
@@ -52,10 +52,10 @@ try:
     while 1:
         ctr += 1
         feedback = interface.get_feedback()
-        q = (np.array(feedback['q']) % 360) * np.pi / 180.0
+        q = (np.array(feedback['q']) % 360.0) * np.pi / 180.0
         dq = np.array(feedback['dq']) * np.pi / 180.0
 
-        u = ctrlr.control(q=q, dq=dq, target_x=target_xyz)
+        u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
         interface.apply_u(np.array(u, dtype='float32'))
 
         hand_xyz = robot_config.Tx('EE', q=q)
