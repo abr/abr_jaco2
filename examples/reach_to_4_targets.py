@@ -76,7 +76,7 @@ try:
         ee_track.append(hand_xyz)
         targets_track.append(target_xyz)
         count += 1
-        if count %100 == 0:
+        if count % 100 == 0:
             print('error: ', error)
 
 except Exception as e:
