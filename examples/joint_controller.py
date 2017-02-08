@@ -32,6 +32,9 @@ target_vel = None
 interface.connect()
 interface.init_position_mode()
 
+target_pos = np.array([2.0, 2.75, 3.45, 1.0, .5, .5], dtype='float32')
+target_vel = None
+
 # set up arrays for tracking end-effector and target position
 q_track = []
 ctr = 0
@@ -45,23 +48,17 @@ try:
         q = (np.array(feedback['q']) % 360) * np.pi / 180.0
         dq = np.array(feedback['dq']) * np.pi / 180.0
 
-        #hand_xyz = robot_config.Tx('EE', q=q)
         Mq_g = robot_config.Mq_g(q)
         u = ctrlr.control(q=q, dq=dq,
-                          target_pos=target_pos, target_vel=target_vel)
-        u += stiction.generate(dq=dq, u=u+Mq_g)
+                          target_pos=target_pos,
+                          target_vel=target_vel)
         interface.apply_u(np.array(u, dtype='float32'))
 
-        if ctr%1000 == 0:
+        if ctr % 1000 == 0:
             print('q: ', q)
             print('u: ', u)
             print('g: ', Mq_g)
             print('u-g: ', u-Mq_g)
-        # set orientation of hand object to match EE
-        """quaternion = robot_config.orientation('EE', q=q)
-        angles = abr_control.utils.transformations.euler_from_quaternion(
-            quaternion, axes='rxyz')
-        interface.set_orientation('hand', angles)"""
 
         q_track.append(np.copy(q))
 

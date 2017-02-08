@@ -17,8 +17,10 @@ class Signal():
         dq np.array: the current joint velocities
         """
 
-        u_add = np.zeros(self.robot_config.num_joints)
+        """u_add = np.zeros(self.robot_config.num_joints)
         for ii in range(self.robot_config.num_joints):
             if abs(u[ii]) > 1e-4 and abs(dq[ii]) < 1e-2 and abs(u[ii]) < self.u_min[ii]:
                 u_add[ii] = self.u_min[ii] * np.sign(u[ii])
-        return u_add
+        return u_add"""
+        print('Nothing computer for stiction')
+        return np.zeros(self.robot_config.num_joints)

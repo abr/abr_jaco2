@@ -2,8 +2,6 @@
 mode and float controller, records joint positions. Test to
 quantify gravity compensation improvements"""
 import numpy as np
-import os
-import time
 import abr_control
 import abr_jaco2
 # --- NAME TEST FOR SAVING ---
@@ -34,7 +32,6 @@ try:
     t_feedback = interface.get_torque_load()
 
     interface.init_force_mode()
-
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()

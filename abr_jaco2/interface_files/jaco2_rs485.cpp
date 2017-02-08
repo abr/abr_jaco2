@@ -51,6 +51,12 @@ Jaco2::Jaco2() {
     feed_current_voltage_conversion = 125.0;
     feed_velocity_under_gain = 0.8;
 
+    switch_threshold = 2.0;
+    pos_lim_distance = 5.0;
+    error_deadband = 0.7;
+    torque_brake = 0.0;
+
+
     // error messages from arm
     errorMessage.push_back("NO");
     errorMessage.push_back("TEMPERATURE");
@@ -202,6 +208,18 @@ Jaco2::Jaco2() {
         TorquesConfigFeedforwardAdvanced[ii].DataFloat[3] = maxStaticFriction;
     }
 
+    // Set up the torque config parameters 2
+    for (int ii=0; ii<6; ii++) {
+        TorqueConfigParameters2[ii].Command =
+            SEND_TORQUE_CONFIG_CONTROL_PARAM_2;
+        TorqueConfigParameters2[ii].SourceAddress = SOURCE_ADDRESS;
+        TorqueConfigParameters2[ii].DestinationAddress = joint[ii];
+        TorqueConfigParameters2[ii].DataFloat[0] = switch_threshold;
+        TorqueConfigParameters2[ii].DataFloat[1] = pos_lim_distance;
+        TorqueConfigParameters2[ii].DataFloat[2] = error_deadband;
+        TorqueConfigParameters2[ii].DataFloat[3] = torque_brake;
+    }
+
     // Set up the validate torque message
     for (int ii=0; ii<6; ii++) {
         ValidateTorquesMessage[ii].Command = GET_TORQUE_VALIDATION_REQUEST;
@@ -269,10 +287,16 @@ void Jaco2::InitForceMode() {
     SendAndReceive(GetPositionMessage, true);
 
     // Let's also try setting the static friction parameter
-    cout << "STEP 1/4: Set torque config feedforward advanced parameters" << endl;
+    cout << "STEP 1a/4: Set torque config feedforward advanced parameters" << endl;
     // no need for a response, because I have no idea what's supposed to be
     // returned, this is lacking a lot of documentation
     SendAndReceive(TorquesConfigFeedforwardAdvanced, false);
+
+    // Set advanced torque parameters 2
+    cout << "STEP 1b/4: Set advanced torque parameters 2" << endl;
+    // no need for a response, because I have no idea what's supposed to be
+    // returned, this is lacking a lot of documentation
+    SendAndReceive(TorqueConfigParameters2, false);
 
     // STEP 1: Set torque safety parameters
     cout << "STEP 2/4: Set torque safety parameters" << endl;
