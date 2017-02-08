@@ -28,6 +28,7 @@ using namespace std;
 #define SWITCH_CONTROL_MODE_REPLY 0x0204
 #define SEND_TORQUE_CONFIG_SAFETY 0x0208
 #define SEND_TORQUE_CONFIG_FEEDFORWARD_ADVANCED 0x0213
+#define SEND_TORQUE_CONFIG_CONTROL_PARAM_2 0x0215
 #define POSITION_LIMIT 0x0021
 #define REPORT_ERROR 0x0030
 #define GET_TORQUE_CONFIG_SAFETY 0x003F
@@ -72,6 +73,10 @@ class Jaco2 {
         float maxStaticFriction;
         float feed_current_voltage_conversion;
         float feed_velocity_under_gain;
+        float switch_threshold;
+        float pos_lim_distance;
+        float error_deadband;
+        float torque_brake;
 
         float maxT[6];
 
@@ -92,6 +97,7 @@ class Jaco2 {
         RS485_Message SafetyMessage[6];
         RS485_Message TestTorquesMessage[6];
         RS485_Message TorquesConfigFeedforwardAdvanced[6];
+        RS485_Message TorqueConfigParameters2[6];
         RS485_Message ValidateTorquesMessage[6];
 
         // A handle needed to open the API(library).
