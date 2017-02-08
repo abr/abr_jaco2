@@ -48,16 +48,21 @@ try:
     while loop_count < loop_limit - 1:
 
         feedback = interface.get_feedback()
-        joint_angles[:, loop_count] = (np.array(feedback['q']) % 360) * np.pi / 180.0
+        q = (np.array(feedback['q']) % 360) * np.pi / 180.0
         dq = np.array(feedback['dq']) * np.pi / 180.0
         t_feedback = interface.get_torque_load()
-        torques_read[:, loop_count] = np.array(t_feedback['torque_load'], dtype="float32")    
 
-        torques_sent[:, loop_count] = ctrlr.control(q=joint_angles[:, loop_count], dq=dq,
-                          target_pos=target_pos, target_vel=target_vel)
-        interface.apply_u(np.array(torques_sent[:, loop_count], dtype='float32'))
+        u = ctrlr.control(
+            q=q, dq=dq,
+            target_pos=target_pos, target_vel=target_vel)
+        interface.apply_u(np.array(u, dtype='float32'))
 
         times[loop_count] = time.time()-start
+
+        # store variables
+        joint_angles[:, loop_count] = np.copy(q)
+        torques_read[:, loop_count] = np.copy(t_feedback['torque_load'])
+        torques_sent[:, loop_count] = np.copy(u)
 
         loop_count += 1
 
@@ -73,22 +78,25 @@ finally:
     if loop_count > 0:  # i.e. if it successfully ran
         import matplotlib.pyplot as plt
 
-        for ii in range(0,6):
-            plt.figure()
-            plt.subplot(211)
+        plt.figure()
+        for ii in range(0, 6):
+            plt.subplot(4, 3, (ii + 1))
             plt.title('Joint %i Angles, Kp = %f Kv = %f' % (ii, kp, kv))
             plt.xlabel('time(sec)')
             plt.ylabel('joint angle (rad)')
-            plt.plot((joint_angles[ii,:] + np.pi) % (np.pi * 2) - np.pi)
-            plt.plot(((np.ones(joint_angles[ii,:].shape) * target_pos[ii, None])  + np.pi) % (np.pi * 2) - np.pi, '--')
+            plt.plot((joint_angles[ii, :] + np.pi) % (np.pi * 2) - np.pi)
+            plt.plot(
+                ((np.ones(joint_angles[ii, :].shape) * target_pos[ii, None])
+                 + np.pi) % (np.pi * 2) - np.pi,
+                '--')
             plt.legend(range(6))
 
-            plt.subplot(212)
+            plt.subplot(4, 3, (ii + 1) + 6)
             plt.title('Joint %i Torques' % ii)
             plt.xlabel('time(sec)')
             plt.ylabel('torque (Nm)')
-            plt.plot(torques_read[ii,:], label='Read')
-            plt.plot(torques_sent[ii,:], '--', label='Sent')
+            plt.plot(torques_read[ii, :], label='Read')
+            plt.plot(torques_sent[ii, :], '--', label='Sent')
             plt.legend()
             plt.tight_layout()
 
