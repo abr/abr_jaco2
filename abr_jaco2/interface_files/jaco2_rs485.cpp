@@ -322,11 +322,13 @@ void Jaco2::ApplyQ(float q_target[6]) {
         TargetReached = 0;
         // increment joint command by 1 degree until target reached
         for (int ii = 0; ii<6; ii++) {
+            float mod_pos = fmod(int(pos[ii]),360);
+            float q_diff = q_target[ii] - mod_pos;
             // compare target to current angle to see if should add or subtract
-            if(q_target[ii] > (fmod(int(pos[ii]),360))) {
+            if(q_diff < (q_diff/abs(q_diff) * 180)) {
                 Joint6Command[ii] += 0.05;
             }
-            else if(q_target[ii] < (fmod(int(pos[ii]),360))) {
+            else if (q_diff > (q_diff/abs(q_diff) * 180)) {
                 Joint6Command[ii] -= 0.05;
             }
 
