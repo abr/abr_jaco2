@@ -53,8 +53,13 @@ Jaco2::Jaco2() {
 
     switch_threshold = 2.0;
     pos_lim_distance = 5.0;
-    error_deadband = 0.7;
+    error_deadband = 1.0;
     torque_brake = 0.0;
+
+    velocity_filter = 100.0;
+    torque_measured_filter = 400.0;
+    torque_error_filter = 2.5;
+    control_effort_filter = 50.0;
 
 
     // error messages from arm
@@ -219,6 +224,19 @@ Jaco2::Jaco2() {
         TorqueConfigParameters2[ii].DataFloat[2] = error_deadband;
         TorqueConfigParameters2[ii].DataFloat[3] = torque_brake;
     }
+    // Set up the torque config filters
+    for (int ii=0; ii<6; ii++) {
+        TorqueConfigFilters[ii].Command =
+            SEND_TORQUE_CONFIG_FILTERS;
+        TorqueConfigFilters[ii].SourceAddress = SOURCE_ADDRESS;
+        TorqueConfigFilters[ii].DestinationAddress = joint[ii];
+        TorqueConfigFilters[ii].DataFloat[0] = velocity_filter;
+        TorqueConfigFilters[ii].DataFloat[1] = torque_measured_filter;
+        TorqueConfigFilters[ii].DataFloat[2] = torque_error_filter;
+        TorqueConfigFilters[ii].DataFloat[3] = control_effort_filter;
+    }
+    //joint1 is different from the rest, for now to avoid array...
+    TorqueConfigFilters[1].DataFloat[3] = 20.0;
 
     // Set up the validate torque message
     for (int ii=0; ii<6; ii++) {
@@ -298,6 +316,12 @@ void Jaco2::InitForceMode() {
     // returned, this is lacking a lot of documentation
     SendAndReceive(TorqueConfigParameters2, false);
 
+    // Set torque config filters
+    cout << "STEP 1c/4: Set advanced torque parameters 2" << endl;
+    // no need for a response, because I have no idea what's supposed to be
+    // returned, this is lacking a lot of documentation
+    //SendAndReceive(TorqueConfigFilters, false);
+
     // STEP 1: Set torque safety parameters
     cout << "STEP 2/4: Set torque safety parameters" << endl;
     SendAndReceive(SafetyMessage, true);
@@ -352,7 +376,7 @@ void Jaco2::ApplyQ(float q_target[6]) {
             if(q_diff < (q_diff/abs(q_diff) * 180)) {
                 Joint6Command[ii] += 0.05;
             }
-            else if (q_diff > (q_diff/abs(q_diff) * 180)) {
+            else if (q_diff >= (q_diff/abs(q_diff) * 180)) {
                 Joint6Command[ii] -= 0.05;
             }
 
@@ -451,6 +475,7 @@ void Jaco2::ApplyU(float u[6]) {
             if (updated[currentMotor] == 0) {
                 pos[currentMotor] = MessageListIn[ii].DataFloat[1];
                 vel[currentMotor] = MessageListIn[ii].DataFloat[2];
+                torque_load[currentMotor] = MessageListIn[ii].DataFloat[3];
                 updated[currentMotor] = 1;
             }
         }
