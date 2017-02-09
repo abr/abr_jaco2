@@ -28,7 +28,13 @@ Jaco2::Jaco2() {
 
     //set torque parameters
     //max torque in Nm
-    memset(maxT, 100.0, (size_t)sizeof(float)*6);
+    //memset(maxT, 100.0, (size_t)sizeof(float)*6);
+    maxT[0] = 40.0;
+    maxT[1] = 80.0;
+    maxT[2] = 40.0;
+    maxT[3] = 20.0;
+    maxT[4] = 20.0;
+    maxT[5] = 20.0;
 
     controlMode = 0x01;
 
@@ -317,7 +323,7 @@ void Jaco2::InitForceMode() {
     SendAndReceive(TorqueConfigParameters2, false);
 
     // Set torque config filters
-    cout << "STEP 1c/4: Set advanced torque parameters 2" << endl;
+    //cout << "STEP 1c/4: Set advanced torque parameters 2" << endl;
     // no need for a response, because I have no idea what's supposed to be
     // returned, this is lacking a lot of documentation
     //SendAndReceive(TorqueConfigFilters, false);

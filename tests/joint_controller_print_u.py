@@ -11,13 +11,13 @@ import time
 
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=False, use_cython=True,
+    regenerate_functions=True, use_cython=True,
     use_simplify=False, hand_attached=False)
 
 # instantiate the REACH controller for the jaco2 robot
 kp = 30.0
-kv = 15.0
-loop_limit = 4000
+kv = 5.5
+loop_limit = 3000
 
 ctrlr = abr_control.controllers.joint(robot_config, kp=kp, kv=kv)
 
@@ -55,6 +55,9 @@ try:
         u = ctrlr.control(
             q=q, dq=dq,
             target_pos=target_pos, target_vel=target_vel)
+        u[5] = 0.84
+        u[4] = 1.0
+        u[3] = 100.0
         interface.apply_u(np.array(u, dtype='float32'))
 
         times[loop_count] = time.time()-start
@@ -78,6 +81,8 @@ finally:
     if loop_count > 0:  # i.e. if it successfully ran
         import matplotlib.pyplot as plt
 
+        error = np.sqrt(np.sum((torques_read - torques_sent)**2))
+
         plt.figure()
         for ii in range(0, 6):
             plt.subplot(4, 3, (ii + 1))
@@ -92,12 +97,11 @@ finally:
             plt.legend(range(6))
 
             plt.subplot(4, 3, (ii + 1) + 6)
-            plt.title('Joint %i Torques' % ii)
+            plt.title('Joint %i Torques, Total Error: %f' % (ii, error))
             plt.xlabel('time(sec)')
             plt.ylabel('torque (Nm)')
-            plt.plot(torques_read[ii, :], label='Read')
+            plt.plot(-1.0 * torques_read[ii, :], label='Read')
             plt.plot(torques_sent[ii, :], '--', label='Sent')
             plt.legend()
-            plt.tight_layout()
 
         plt.show()
