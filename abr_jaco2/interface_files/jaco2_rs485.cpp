@@ -376,7 +376,7 @@ void Jaco2::ApplyQ(float q_target[6]) {
         TargetReached = 0;
         // increment joint command by 1 degree until target reached
         for (int ii = 0; ii<6; ii++) {
-            float mod_pos = fmod(int(pos[ii]),360);
+            float mod_pos = int(pos[ii])%360;
             float q_diff = q_target[ii] - mod_pos;
             // compare target to current angle to see if should add or subtract
             if(q_diff < (q_diff/abs(q_diff) * 180)) {
@@ -394,13 +394,13 @@ void Jaco2::ApplyQ(float q_target[6]) {
         SendAndReceive(ApplyQMessage, true);
 
         for (int jj = 0; jj < 6; jj++) {
-            if (abs(fmod(int(pos[jj]),360) - q_target[jj]) < 2.0 ) {
+            if (abs(int(pos[jj])%360 - q_target[jj]) < 2.0 ) {
                 TargetReached += 1;
             }
             else if (ctr == 1000) {
                 cout << "Actuator: " << jj << " position is: " << pos[jj]
                      << " with target: " << q_target[jj]
-                     << " mod 360: " << fmod(int(pos[jj]),360) << endl;
+                     << " mod 360: " << int(pos[jj])%360 << endl;
                 ctr = 0;
             }
         }

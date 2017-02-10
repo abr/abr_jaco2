@@ -11,12 +11,13 @@ import time
 
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=True, use_cython=True,
+    regenerate_functions=False, use_cython=True,
     use_simplify=False, hand_attached=False)
 
+friction = abr_jaco2.signals.friction(robot_config)
 # instantiate the REACH controller for the jaco2 robot
-kp = 30.0
-kv = 5.5
+kp = 25.0
+kv = 5.0
 loop_limit = 3000
 
 ctrlr = abr_control.controllers.joint(robot_config, kp=kp, kv=kv)
@@ -55,9 +56,10 @@ try:
         u = ctrlr.control(
             q=q, dq=dq,
             target_pos=target_pos, target_vel=target_vel)
-        u[5] = 0.84
-        u[4] = 1.0
-        u[3] = 100.0
+
+        #print('no friction u: ', u)
+        #u += friction.generate(dq=dq)
+        #print('with friction u: ', u)
         interface.apply_u(np.array(u, dtype='float32'))
 
         times[loop_count] = time.time()-start
@@ -79,29 +81,13 @@ finally:
     interface.disconnect()
 
     if loop_count > 0:  # i.e. if it successfully ran
-        import matplotlib.pyplot as plt
-
         error = np.sqrt(np.sum((torques_read - torques_sent)**2))
+        np.savez_compressed('error', error=error)
+        np.savez_compressed('kp', kp=kp)
+        np.savez_compressed('kv', kv=kv)
+        np.savez_compressed('target_pos', target_pos=target_pos)
+        np.savez_compressed('joint_angles', joint_angles=joint_angles)
+        np.savez_compressed('torques_sent', torques_sent=torques_sent)
+        np.savez_compressed('torques_read', torques_read=torques_read)
+        np.savez_compressed('times', times=times)
 
-        plt.figure()
-        for ii in range(0, 6):
-            plt.subplot(4, 3, (ii + 1))
-            plt.title('Joint %i Angles, Kp = %f Kv = %f' % (ii, kp, kv))
-            plt.xlabel('time(sec)')
-            plt.ylabel('joint angle (rad)')
-            plt.plot((joint_angles[ii, :] + np.pi) % (np.pi * 2) - np.pi)
-            plt.plot(
-                ((np.ones(joint_angles[ii, :].shape) * target_pos[ii, None])
-                 + np.pi) % (np.pi * 2) - np.pi,
-                '--')
-            plt.legend(range(6))
-
-            plt.subplot(4, 3, (ii + 1) + 6)
-            plt.title('Joint %i Torques, Total Error: %f' % (ii, error))
-            plt.xlabel('time(sec)')
-            plt.ylabel('torque (Nm)')
-            plt.plot(-1.0 * torques_read[ii, :], label='Read')
-            plt.plot(torques_sent[ii, :], '--', label='Sent')
-            plt.legend()
-
-        plt.show()
