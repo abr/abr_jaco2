@@ -42,7 +42,6 @@ class interface(interface.interface):
         feedback = self.jaco2.GetFeedback()
         feedback['q'] = np.array(feedback['q']) * np.pi / 180.0
         feedback['dq'] = np.array(feedback['dq']) * np.pi / 180.0
-        print('q: ', feedback['q'])
         return feedback
 
     def apply_q(self, q):
@@ -54,7 +53,6 @@ class interface(interface.interface):
         """
         # convert from radians into degrees the Jaco expects
         q = np.array(q) * 180.0 / np.pi
-        print('Target Q: ', q)
         self.jaco2.ApplyQ(q)
 
     def init_force_mode(self):

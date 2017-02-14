@@ -13,8 +13,8 @@ robot_config = abr_jaco2.robot_config(
     regenerate_functions=False, use_cython=True,
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
-kp = 30.0
-kv = 15.0
+kp = 20.0
+kv = 4.5
 ctrlr = abr_control.controllers.joint(robot_config, kp=kp, kv=kv)
 stiction = abr_jaco2.signals.stiction(robot_config)
 
@@ -45,8 +45,8 @@ try:
     while 1:
         ctr += 1
         feedback = interface.get_feedback()
-        q = (np.array(feedback['q']) % 360) * np.pi / 180.0
-        dq = np.array(feedback['dq']) * np.pi / 180.0
+        q = np.array(feedback['q'])
+        dq = np.array(feedback['dq'])
 
         Mq_g = robot_config.Mq_g(q)
         u = ctrlr.control(q=q, dq=dq,
@@ -73,7 +73,7 @@ finally:
 
     if ctr > 0:  # i.e. if it successfully ran
         import matplotlib.pyplot as plt
-        # import seaborn
+        # import seabor
 
         q_track = np.array(q_track)
         plt.title('Kp = %f Kv = %f' % (kp, kv))

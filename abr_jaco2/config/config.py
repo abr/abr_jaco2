@@ -18,6 +18,8 @@ class robot_config(robot_config.robot_config):
 
         self._T = {}  # dictionary for storing calculated transforms
 
+        self.F_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
+
         self.hand_attached = hand_attached
 
         self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
@@ -26,13 +28,18 @@ class robot_config(robot_config.robot_config):
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
         # Kinova Home Position - straight up
-        self.home_position = np.array([1.22, 3.14, 3.14,
+        self.home_position_start = np.array([1.22, 2.42, 2.42,
+                                       4.71, 0.0, 3.14], dtype="float32")
+        self.home_position_end = np.array([1.22, 3.14, 3.14,
                                        4.71, 0.0, 3.14], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
         self.rest_angles = np.array([0.0, 2.44, 2.44, 0.0, 0.0, 0.0],
                                     dtype='float32')
+        self.mass_multiplier1 = 1.10
+        self.mass_multiplier2 = 1.20
+        self.mass_multiplier3 = 1.60
 
         # create the inertia matrices for each link of the kinova jaco2
         self._M_links = [
@@ -51,30 +58,30 @@ class robot_config(robot_config.robot_config):
                 [0.000, 0.000, 0.000, 0.0, 3.216e-4, 0.0],
                 [0.000, 0.000, 0.000, 8.32e-5, 0.0, 3.519e-4]]),
             sp.Matrix([  # link2
-                [0.424, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.424, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.424, 0.000, 0.000, 0.000],
+                [0.424*self.mass_multiplier2, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.424*self.mass_multiplier2, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.424*self.mass_multiplier2, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.000, 3.786e-3],
                 [0.000, 0.000, 0.000, 0.000, -3.725e-3, 0.000],
                 [0.000, 0.000, 0.000, 6.97e-5, 0.000, 0.000]]),
             sp.Matrix([  # link3
-                [0.211, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.211, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.211, 0.000, 0.000, 0.000],
+                [0.211*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.211*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.211*self.mass_multiplier3, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, -1.44e-7, 0.000, 5.11e-4],
                 [0.000, 0.000, 0.000, 0.000, -4.8e-4, 0.000],
                 [0.000, 0.000, 0.000, 4.81e-5, 0.000, 1.533e-6]]),
             sp.Matrix([  # link4
-                [0.069, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.069, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.069, 0.000, 0.000, 0.000],
+                [0.069*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.069*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.069*self.mass_multiplier3, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 1.72e-5, 1.815e-5, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.000, -3.89e-5],
                 [0.000, 0.000, 0.000, -9.87e-6 ,3.16e-5 ,0.000]]),
             sp.Matrix([  # link5
-                [0.069, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.069, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.069, 0.000, 0.000, 0.000],
+                [0.069*self.mass_multiplier1, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.069*self.mass_multiplier1, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.069*self.mass_multiplier1, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 1.72e-5, 1.815e-5, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.000, -3.89e-5],
                 [0.000, 0.000, 0.000, -9.87e-6 ,3.16e-5 ,0.000]])]

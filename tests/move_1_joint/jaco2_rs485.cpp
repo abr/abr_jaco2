@@ -10,8 +10,10 @@ Jaco2::Jaco2(void) {
     read_input = true;
     delay = 2000;
     qtyWanted = 1;
+    packets_sent = 6;
+    packets_read = 18;
 
-    torqueDamping = 0x01;
+    torqueDamping = 0x00;
     controlMode = 0x01;
     torqueKp = 1750; // torque kp 1.75 * 1000
 
@@ -39,6 +41,22 @@ Jaco2::Jaco2(void) {
 	MyRS485_Write = (int (*)(RS485_Message* PackagesOut, int QuantityWanted,
                              int &ReceivedQtyIn)) dlsym(commLayer_Handle,
                              "RS485_Write");
+
+    float switch_threshold = 2.0;
+    float pos_lim_distance = 5.0;
+    float error_deadband = 1.0;
+    float torque_brake = 0.0;
+    // Set up the torque config parameters 2
+    for (int ii=0; ii<6; ii++) {
+        TorqueConfigParameters2[ii].Command =
+            SEND_TORQUE_CONFIG_CONTROL_PARAM_2;
+        TorqueConfigParameters2[ii].SourceAddress = SOURCE_ADDRESS;
+        TorqueConfigParameters2[ii].DestinationAddress = joint[ii];
+        TorqueConfigParameters2[ii].DataFloat[0] = switch_threshold;
+        TorqueConfigParameters2[ii].DataFloat[1] = pos_lim_distance;
+        TorqueConfigParameters2[ii].DataFloat[2] = error_deadband;
+        TorqueConfigParameters2[ii].DataFloat[3] = torque_brake;
+    }
 }
 
 int main()
@@ -51,23 +69,27 @@ int main()
     usleep(1000000);
     
     Jaco2 j2 = Jaco2();
-    j2.joint[0] = 0x10;
+
     float u[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
     
+    // ---------- select joint and params ----------
+    j2.joint[0] = 0x15;
+    //j2.torqueKp = 1000;
+    //j2.torqueKp = 1500;
+    j2.torqueKp = 1750;
+    u[0] = 0.74;
+    // ---------------------------------------------
+
     j2.Connect(j2.joint[0]); 
     
     j2.InitForceMode(j2.joint[0]);
     
-    for (int j = 0; j<5; j++)
-    {
     for (int i = 0; i<1000; i++)
         {
-            u[0] = 4.0 * sin(2.0*3.14159 * i/1000);
-            cout << u[0] << endl;
+            //u[0] = 4.0 * sin(2.0*3.14159 * i/1000);
+            //cout << u[0] << endl;
             j2.ApplyU(j2.joint[0], u);
         }
-
-    }
 
     j2.Disconnect(j2.joint[0]);
     //j2.Disconnect(j2.joint[5]);
@@ -180,9 +202,9 @@ void Jaco2::Connect(unsigned char DESTINATION_ADDRESS)
 }
 
 void Jaco2::InitForceMode(unsigned char DESTINATION_ADDRESS)
-{
+{    
     // ========== BEGIN MAIN COMM ==========
-
+    SendAndReceive(TorqueConfigParameters2, false);
     // STEP 0: Get initial position
     TrajectoryMessage[0].Command = 0x0001;
     TrajectoryMessage[0].SourceAddress = SOURCE_ADDRESS;
@@ -503,8 +525,7 @@ void Jaco2::Disconnect(unsigned char DESTINATION_ADDRESS)
 	    ((unsigned short)d1 << 24))); //U24|U8
     TrajectoryMessage[0].DataLong[1] = 0x00000000;
     TrajectoryMessage[0].DataLong[2] = 0x00000000;
-    TrajectoryMessage[0].DataLong[3] = 0x00000000;
-    
+    TrajectoryMessage[0].DataLong[3] = 0x00000000;    
     
 
     cout << "STEP 3: Waiting for Torque Verification" << endl;
@@ -552,4 +573,19 @@ void Jaco2::Disconnect(unsigned char DESTINATION_ADDRESS)
 
 
     cout << "Exiting Main Control Loop" << endl;
+}
+
+int Jaco2::SendAndReceive(RS485_Message message[6], bool loop) {
+
+    int joints_updated = 0;
+    while(joints_updated < 6) {
+        MyRS485_Write(message, packets_sent, WriteCount);
+        usleep(delay);
+        MyRS485_Read(MessageListIn, packets_read, ReadCount);
+        //ProcessFeedback();
+
+        if (loop == false) {
+            break;
+        }
+    }
 }

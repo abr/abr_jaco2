@@ -35,11 +35,10 @@ try:
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
-        q = (np.array(feedback['q']) % 360) * np.pi / 180.0
-        dq = np.array(feedback['dq']) * np.pi / 180.0
+        q = np.array(feedback['q'])
+        dq = np.array(feedback['dq'])
 
         u = ctrlr.control(q=q, dq=dq)
-
         interface.apply_u(np.array(u, dtype='float32'))
 
 except Exception as e:

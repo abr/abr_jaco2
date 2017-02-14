@@ -20,7 +20,7 @@ class Signal():
         # Stribeck friction coefficient
         self.c0 = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
         # Coulombic friction force
-        self.fc = self.f_brk * np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) * 4
+        self.fc = self.f_brk * np.array([0.4, 0.4, 0.4, 0.4, 0.4, 0.4])
         # viscuous friction force
         self.fv = np.zeros(self.robot_config.num_joints)
 
@@ -57,7 +57,7 @@ class Signal():
                         self.fv[ii] +
                         # Coulombic and static
                         (self.fc[ii] + (self.f_brk[ii] - self.fc[ii]) *
-                        np.exp(-self.v_threshold[ii] / self.c0[ii]))) /
+                        np.exp(-self.v_threshold / self.c0[ii]))) /
                     self.v_threshold[ii])
 
         return friction

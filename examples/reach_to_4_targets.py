@@ -13,9 +13,12 @@ import abr_jaco2
 robot_config = abr_jaco2.robot_config(
     regenerate_functions=False, use_cython=True,
     use_simplify=False, hand_attached=False)
+friction = abr_jaco2.signals.friction(robot_config)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=20.0, kv=4.5, vmax=1)
+    robot_config, kp=4.0, kv=2.0, vmax=None)
+
+# NOTE: maybe the startup direction is due to singularity?
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
@@ -26,12 +29,15 @@ interface = abr_jaco2.interface(robot_config)
 # connect to the jaco
 interface.connect()
 # move to the home position
-interface.apply_q(robot_config.home_position)
+interface.apply_q(robot_config.home_position_start)
 # switch to torque control mode
 interface.init_force_mode()
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
+u_track = []
+# q_track = []
+# dq_track = []
 targets_track = []
 
 count = 0
@@ -52,10 +58,12 @@ try:
     while 1:
         ctr += 1
         feedback = interface.get_feedback()
-        q = (np.array(feedback['q']) % 360.0) * np.pi / 180.0
-        dq = np.array(feedback['dq']) * np.pi / 180.0
+        q = np.array(feedback['q'])
+        dq = np.array(feedback['dq'])
 
         u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
+        friction_generated = friction.generate(dq=dq)
+        u += friction_generated
         interface.apply_u(np.array(u, dtype='float32'))
 
         hand_xyz = robot_config.Tx('EE', q=q)
@@ -74,6 +82,9 @@ try:
                 at_target_count = 0
 
         ee_track.append(hand_xyz)
+        u_track.append(np.copy(u))
+        # q_track.append(np.copy(q))
+        # dq_track.append(np.copy(dq))
         targets_track.append(target_xyz)
         count += 1
         if count % 100 == 0:
@@ -85,7 +96,7 @@ except Exception as e:
 finally:
     # return back to home position
     interface.init_position_mode()
-    interface.apply_q(robot_config.home_position)
+    interface.apply_q(robot_config.home_position_end)
     # close the connection to the arm
     interface.disconnect()
 
@@ -98,5 +109,13 @@ finally:
         # plot targets and trajectory of end-effectory in 3D
         abr_control.utils.plotting.plot_trajectory(ee_track, targets_track)
 
-        plt.tight_layout()
+        # plt.tight_layout()
+        # plt.show()
+
+        plt.figure()
+        plt.plot(np.array(u_track))
+        # plt.subplot(2, 1, 1)
+        # plt.plot(np.array(q_track))
+        # plt.subplot(2, 1, 2)
+        # plt.plot(np.array(dq_track), '--')
         plt.show()
