@@ -16,9 +16,9 @@ robot_config = abr_jaco2.robot_config(
 
 friction = abr_jaco2.signals.friction(robot_config)
 # instantiate the REACH controller for the jaco2 robot
-kp = 25.0
-kv = 5.0
-loop_limit = 3000
+kp = 4.0
+kv = 2.0
+loop_limit = 5000
 
 ctrlr = abr_control.controllers.joint(robot_config, kp=kp, kv=kv)
 
@@ -36,6 +36,7 @@ loop_count = 0
 joint_angles = np.zeros((6, loop_limit))
 torques_sent = np.zeros((6, loop_limit))
 torques_read = np.zeros((6, loop_limit))
+frictions = np.zeros((6, loop_limit))
 times = np.zeros(loop_limit)
 
 # connect to the jaco
@@ -57,9 +58,10 @@ try:
             q=q, dq=dq,
             target_pos=target_pos, target_vel=target_vel)
 
-        #print('no friction u: ', u)
-        #u += friction.generate(dq=dq)
-        #print('with friction u: ', u)
+        
+        friction_generated = friction.generate(dq=dq)
+        u += friction_generated
+
         interface.apply_u(np.array(u, dtype='float32'))
 
         times[loop_count] = time.time()-start
@@ -68,6 +70,7 @@ try:
         joint_angles[:, loop_count] = np.copy(q)
         torques_read[:, loop_count] = np.copy(t_feedback['torque_load'])
         torques_sent[:, loop_count] = np.copy(u)
+        frictions[:, loop_count] = np.copy(friction_generated)
 
         loop_count += 1
 
@@ -89,5 +92,6 @@ finally:
         np.savez_compressed('joint_angles', joint_angles=joint_angles)
         np.savez_compressed('torques_sent', torques_sent=torques_sent)
         np.savez_compressed('torques_read', torques_read=torques_read)
+        np.savez_compressed('friction', friction = frictions)
         np.savez_compressed('times', times=times)
 
