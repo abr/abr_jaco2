@@ -26,12 +26,12 @@ class robot_config(robot_config.robot_config):
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
         # Kinova Home Position - straight up
-        self.home_position = np.array([70.0, 180.0, 180.0,
-                                       270.0, 0.0, 1.0], dtype="float32")
+        self.home_position = np.array([1.22, 3.14, 3.14,
+                                       4.71, 0.0, 3.14], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0],
+        self.rest_angles = np.array([0.0, 2.44, 2.44, 0.0, 0.0, 0.0],
                                     dtype='float32')
 
         # create the inertia matrices for each link of the kinova jaco2

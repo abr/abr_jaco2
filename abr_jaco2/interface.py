@@ -38,13 +38,23 @@ class interface(interface.interface):
         """ Returns a dictionary of relevant feedback to the
         controller. At very least this contains q, dq.
         """
-        return self.jaco2.GetFeedback()
+        # convert from degrees from the Jaco into radians
+        feedback = self.jaco2.GetFeedback()
+        feedback['q'] = np.array(feedback['q']) * np.pi / 180.0
+        feedback['dq'] = np.array(feedback['dq']) * np.pi / 180.0
+        print('q: ', feedback['q'])
+        return feedback
 
     def apply_q(self, q):
         """ Moves the arm to the specified joint angles using
         the on-board PD controller.
 
+        q np.array: the target joint angles (radians)
+
         """
+        # convert from radians into degrees the Jaco expects
+        q = np.array(q) * 180.0 / np.pi
+        print('Target Q: ', q)
         self.jaco2.ApplyQ(q)
 
     def init_force_mode(self):
@@ -63,7 +73,10 @@ class interface(interface.interface):
         """ Returns the last set of joint angles and velocities
         read in from the arm as a dictionary, with keys 'q' and 'dq'.
         """
-        return self.jaco2.GetFeedback()
+        # NOTE: this does the same thing as GetFeedback
+        # TODO: set this up to send a message to query current position
+        # convert from degrees from the Jaco into radians
+        return self.get_feedback()
 
     def get_torque_load(self):
         """Returns the torque at each joint"""
