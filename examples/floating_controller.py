@@ -9,8 +9,8 @@ import abr_jaco2
 # ---------- INITIALIZATION ----------
 # initialize our robot config for the ur5
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=True, use_cython=True,
-    use_simplify=False, hand_attached=False)
+    regenerate_functions=False, use_cython=True,
+    hand_attached=False)
 
 ctrlr = abr_control.controllers.floating(robot_config)
 ctrlr.control(np.zeros(6), np.zeros(6))
@@ -22,11 +22,10 @@ interface.init_position_mode()
 
 # ---------- MAIN BODY ----------
 # Move to home position
-interface.apply_q(robot_config.home_position)
+interface.apply_q(robot_config.home_position_start)
 
 try:
     # move to read position ii
-    interface.apply_q(robot_config.home_position)
     t_feedback = interface.get_torque_load()
     torque_load = np.array(t_feedback['torque_load'], dtype="float32")
     t_feedback = interface.get_torque_load()
@@ -35,18 +34,17 @@ try:
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
-        q = (np.array(feedback['q']) % 360) * np.pi / 180.0
-        dq = np.array(feedback['dq']) * np.pi / 180.0
+        q = np.array(feedback['q'])
+        dq = np.array(feedback['dq'])
 
         u = ctrlr.control(q=q, dq=dq)
-
-        interface.apply_u(np.array(u, dtype='float32'))
+        interface.send_forces(np.array(u, dtype='float32'))
 
 except Exception as e:
     print(e)
 
 finally:
     interface.init_position_mode()
-    interface.apply_q(robot_config.home_position)
+    interface.apply_q(robot_config.home_position_end)
     interface.disconnect()
     print('Disconnected')

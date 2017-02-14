@@ -25,7 +25,8 @@ class interface(interface.interface):
         when done with the arm. """
         self.jaco2.Disconnect()
 
-    def apply_u(self, u):
+    # TODO: change this send_forces in C++ code
+    def send_forces(self, u):
         """ Applies the set of torques u to the arm.
 
         NOTE: if a torque is not applied every 200ms then
@@ -42,9 +43,9 @@ class interface(interface.interface):
         feedback = self.jaco2.GetFeedback()
         feedback['q'] = np.array(feedback['q']) * np.pi / 180.0
         feedback['dq'] = np.array(feedback['dq']) * np.pi / 180.0
-        print('q: ', feedback['q'])
         return feedback
 
+    # TODO: change this send_target_postition here and in C++
     def apply_q(self, q):
         """ Moves the arm to the specified joint angles using
         the on-board PD controller.
@@ -54,7 +55,6 @@ class interface(interface.interface):
         """
         # convert from radians into degrees the Jaco expects
         q = np.array(q) * 180.0 / np.pi
-        print('Target Q: ', q)
         self.jaco2.ApplyQ(q)
 
     def init_force_mode(self):

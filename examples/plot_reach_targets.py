@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn
+import abr_control
 
 error = np.load('error.npz')['error']
 kp = np.load('kp.npz')['kp']
@@ -13,6 +14,9 @@ friction = np.load('friction.npz')['friction']
 velocities = np.load('velocity.npz')['velocity']
 times = np.load('times.npz')['times']
 F_brk = np.load('F_brk.npz')['F_brk']
+ee_track = np.load('ee_track.npz')['ee_track']
+target_track = np.load('target_track.npz')['target_track']
+u_track = np.load('u_track.npz')['u_track']
 
 
 plt.figure()
@@ -22,10 +26,10 @@ for ii in range(0, 6):
     plt.xlabel('loop count')
     plt.ylabel('joint angle (rad)')
     plt.plot((joint_angles[ii, :] + np.pi) % (np.pi * 2) - np.pi, label='Current Angle')
-    plt.plot(
+    """plt.plot(
         ((np.ones(joint_angles[ii, :].shape) * target_pos[ii])
          + np.pi) % (np.pi * 2) - np.pi,
-        '--', label='Target Angle')
+        '--', label='Target Angle')"""
     plt.plot(velocities[ii, :], '--m', label='Joint Velocity')
     plt.legend()
 
@@ -36,7 +40,7 @@ for ii in range(0, 6):
     plt.plot(friction[ii, :], 'r', label='Friction Compensation') 
     plt.plot(torques_sent[ii, :] - friction[ii, :], label='Control Signal')
     plt.plot(torques_sent[ii, :], '--', label='Total Torque') 
-    plt.plot(velocities[ii, :], '--m', label='Joint Velocity')
+    #plt.plot(velocities[ii, :], '--m', label='Joint Velocity')
     #plt.plot(velocities[ii, :], '--m', label='Joint Velocity')  
      
 
@@ -46,4 +50,5 @@ for ii in range(0, 6):
                      F_brk_neg, F_brk_pos, alpha=.25, facecolor='yellow',label='Friction Threshold')
     plt.legend()
 
-plt.show()
+# plot.show() in util plotting script
+abr_control.utils.plotting.plot_trajectory(ee_track, target_track)

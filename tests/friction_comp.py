@@ -16,9 +16,9 @@ robot_config = abr_jaco2.robot_config(
 
 friction = abr_jaco2.signals.friction(robot_config)
 # instantiate the REACH controller for the jaco2 robot
-kp = 4.0
-kv = 2.0
-loop_limit = 5000
+kp = 10.0
+kv = 3.3
+loop_limit = 10000
 
 ctrlr = abr_control.controllers.joint(robot_config, kp=kp, kv=kv)
 
@@ -37,12 +37,13 @@ joint_angles = np.zeros((6, loop_limit))
 torques_sent = np.zeros((6, loop_limit))
 torques_read = np.zeros((6, loop_limit))
 frictions = np.zeros((6, loop_limit))
+velocities = np.zeros((6, loop_limit))
 times = np.zeros(loop_limit)
 
 # connect to the jaco
 interface.connect()
 interface.init_position_mode()
-
+friction_generated = np.array([0,0,0,0,0,0])
 try:
     interface.apply_q(robot_config.home_position)
     interface.init_force_mode()
@@ -50,16 +51,23 @@ try:
     while loop_count < loop_limit - 1:
 
         feedback = interface.get_feedback()
-        q = (np.array(feedback['q']) % 360) * np.pi / 180.0
-        dq = np.array(feedback['dq']) * np.pi / 180.0
+        q = np.array(feedback['q'])
+        dq = np.array(feedback['dq'])
+        dq[abs(dq)<0.01] = 0.0
         t_feedback = interface.get_torque_load()
 
         u = ctrlr.control(
             q=q, dq=dq,
             target_pos=target_pos, target_vel=target_vel)
 
-        
-        friction_generated = friction.generate(dq=dq)
+        u[abs(u)<0.01] = 0.0
+
+        q_tilde = np.copy(ctrlr.q_tilde)
+        q_tilde[q_tilde < .05] = 0.0
+
+        #friction_generated = friction_generated * 0.7 + friction.generate(dq=dq, u=u) * 0.3
+        friction_generated = friction.generate(dq=dq, u=q_tilde)
+
         u += friction_generated
 
         interface.apply_u(np.array(u, dtype='float32'))
@@ -71,6 +79,7 @@ try:
         torques_read[:, loop_count] = np.copy(t_feedback['torque_load'])
         torques_sent[:, loop_count] = np.copy(u)
         frictions[:, loop_count] = np.copy(friction_generated)
+        velocities[:, loop_count] = np.copy(dq)
 
         loop_count += 1
 
@@ -93,5 +102,7 @@ finally:
         np.savez_compressed('torques_sent', torques_sent=torques_sent)
         np.savez_compressed('torques_read', torques_read=torques_read)
         np.savez_compressed('friction', friction = frictions)
+        np.savez_compressed('velocity', velocity = velocities)
         np.savez_compressed('times', times=times)
+        np.savez_compressed('F_brk', F_brk=robot_config.F_brk)
 

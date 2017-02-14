@@ -25,6 +25,7 @@ using namespace std;
 #define REPORT_ERROR 0x0030
 #define CLEAR_ERROR_FLAG 0x0033
 #define POSITION_LIMIT 0x0021
+#define SEND_TORQUE_CONFIG_CONTROL_PARAM_2 0x215
 
 class Jaco2 {
     public:
@@ -36,6 +37,7 @@ class Jaco2 {
         void* ApplyU(unsigned char DESTINATION_ADDRESS, float us[6]);
         void* GetFeedback(RS485_Message* MessageListIn);//, unsigned char DESTINATION_ADDRESS, float q[6], float dq[6]);
         void Disconnect(unsigned char DESTINATION_ADDRESS);
+        int SendAndReceive(RS485_Message message[6], bool loop);
 
         // read variables
         int flag;
@@ -44,6 +46,9 @@ class Jaco2 {
         int pos[2];
         bool read_input;
         int qtyWanted;
+        int packets_sent;
+        int packets_read;
+
 
         // torque variables
         unsigned char torqueDamping;
@@ -61,6 +66,8 @@ class Jaco2 {
         RS485_Message ReceiveInitMessage[6];
         RS485_Message TrajectoryMessage[2];
         RS485_Message ForceMessage[2];
+        RS485_Message TorqueConfigParameters2[6];
+        RS485_Message MessageListIn [50];
 
         // A handle needed to open the API(library).
         void *commLayer_Handle;
