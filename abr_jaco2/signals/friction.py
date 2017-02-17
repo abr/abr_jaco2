@@ -48,12 +48,12 @@ class Signal():
                     self.fv[ii] * dq[ii])
             else:
                 # # sub-threshold friction compensation
-                # friction[ii] = (np.sign(u[ii]) * self.f_brk[ii])
-
                 friction[ii] = (
                     dq[ii] * (
                         # proportionality coefficient
-                        # self.f_brk[ii] / self.v_threshold[ii] +
+                        # NOTE: did they typo and write f_v_thresh not f_v?
+                        # maybe self.f_brk[ii] / self.v_threshold[ii]
+                        # would be f_v_thresh if it wasn't a typo?
                         self.fv[ii] +
                         # Coulombic and static
                         (self.fc[ii] + (self.f_brk[ii] - self.fc[ii]) *
