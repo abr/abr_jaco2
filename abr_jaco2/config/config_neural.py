@@ -1,14 +1,11 @@
 # to get new scales and means run the get_scales_averages script
 # in jaco2/tests
 import numpy as np
-import sympy as sp
-
-import nengo
 
 from . import config
 
 
-class robot_config(config):
+class robot_config(config.robot_config):
     """ Robot config file for the UR5 arm """
 
     def __init__(self, **kwargs):
