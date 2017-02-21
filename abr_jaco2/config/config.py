@@ -28,7 +28,7 @@ class robot_config(robot_config.robot_config):
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
         # Kinova Home Position - straight up
-        self.home_position_start = np.array([1.22, 2.42, 2.42,
+        self.home_position_start = np.array([1.22, 2.79, 2.62,
                                        4.71, 0.0, 3.14], dtype="float32")
         self.home_position_end = np.array([1.22, 3.14, 3.14,
                                        4.71, 0.0, 3.14], dtype="float32")
@@ -37,9 +37,10 @@ class robot_config(robot_config.robot_config):
         # currently set to the center of the limits
         self.rest_angles = np.array([0.0, 2.44, 2.44, 0.0, 0.0, 0.0],
                                     dtype='float32')
-        self.mass_multiplier1 = 1.10
-        self.mass_multiplier2 = 1.20
-        self.mass_multiplier3 = 1.60
+        self.mass_multiplier1 = 1.0#1.10
+        self.mass_multiplier2 = 1.0#1.20
+        self.mass_multiplier3 = 1.0#1.60
+        self.mass_multiplier_wrist = 1.3
 
         # create the inertia matrices for each link of the kinova jaco2
         self._M_links = [
@@ -117,23 +118,23 @@ class robot_config(robot_config.robot_config):
                 [0.000, 0.000, 0.000, 2.44e-6, 2.2e-5, 2.77e-4],
                 [0.000, 0.000, 0.000, 2.44e-4, 0.000, -2.76e-6]]),
             sp.Matrix([  # motor3
-                [0.348, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.348, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.348, 0.000, 0.000, 0.000],
+                [0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.000, 0.000, 0.000, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.000, 0.000, 0.000, 1.14e-4, 2.75e-5, -1.68e-5]]),
             sp.Matrix([  # motor4
-                [0.348, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.348, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.348, 0.000, 0.000, 0.000],
+                [0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.000, 0.000, 0.000, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.000, 0.000, 0.000, 1.14e-4, 2.75e-5, -1.68e-5]]),
             sp.Matrix([  # motor5
-                [0.348, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.348, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.348, 0.000, 0.000, 0.000],
+                [0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.348*self.mass_multiplier_wrist, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.000, 0.000, 0.000, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.000, 0.000, 0.000, 1.14e-4, 2.75e-5, -1.68e-5]])]
