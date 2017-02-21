@@ -15,9 +15,9 @@ import abr_jaco2
 
 # ----TEST PARAMETERS-----
 name = 'adapt_ctrlr_test'
-kp = 400.0
-kv = 20.0
-vmax = 0.5
+kp = 4.0
+kv = 2.0
+vmax = 0.1
 num_runs = 2 # how many runs of learning to go through for averaging
 num_trials = 10 # number of trials per run (cumulative learning)
 regen = False # decide whether to regenerate functions for controller
@@ -65,7 +65,7 @@ if (os.path.isfile('data/learning_osc/%s/%i_neurons/zeros.npz' % (name, n_neuron
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
     regenerate_functions=regen, use_cython=True,
-    use_simplify=False, hand_attached=False)
+    hand_attached=False)
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
@@ -80,7 +80,7 @@ interface = abr_jaco2.interface(robot_config)
 # connect to the jaco
 interface.connect()
 # move to the home position
-interface.apply_q(robot_config.home_position)
+interface.apply_q(robot_config.home_position_start)
 
 weights_location = []
 # load the weights files for each adaptive population
@@ -163,7 +163,7 @@ except Exception as e:
 finally:
     # return back to home position and close the connection to the arm
     interface.init_position_mode()
-    interface.apply_q(robot_config.home_position)    
+    interface.apply_q(robot_config.home_position_end)    
     interface.disconnect()
 
     if save_data is True:
