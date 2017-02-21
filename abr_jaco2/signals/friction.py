@@ -15,12 +15,12 @@ class Signal():
         self.robot_config = robot_config
 
         # breakaway forces
-        self.f_brk = np.array([1.30, 1.20, 0.84, 0.80, 0.75, 0.74])
+        self.f_brk = np.array([1.20, 1.20, 0.84, 0.80, 0.75, 0.74])
 
         # Stribeck friction coefficient
         self.c0 = np.array([0.01, 0.05, 0.05, 0.01, 0.01, 0.01])
         # Coulombic friction force
-        self.fc = self.f_brk * np.array([0.005, 0.01, 0.01, 0.01, 0.01, 0.01]) * 0.5
+        self.fc = self.f_brk * np.array([0.001, 0.01, 0.01, 0.1, 0.1, 0.1]) * 0.5
         # viscuous friction force
         self.fv = np.zeros(self.robot_config.num_joints)
 
