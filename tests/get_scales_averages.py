@@ -25,7 +25,7 @@ interface = abr_jaco2.interface(robot_config)
 interface.connect()
 interface.init_position_mode()
 
-timer = 30 #in seconds
+timer = 60 #in seconds
 qs = []
 dqs = []
 # ---------- MAIN BODY ----------
@@ -65,6 +65,9 @@ finally:
 
     qs = np.array(qs)
     dqs = np.array(dqs)
+
+    np.savez_compressed('q', q=qs)
+    np.savez_compressed('dq', dq=dqs)
     
     print('q means: ', qs.mean(axis=0))
     print('dq means: ', dqs.mean(axis=0))
