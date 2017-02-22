@@ -11,28 +11,30 @@ import os
 import gen_zeros as gen
 import abr_control
 import abr_jaco2
+import gc
 
 # ----TEST PARAMETERS-----
-name = 'initial_test'
+name = 'learn_1e-4_1'
 kp = 4.0
 kv = 2.0
 vmax = 0.1
 num_trials = 1  # how many trials of learning to go through for averaging
-num_runs = 1  # number of runs per trial (cumulative learning)
+num_runs = 10  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
 save_data = False  # whether to save joint angle and vel data or not
 plot_data = False  # shows plot after run completes
-time_limit = 10  # how long the arm is allowed to reach for the target [sec]
+save_learning = False  # whether the weights and plotting data get saved
+time_limit = 600  # how long the arm is allowed to reach for the target [sec]
 at_target = 200  # how long arm needs to be within tolerance of target
 num_targets = 1  # number of targets to move to in each trial
 
 # parameters of adaptive controller
 neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
 dim_in = 6  # number of dimensions
-n_neurons = 100  # number of neurons (20k ~ max with 1 pop)
+n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.0e-7
-voja_learning_rate = 1.0e-7
+pes_learning_rate = 1.0e-2
+voja_learning_rate = 1.0e-2
 # ------------------------
 
 count = 0  # loop counter
@@ -60,29 +62,30 @@ if (os.path.isfile('data/learning_osc/%s/%i_neurons/zeros.npz' %
     gen.__init__(name, dim_in, n_neurons)
 
 # initialize our robot config for neural controllers
+#robot_config = abr_jaco2.robot_config_neural(
+#    use_cython=True, hand_attached=False)
 robot_config = abr_jaco2.robot_config_neural(
-    use_cython=True, hand_attached=False)
-
+    regenerate_functions=False, use_cython=True,
+    hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-robot_config.generate_control_functions()
-
+#robot_config.generate_control_functions()
+ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
-
+s = 9
+f = s+1
 for hh in range(0, num_trials):
-    for ii in range(0, num_runs):
-        print('Run %i of %i in trial %i' % (ii+1, num_runs, hh+1))
+    for ii in range(s, f):
+        print('Run %i/%i in trial %i/%i' % (ii+1, num_runs, hh+1, num_trials))
         if not os.path.exists('data/learning_osc/%s/%i_neurons/trial%i' %
                               (name, n_neurons, hh)):
             os.makedirs('data/learning_osc/%s/%i_neurons/trial%i' %
                         (name, n_neurons, hh))
-        # connect to the jaco
-        interface.connect()
 
         weights_location = []
         # load the weights files for each adaptive population
@@ -118,11 +121,14 @@ for hh in range(0, num_trials):
 
         looptimes = np.zeros(num_trials)
 
-        print('Moving to first target: ', target_xyz)
+        # connect to the jaco
+        interface.connect()
 
         try:
             # move to the home position
+            print('Moving to start position')
             interface.apply_q(robot_config.home_position_start)
+            print('Moving to first target: ', target_xyz)
             interface.init_force_mode()
             start_t = time.time()
             while 1:
@@ -135,7 +141,7 @@ for hh in range(0, num_trials):
                 u += adapt.generate(
                     q=q, dq=dq,
                     training_signal=ctrlr.training_signal)
-                u += friction.generate(dq=dq)
+                #u += friction.generate(dq=dq)
 
                 interface.send_forces(np.array(u, dtype='float32'))
 
@@ -162,6 +168,7 @@ for hh in range(0, num_trials):
                 count += 1
                 if count % 100 == 0:
                     print('error: ', error)
+                    print('ts: ', ctrlr.training_signal)
 
                 loop_time = time.time() - start_t
 
@@ -178,52 +185,58 @@ for hh in range(0, num_trials):
             interface.apply_q(robot_config.home_position_end)
             interface.disconnect()
 
-            # save weights from adaptive population
-            for nn in range(0, n_adapt_pop):
-                print('saving weights...')
-                np.savez_compressed(
-                    'data/learning_osc/%s/%i_neurons/trial%i/weights%i_pop%i' %
-                    (name, n_neurons, hh, ii % save_history, nn),
-                    weights=adapt.sim.data[adapt.probe_weights[nn]])
+            if save_learning is True:
+                # save weights from adaptive population
+                for nn in range(0, n_adapt_pop):
+                    print('saving weights...')
+                    np.savez_compressed(
+                        'data/learning_osc/%s/%i_neurons/trial%i/weights%i_pop%i' %
+                        (name, n_neurons, hh, ii % save_history, nn), weights=
+                        [adapt.sim.data[adapt.probe_weights[nn]][-1]])
 
-                print('saving plotting data...')
-                np.savez_compressed('data/learning_osc/%s/%i_neurons/'
-                                    'trial%i/ee%i' % (name, n_neurons,
-                                                      hh, ii), ee=ee_track)
-
-                # save time to target
-                filename = ('data/learning_osc/%s/%i_neurons/trial%i/'
-                            'total_time_track.txt' %
-                            (name, n_neurons, hh))
-                if os.path.exists(filename):
-                    append_write = 'a'  # append if file exists
-                else:
-                    append_write = 'w'  # make a new file if it does not exist
-                time_file = open(filename, append_write)
-                time_file.write('%.3f\n' % loop_time)
-                time_file.close()
-                print('Time to Target : %.3f' % loop_time)
-
-                # save run info for plotting
-                filename = ('data/learning_osc/read_info.txt')
-                if os.path.exists(filename):
-                    append_write = 'a'  # append if file exists
-                else:
-                    append_write = 'w'  # make a new file if it does not exist
-                info_file = open(filename, append_write)
-                info_file.seek(0)
-                info_file.truncate()
-                info_file.write('%s,%s,%s,%s' % (name, n_neurons, num_trials,
-                                                 num_runs))
-                info_file.close()
-
-                if save_data is True:
-                    print('saving extra data...')
-
+                    print('saving plotting data...')
                     np.savez_compressed('data/learning_osc/%s/%i_neurons/'
-                                        'trial%i/q%i' % (name, n_neurons,
-                                                         hh, ii), q=q_track)
+                                        'trial%i/ee%i' % (name, n_neurons,
+                                                          hh, ii), ee=ee_track)
 
-                    np.savez_compressed('data/learning_osc/%s/%i_neurons/'
-                                        'trial%i/dq%i' % (name, n_neurons,
-                                                          hh, ii), dq=dq_track)
+                    # save time to target
+                    filename = ('data/learning_osc/%s/%i_neurons/trial%i/'
+                                'total_time_track.txt' %
+                                (name, n_neurons, hh))
+                    if os.path.exists(filename):
+                        append_write = 'a'  # append if file exists
+                    else:
+                        append_write = 'w'  # make a new file if it does not exist
+                    time_file = open(filename, append_write)
+                    time_file.write('%.3f\n' % loop_time)
+                    time_file.close()
+                    print('Time to Target : %.3f' % loop_time)
+
+                    # save run info for plotting
+                    filename = ('data/learning_osc/read_info.txt')
+                    if os.path.exists(filename):
+                        append_write = 'a'  # append if file exists
+                    else:
+                        append_write = 'w'  # make a new file if it does not exist
+                    info_file = open(filename, append_write)
+                    info_file.seek(0)
+                    info_file.truncate()
+                    info_file.write('%s,%s,%s,%s' % (name, n_neurons, num_trials,
+                                                     num_runs))
+                    info_file.close()
+
+                    if save_data is True:
+                        print('saving extra data...')
+
+                        np.savez_compressed('data/learning_osc/%s/%i_neurons/'
+                                            'trial%i/q%i' % (name, n_neurons,
+                                                             hh, ii), q=q_track)
+
+                        np.savez_compressed('data/learning_osc/%s/%i_neurons/'
+                                            'trial%i/dq%i' % (name, n_neurons,
+                                                              hh, ii), dq=dq_track)
+            else:
+                print('Save learning turned off...exiting')
+
+            adapt = None
+            gc.collect()
