@@ -14,17 +14,18 @@ import abr_jaco2
 import gc
 
 # ----TEST PARAMETERS-----
-name = 'learn_1e-4_1'
+s = 19  # have to manually go through runs
+name = 'learn_1e-1_2lb_t-0.002'
+notes = 'first ten at 0.002, next ten at 0.01'
 kp = 4.0
 kv = 2.0
 vmax = 0.1
 num_trials = 1  # how many trials of learning to go through for averaging
-num_runs = 10  # number of runs per trial (cumulative learning)
+num_runs = 20  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
 save_data = False  # whether to save joint angle and vel data or not
-plot_data = False  # shows plot after run completes
-save_learning = False  # whether the weights and plotting data get saved
-time_limit = 600  # how long the arm is allowed to reach for the target [sec]
+save_learning = True  # whether the weights and plotting data get saved
+time_limit = 30  # how long the arm is allowed to reach for the target [sec]
 at_target = 200  # how long arm needs to be within tolerance of target
 num_targets = 1  # number of targets to move to in each trial
 
@@ -33,8 +34,8 @@ neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
 dim_in = 6  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.0e-2
-voja_learning_rate = 1.0e-2
+pes_learning_rate = 1.0e-1
+voja_learning_rate = 1.0e-1
 # ------------------------
 
 count = 0  # loop counter
@@ -77,7 +78,6 @@ ctrlr = abr_control.controllers.osc(
 ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
-s = 9
 f = s+1
 for hh in range(0, num_trials):
     for ii in range(s, f):
@@ -131,7 +131,10 @@ for hh in range(0, num_trials):
             print('Moving to first target: ', target_xyz)
             interface.init_force_mode()
             start_t = time.time()
+            avg_loop_time = 0.0
+            loop_time = time.time()
             while 1:
+                loop_start = time.time()
                 feedback = interface.get_feedback()
                 q = np.array(feedback['q'])
                 dq = np.array(feedback['dq'])
@@ -153,6 +156,7 @@ for hh in range(0, num_trials):
                     if at_target_count >= at_target:
                         target_index += 1
                         if target_index > num_targets:
+                            print('Target Reached')
                             break
                         else:
                             target_xyz = targets[target_index]
@@ -168,8 +172,9 @@ for hh in range(0, num_trials):
                 count += 1
                 if count % 100 == 0:
                     print('error: ', error)
-                    print('ts: ', ctrlr.training_signal)
+                    #print('ts: ', ctrlr.training_signal)
 
+                avg_loop_time += time.time() - loop_start
                 loop_time = time.time() - start_t
 
                 if (loop_time) > time_limit:
@@ -184,6 +189,8 @@ for hh in range(0, num_trials):
             interface.init_position_mode()
             interface.apply_q(robot_config.home_position_end)
             interface.disconnect()
+
+            print('Average Loop Time: ', avg_loop_time / count)
 
             if save_learning is True:
                 # save weights from adaptive population
@@ -211,6 +218,32 @@ for hh in range(0, num_trials):
                     time_file.write('%.3f\n' % loop_time)
                     time_file.close()
                     print('Time to Target : %.3f' % loop_time)
+
+                    # save time to target
+                    filename = ('data/learning_osc/%s/%i_neurons/'
+                                'run_parameters.txt' %
+                                (name, n_neurons))
+                    if os.path.exists(filename):
+                        append_write = 'a'  # append if file exists
+                    else:
+                        append_write = 'w'  # make a new file if it does not exist
+                    parameter_file = open(filename, append_write)
+                    parameter_file.seek(0)
+                    parameter_file.truncate(0)
+                    parameter_file.write('name: %s\n' % name +
+                                         'kp: %.3f\n' % kp +
+                                         'kv: %.3f\n' % kv +
+                                         'vmax: %.3f\n' % vmax +
+                                         'time limit: %.3f\n' % time_limit +
+                                         'at target: %.3f\n' % at_target +
+                                         'neural backend: %s\n' % neural_backend +
+                                         'dim in: %.3f\n' % dim_in +
+                                         'n neurons: %.3f\n' % n_neurons +
+                                         'n adapt pop: %.3f\n' % n_adapt_pop +
+                                         'pes: %.3f\n' % pes_learning_rate +
+                                         'voja: %.3f\n' % voja_learning_rate +
+                                         'notes: %s' % notes)
+                    parameter_file.close()
 
                     # save run info for plotting
                     filename = ('data/learning_osc/read_info.txt')
