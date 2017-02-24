@@ -17,15 +17,14 @@ loop_limit = 15000
 
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=False, use_cython=True,
-    hand_attached=False)
+    use_cython=True, hand_attached=False)
 
 # NOTE: right now, in the osc when vmax = None, velocity is compensated
 # for in joint space, with vmax set it's in task space
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=kp, kv=kv, vmax=None, null_control=False)
+    robot_config, kp=kp, kv=kv, vmax=1.0, null_control=False)
 # create signal to compensate for friction
 friction = abr_jaco2.signals.friction(robot_config)
 
@@ -70,6 +69,7 @@ print('Moving to first target: ', target_xyz)
 
 # switch to torque control mode
 interface.init_force_mode()
+u = np.zeros(robot_config.num_joints     )
 
 try:
     loop_count = 0
@@ -79,7 +79,7 @@ try:
         q = np.array(feedback['q'])
         dq = np.array(feedback['dq'])
         t_feedback = interface.get_torque_load()
-
+        
         u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
         friction_generated = friction.generate(dq=dq)
         u += friction_generated
@@ -107,6 +107,7 @@ try:
         count += 1
         if count % 100 == 0:
             print('error: ', error)
+            #print('q: ', q)
 
         # store variables
         times[loop_count] = time.time()-start

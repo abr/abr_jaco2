@@ -14,16 +14,16 @@ import abr_jaco2
 import gc
 
 # ----TEST PARAMETERS-----
-s = 19  # have to manually go through runs
-name = 'learn_1e-1_2lb_t-0.002'
-notes = 'first ten at 0.002, next ten at 0.01'
+s = 4  # have to manually go through runs
+name = 'test'
+notes = 'sending only dq to adaptive pop'
 kp = 4.0
 kv = 2.0
 vmax = 0.1
 num_trials = 1  # how many trials of learning to go through for averaging
-num_runs = 20  # number of runs per trial (cumulative learning)
+num_runs = 5  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
-save_data = False  # whether to save joint angle and vel data or not
+save_data = True  # whether to save joint angle and vel data or not
 save_learning = True  # whether the weights and plotting data get saved
 time_limit = 30  # how long the arm is allowed to reach for the target [sec]
 at_target = 200  # how long arm needs to be within tolerance of target
@@ -34,8 +34,7 @@ neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
 dim_in = 6  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.0e-1
-voja_learning_rate = 1.0e-1
+pes_learning_rate = 1.0e-2
 # ------------------------
 
 count = 0  # loop counter
@@ -66,8 +65,7 @@ if (os.path.isfile('data/learning_osc/%s/%i_neurons/zeros.npz' %
 #robot_config = abr_jaco2.robot_config_neural(
 #    use_cython=True, hand_attached=False)
 robot_config = abr_jaco2.robot_config_neural(
-    regenerate_functions=False, use_cython=True,
-    hand_attached=False)
+    use_cython=True, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax)
@@ -109,8 +107,7 @@ for hh in range(0, num_trials):
             weights_file=weights_location,
             n_neurons=n_neurons,
             n_adapt_pop=n_adapt_pop,
-            pes_learning_rate=pes_learning_rate,
-            voja_learning_rate=voja_learning_rate)
+            pes_learning_rate=pes_learning_rate)
 
         # run once to generate the functions we need
         adapt.generate(
@@ -241,7 +238,6 @@ for hh in range(0, num_trials):
                                          'n neurons: %.3f\n' % n_neurons +
                                          'n adapt pop: %.3f\n' % n_adapt_pop +
                                          'pes: %.3f\n' % pes_learning_rate +
-                                         'voja: %.3f\n' % voja_learning_rate +
                                          'notes: %s' % notes)
                     parameter_file.close()
 

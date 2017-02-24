@@ -40,7 +40,7 @@ for ii in range(0, 6):
     plt.plot(friction[ii, :], 'r', label='Friction Compensation') 
     plt.plot(torques_sent[ii, :] - friction[ii, :], label='Control Signal')
     plt.plot(torques_sent[ii, :], '--', label='Total Torque') 
-    #plt.plot(velocities[ii, :], '--m', label='Joint Velocity')
+    plt.plot(velocities[ii, :], '--m', label='Joint Velocity')
     #plt.plot(velocities[ii, :], '--m', label='Joint Velocity')  
      
 

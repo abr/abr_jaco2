@@ -15,17 +15,18 @@ class Signal():
         self.robot_config = robot_config
 
         # breakaway forces
-        self.f_brk = np.array([1.20, 1.20, 0.84, 0.80, 0.75, 0.74])
+        self.f_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
 
         # Stribeck friction coefficient
-        self.c0 = np.array([0.01, 0.05, 0.05, 0.01, 0.01, 0.01])
+        self.c0 = np.array([100, 100, 100, 50, 50, 50])
         # Coulombic friction force
-        self.fc = self.f_brk * np.array([0.001, 0.01, 0.01, 0.1, 0.1, 0.1]) * 0.5
+        self.fc = self.f_brk * np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01]) * 0.3
         # viscuous friction force
-        self.fv = np.zeros(self.robot_config.num_joints)
+        self.fv = self.f_brk * np.array([0.0, 0.01, 0.01, 0.01, 0.01, 0.01]) *0.05
+        #np.zeros(self.robot_config.num_joints)
 
         # threshold velocities
-        self.v_threshold = np.ones(self.robot_config.num_joints) * 10e-4
+        self.v_threshold = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]) * 10e-4
 
     def generate(self, dq):
         """ Generates the control signal
@@ -43,7 +44,7 @@ class Signal():
                         self.fc[ii] +
                         # static
                         (self.f_brk[ii] - self.fc[ii]) *
-                        np.exp((-abs(dq[ii]) / self.c0[ii]))) +
+                        np.exp((-abs(dq[ii]) * self.c0[ii]))) +
                     # viscous
                     self.fv[ii] * dq[ii])
             else:
@@ -54,10 +55,10 @@ class Signal():
                         # NOTE: did they typo and write f_v_thresh not f_v?
                         # maybe self.f_brk[ii] / self.v_threshold[ii]
                         # would be f_v_thresh if it wasn't a typo?
-                        self.fv[ii] +
+                        self.fv[ii] * self.v_threshold[ii] +
                         # Coulombic and static
                         (self.fc[ii] + (self.f_brk[ii] - self.fc[ii]) *
-                        np.exp(-self.v_threshold[ii] / self.c0[ii]))) /
+                        np.exp(-self.v_threshold[ii] * self.c0[ii]))) /
                     self.v_threshold[ii])
 
         return friction
