@@ -9,8 +9,7 @@ import abr_jaco2
 # ---------- INITIALIZATION ----------
 # initialize our robot config for the ur5
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=False, use_cython=True,
-    hand_attached=False)
+    use_cython=True, hand_attached=True)
 
 ctrlr = abr_control.controllers.floating(robot_config)
 ctrlr.control(np.zeros(6), np.zeros(6))

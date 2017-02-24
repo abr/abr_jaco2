@@ -1,0 +1,13 @@
+name: learn_1e-1_2lb_t-0.002
+kp: 4.000
+kv: 2.000
+vmax: 0.100
+time limit: 30.000
+at target: 200.000
+neural backend: nengo
+dim in: 6.000
+n neurons: 20000.000
+n adapt pop: 1.000
+pes: 0.100
+voja: 0.100
+notes: first ten at 0.002, next ten at 0.01

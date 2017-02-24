@@ -57,7 +57,7 @@ Jaco2::Jaco2() {
     feed_current_voltage_conversion = 125.0;
     feed_velocity_under_gain = 0.8;
 
-    switch_threshold = 2.0;
+    switch_threshold = 3.0;
     pos_lim_distance = 5.0;
     error_deadband = 1.0;
     torque_brake = 0.0;
@@ -110,13 +110,22 @@ Jaco2::Jaco2() {
     // Set up static parts of messages sent across
     // Set up the message used by ApplyQ
     for (int ii = 0; ii<6; ii++) {
-        ApplyQMessage[ii].Command =
-            POSITION_COMMAND;
+        ApplyQMessage[ii].Command = POSITION_COMMAND;
         ApplyQMessage[ii].SourceAddress = SOURCE_ADDRESS;
         ApplyQMessage[ii].DestinationAddress = joint[ii];
         // ApplyQMessage[ii].DataLong[2] = 0x1;
         ApplyQMessage[ii].DataLong[2] = 0x00000000;
         ApplyQMessage[ii].DataLong[3] = 0x00000000;
+    }
+
+    // Set up the message used by ApplyQ
+    for (int ii = 0; ii<6; ii++) {
+        ClearError[ii].Command = CLEAR_ERROR_FLAG;
+        ClearError[ii].SourceAddress = SOURCE_ADDRESS;
+        ClearError[ii].DestinationAddress = joint[ii];
+        ClearError[ii].DataLong[0] = ((unsigned long) 0);
+        ClearError[ii].DataLong[2] = 0x00000000;
+        ClearError[ii].DataLong[3] = 0x00000000;
     }
 
     // set constants in force message to increase loop speed
@@ -215,21 +224,11 @@ Jaco2::Jaco2() {
         TorquesConfigFeedforwardAdvanced[ii].DestinationAddress = joint[ii];
         TorquesConfigFeedforwardAdvanced[ii].DataFloat[0] = feed_velocity_under_gain;
         TorquesConfigFeedforwardAdvanced[ii].DataFloat[1] = feed_current_voltage_conversion;
-        TorquesConfigFeedforwardAdvanced[ii].DataFloat[2] = staticFriction;
-        TorquesConfigFeedforwardAdvanced[ii].DataFloat[3] = maxStaticFriction;
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[2] = 2.0;//staticFriction;
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[3] = 2.0;//maxStaticFriction;
     }
+    //TorquesConfigFeedforwardAdvanced[0].DataFloat[2] = 1.9;
 
-    // Set up the torque config parameters 2
-    for (int ii=0; ii<6; ii++) {
-        TorqueConfigParameters2[ii].Command =
-            SEND_TORQUE_CONFIG_CONTROL_PARAM_2;
-        TorqueConfigParameters2[ii].SourceAddress = SOURCE_ADDRESS;
-        TorqueConfigParameters2[ii].DestinationAddress = joint[ii];
-        TorqueConfigParameters2[ii].DataFloat[0] = switch_threshold;
-        TorqueConfigParameters2[ii].DataFloat[1] = pos_lim_distance;
-        TorqueConfigParameters2[ii].DataFloat[2] = error_deadband;
-        TorqueConfigParameters2[ii].DataFloat[3] = torque_brake;
-    }
     // Set up the torque config filters
     for (int ii=0; ii<6; ii++) {
         TorqueConfigFilters[ii].Command =
@@ -243,6 +242,19 @@ Jaco2::Jaco2() {
     }
     //joint1 is different from the rest, for now to avoid array...
     TorqueConfigFilters[1].DataFloat[3] = 20.0;
+
+
+    // Set up the torque config parameters 2
+    for (int ii=0; ii<6; ii++) {
+        TorqueConfigParameters2[ii].Command =
+            SEND_TORQUE_CONFIG_CONTROL_PARAM_2;
+        TorqueConfigParameters2[ii].SourceAddress = SOURCE_ADDRESS;
+        TorqueConfigParameters2[ii].DestinationAddress = joint[ii];
+        TorqueConfigParameters2[ii].DataFloat[0] = switch_threshold;
+        TorqueConfigParameters2[ii].DataFloat[1] = pos_lim_distance;
+        TorqueConfigParameters2[ii].DataFloat[2] = error_deadband;
+        TorqueConfigParameters2[ii].DataFloat[3] = torque_brake;
+    }
 
     // Set up the validate torque message
     for (int ii=0; ii<6; ii++) {
@@ -382,7 +394,7 @@ void Jaco2::ApplyQ(float q_target[6]) {
             if (abs(mod_pos - q_target[ii]) < 2.0 ) {
                 TargetReached += 1;
                 Joint6Command[ii] += 0.0;
-            }            
+            }
             else if(q_diff < (q_diff/abs(q_diff) * 180)) {
                 Joint6Command[ii] += 0.05;
             }
@@ -403,7 +415,7 @@ void Jaco2::ApplyQ(float q_target[6]) {
         }
         ctr += 1;
 
-        SendAndReceive(ApplyQMessage, true);        
+        SendAndReceive(ApplyQMessage, true);
     }
 }
 //
@@ -498,6 +510,7 @@ int Jaco2::SendAndReceive(RS485_Message message[6], bool loop) {
 
     int joints_updated = 0;
     while(joints_updated < 6) {
+        joints_updated = 0;
         MyRS485_Write(message, packets_sent, WriteCount);
         usleep(delay);
         MyRS485_Read(MessageListIn, packets_read, ReadCount);
@@ -543,7 +556,18 @@ void Jaco2::ProcessFeedback() {
             case REPORT_ERROR :
                 PrintError(ii, currentMotor);
                 // in case of an error, go on to the next packet
+
+                for (int jj = 0; jj < 6; jj++) {
+                    ClearError[jj].DataLong[1] =
+                        ((unsigned long) MessageListIn[ii].DataLong[0]);
+                }
+                SendAndReceive(ClearError, false);
+                updated[currentMotor] = 0;
                 break;
+
+            // case ACK_MESSAGE :
+            //     // a clear error acknowledgement was received
+            //     break;
 
             case POSITION_AND_CURRENT :
 
