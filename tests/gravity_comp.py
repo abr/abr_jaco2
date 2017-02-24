@@ -7,13 +7,12 @@ import time
 import abr_control
 import abr_jaco2
 # --- NAME TEST FOR SAVING ---
-test_name = "low_inertia_test2"
+test_name = "retest"
 
 # ---------- INITIALIZATION ----------
 # initialize our robot config for the ur5
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=True, use_cython=True,
-    use_simplify=False, hand_attached=False)
+    use_cython=True, hand_attached=True)
 
 # instantiate the controller
 
@@ -41,14 +40,14 @@ loop_limit = 2000
 read_positions = np.array([
                     [250.0, 140.0, 100.0, 230.0, 40.0, 0.0],
                     [250.0, 200.0, 200.0, 150.0, 40.0, 0.0],
-                    [305.0, 210.0, 250.0, 100.0, 25.0, -0.0]], dtype="float32")
+                    [305.0, 210.0, 250.0, 100.0, 25.0, -0.0]], dtype="float32") *np.pi/180.0
 
 joint_angles = np.zeros((6, loop_limit, len(read_positions)))
 times = np.zeros((loop_limit, len(read_positions)))
 
 # ---------- MAIN BODY ----------
 # Move to home position
-interface.apply_q(robot_config.home_position)
+interface.apply_q(robot_config.home_position_start)
 
 try:
     for ii in range(0, len(read_positions)):
@@ -78,7 +77,7 @@ try:
             # floating and dynamic_floating
             u = ctrlr.control(q=joint_angles[:, loop_count, ii], dq=dq)
 
-            interface.apply_u(np.array(u, dtype='float32'))      
+            interface.send_forces(np.array(u, dtype='float32'))      
             times[loop_count, ii] = time.time() - start
 
         interface.init_position_mode()
@@ -89,7 +88,7 @@ except Exception as e:
     print(e)
 
 finally:
-    interface.apply_q(robot_config.home_position)
+    interface.apply_q(robot_config.home_position_end)
     interface.disconnect()
     print('Disconnected')
 

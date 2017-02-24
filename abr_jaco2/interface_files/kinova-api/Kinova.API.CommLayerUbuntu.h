@@ -85,7 +85,7 @@
 #define ERROR_RS485_TIMEOUT 1020
 
 //You are trying to call a USB function that is not available in the current context.
-#define ERROR_FUNCTION_NOT_ACCESSIBLE 1021 
+#define ERROR_FUNCTION_NOT_ACCESSIBLE 1021
 // ***** E N D  O F  E R R O R   C O D E S ******
 
 
@@ -271,10 +271,10 @@ struct RS485_Message
 
 	//Source of the message. If this is an actuator, it will be an address.
 	unsigned char SourceAddress;
-	
+
 	//Destination of the message. Use the address of the actuator.
 	unsigned char DestinationAddress;
-	
+
 	//Data of the message displayed as unsigned char, float or unsigned long.
 	union
 	{
@@ -306,7 +306,7 @@ extern "C" __attribute__ ((visibility ("default"))) int GetActiveDevice(KinovaDe
 
 
 
-// R S - 4 8 5   F U N C T I O N S 
+// R S - 4 8 5   F U N C T I O N S
 /*
 This section hold the function to send command via directly to the robot's actuators on the RS-485 internal bus.
 The data will be sent via the USB port and then transfered on the RS-485 bus. In order to use the OpenRS485_Read function

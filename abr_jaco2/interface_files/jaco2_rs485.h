@@ -34,6 +34,7 @@ using namespace std;
 #define REPORT_ERROR 0x0030
 #define GET_TORQUE_CONFIG_SAFETY 0x003F
 #define CLEAR_ERROR_FLAG 0x0033
+#define ACK_MESSAGE 0x003F
 
 class Jaco2 {
     public:
@@ -74,7 +75,7 @@ class Jaco2 {
         float maxStaticFriction;
         float feed_current_voltage_conversion;
         float feed_velocity_under_gain;
-        
+
         float switch_threshold;
         float pos_lim_distance;
         float error_deadband;
@@ -94,6 +95,7 @@ class Jaco2 {
 
         // RS485 arrays of structs
         RS485_Message ApplyQMessage[6];
+        RS485_Message ClearError[6];
         RS485_Message ForceMessage[6];
         RS485_Message GetPositionMessage[6];
         RS485_Message InitMessage[6];
@@ -104,9 +106,9 @@ class Jaco2 {
         RS485_Message SafetyMessage[6];
         RS485_Message TestTorquesMessage[6];
         RS485_Message TorquesConfigFeedforwardAdvanced[6];
+        RS485_Message TorqueConfigFilters[6];
         RS485_Message TorqueConfigParameters2[6];
         RS485_Message ValidateTorquesMessage[6];
-        RS485_Message TorqueConfigFilters[6];
 
         // A handle needed to open the API(library).
         void *commLayer_Handle;

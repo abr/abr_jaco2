@@ -17,7 +17,7 @@ loop_limit = 15000
 
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
-    use_cython=True, hand_attached=False)
+    use_cython=True, hand_attached=True)
 
 # NOTE: right now, in the osc when vmax = None, velocity is compensated
 # for in joint space, with vmax set it's in task space

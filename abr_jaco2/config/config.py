@@ -16,6 +16,11 @@ class robot_config(robot_config.robot_config):
         super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
 
+        self.demo_pos_xyz = np.array([-0.01, 0.15, 0.94])
+
+        self.demo_pos_q = np.array([np.pi/2, 2.53, np.pi/2, 1.71, 0.00, 0.13],
+                                   dtype="float32")
+
         self._T = {}  # dictionary for storing calculated transforms
 
         self.F_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
