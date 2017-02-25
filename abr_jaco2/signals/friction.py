@@ -15,18 +15,18 @@ class Signal():
         self.robot_config = robot_config
 
         # breakaway forces
-        self.f_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
+        self.f_brk = np.array([1.20, 0.85, 0.84, 0.60, 0.60, 0.74])
 
         # Stribeck friction coefficient
-        self.c0 = np.array([100, 100, 100, 50, 50, 50])
+        self.c0 = np.array([100, 100, 100, 50, 50, 50]) *0.4
         # Coulombic friction force
-        self.fc = self.f_brk * np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01]) * 0.3
+        self.fc = self.f_brk * np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01])*0.1
         # viscuous friction force
-        self.fv = self.f_brk * np.array([0.0, 0.01, 0.01, 0.01, 0.01, 0.01]) *0.05
+        self.fv = self.f_brk * np.array([0.0, 0.01, 0.01, 0.01, 0.01, 0.01]) *0.0
         #np.zeros(self.robot_config.num_joints)
 
         # threshold velocities
-        self.v_threshold = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]) * 10e-4
+        self.v_threshold = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]) * 10e-3
 
     def generate(self, dq):
         """ Generates the control signal

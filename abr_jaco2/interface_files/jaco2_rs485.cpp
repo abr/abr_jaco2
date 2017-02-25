@@ -57,7 +57,7 @@ Jaco2::Jaco2() {
     feed_current_voltage_conversion = 125.0;
     feed_velocity_under_gain = 0.8;
 
-    switch_threshold = 2.0;
+    switch_threshold = 3.0;
     pos_lim_distance = 5.0;
     error_deadband = 1.0;
     torque_brake = 0.0;
@@ -224,9 +224,10 @@ Jaco2::Jaco2() {
         TorquesConfigFeedforwardAdvanced[ii].DestinationAddress = joint[ii];
         TorquesConfigFeedforwardAdvanced[ii].DataFloat[0] = feed_velocity_under_gain;
         TorquesConfigFeedforwardAdvanced[ii].DataFloat[1] = feed_current_voltage_conversion;
-        TorquesConfigFeedforwardAdvanced[ii].DataFloat[2] = staticFriction;
-        TorquesConfigFeedforwardAdvanced[ii].DataFloat[3] = maxStaticFriction;
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[2] = 2.0;//staticFriction;
+        TorquesConfigFeedforwardAdvanced[ii].DataFloat[3] = 2.0;//maxStaticFriction;
     }
+    //TorquesConfigFeedforwardAdvanced[0].DataFloat[2] = 1.9;
 
     // Set up the torque config filters
     for (int ii=0; ii<6; ii++) {

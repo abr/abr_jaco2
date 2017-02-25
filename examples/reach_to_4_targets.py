@@ -11,8 +11,8 @@ import time
 import abr_control
 import abr_jaco2
 
-kp = 4.0
-kv = 2.0
+kp = 10.0
+kv = 3.0
 loop_limit = 15000
 
 # initialize our robot config for neural controllers
@@ -55,11 +55,15 @@ joint_angles = np.zeros((6, loop_limit))
 torques_sent = np.zeros((6, loop_limit))
 torques_read = np.zeros((6, loop_limit))
 frictions = np.zeros((6, loop_limit))
+#C = np.zeros((6, loop_limit))
+#g = np.zeros((6, loop_limit))
+#training = np.zeros((6, loop_limit))
 velocities = np.zeros((6, loop_limit))
 times = np.zeros(loop_limit)
+#x_tilde = np.zeros((3, loop_limit))
 
 # list of targets to move to
-targets = [[-.4, .2, .70],
+targets = [[.4, -.2, .70],
            [-.467, -.22, .78],
            [.467, -.22, .78],
            [.467, .22, .78],
@@ -116,6 +120,10 @@ try:
         torques_sent[:, loop_count] = np.copy(u)
         frictions[:, loop_count] = np.copy(friction_generated)
         velocities[:, loop_count] = np.copy(dq)
+        #C[:, loop_count] = np.copy(ctrlr.C)
+        #g[:, loop_count] = np.copy(ctrlr.g)
+        #training[:, loop_count] = np.copy(ctrlr.training_signal)
+        #x_tilde[:, loop_count] = np.copy(ctrlr.x_tilde)
         loop_count += 1
 
 except Exception as e:
@@ -152,6 +160,10 @@ finally:
         np.savez_compressed('velocity', velocity = velocities)
         np.savez_compressed('F_brk', F_brk=robot_config.F_brk)
         np.savez_compressed('times', times=times)
+        #np.savez_compressed('C', C=C)
+        #np.savez_compressed('g', g=g)
+        #np.savez_compressed('training', training=training)
+        #np.savez_compressed('x_tilde', x_tilde=x_tilde)
 
 
     """plt.figure()
