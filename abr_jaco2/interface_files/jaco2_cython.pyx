@@ -1,5 +1,6 @@
 import numpy as np
 cimport numpy as np
+from libcpp cimport bool
 
 cdef extern from "jaco2_rs485.h":
     cdef cppclass Jaco2:
@@ -9,10 +10,12 @@ cdef extern from "jaco2_rs485.h":
         void InitForceMode()
         void InitPositionMode()
         void ApplyQ(float target_q[6])
+        void ApplyQHand(bool open)
         void ApplyU(float u[6])
         void Disconnect()
 
         float pos[6]
+        float posHand[3]
         float vel[6]
         float torque_load[6]
 
@@ -36,6 +39,9 @@ cdef class pyJaco2:
 
     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):
         self.thisptr.ApplyQ(&target_q[0])
+
+    def ApplyQHand(self, bool open):
+        self.thisptr.ApplyQHand(open)
 
     def ApplyU(self, np.ndarray[float, mode="c"] u):
         self.thisptr.ApplyU(&u[0])
