@@ -14,6 +14,7 @@ Jaco2::Jaco2() {
                       // reading should receive error due do array size
 
     memset(updated, 0, (size_t)sizeof(int)*6);
+    memset(updatedHand, 0, (size_t)sizeof(int)*3);
 
     WriteCount = 0;
     ReadCount = 0;
@@ -25,6 +26,14 @@ Jaco2::Jaco2() {
     joint[3] = 0x13;
     joint[4] = 0x14;
     joint[5] = 0x15;
+
+    hand[0] = 0x16;
+    hand[1] = 0x17;
+    hand[2] = 0x18;
+
+    pos_finger[0] = 0.0;
+    pos_finger[1] = 0.0;
+    pos_finger[2] = 0.0;
 
     //set torque parameters
     //max torque in Nm
@@ -118,6 +127,16 @@ Jaco2::Jaco2() {
         ApplyQMessage[ii].DataLong[3] = 0x00000000;
     }
 
+    for (int ii = 0; ii<3; ii++) {
+        ApplyQMessageHand[ii].Command = POSITION_COMMAND;
+        ApplyQMessageHand[ii].SourceAddress = SOURCE_ADDRESS;
+        ApplyQMessageHand[ii].DestinationAddress = hand[ii];
+        // ApplyQMessage[ii].DataLong[2] = 0x1;
+        ApplyQMessageHand[ii].DataLong[2] = 0x00000000;
+        ApplyQMessageHand[ii].DataLong[3] = 0x00000000;
+    }
+
+
     // Set up the message used by ApplyQ
     for (int ii = 0; ii<6; ii++) {
         ClearError[ii].Command = CLEAR_ERROR_FLAG;
@@ -150,6 +169,17 @@ Jaco2::Jaco2() {
         GetPositionMessage[ii].DataLong[1] = 0x00000000;
         GetPositionMessage[ii].DataFloat[2] = 0x00000000;
         GetPositionMessage[ii].DataLong[3] = 0x00000000;
+     }
+
+    // Set up get position message
+    for (int ii=0; ii<3; ii++) {
+        GetPositionMessageHand[ii].Command = 0x0001;
+        GetPositionMessageHand[ii].SourceAddress = SOURCE_ADDRESS;
+        GetPositionMessageHand[ii].DestinationAddress = hand[ii];
+        GetPositionMessageHand[ii].DataFloat[0] = 0x00000000;
+        GetPositionMessageHand[ii].DataLong[1] = 0x00000000;
+        GetPositionMessageHand[ii].DataFloat[2] = 0x00000000;
+        GetPositionMessageHand[ii].DataLong[3] = 0x00000000;
      }
 
     // Set up robot initialization message
@@ -466,6 +496,33 @@ void Jaco2::ApplyQ(float q_target[6]) {
 //     }
 // }
 
+void Jaco2::ApplyQHand(bool open) {
+    // STEP 0: Get initial position
+    cout << "STEP 0: Get current position" << endl;
+    //SendAndReceiveHand(GetPositionMessageHand, true);
+    cout << "start pos0: " << pos_finger[0] << endl;
+    cout << "start pos1: " << pos_finger[1] << endl;
+    cout << "start pos2: " << pos_finger[2] << endl;
+
+    // STEP 1: move to rest position
+    // increment joint command by 1 degree until target reached
+    for (int ii = 0; ii<3; ii++) {
+        if (open == true) {
+            cout << "opening hand" << endl;
+            pos_finger[ii] -= 100;
+        }
+        else {
+            cout << "closing hand" << endl;
+            pos_finger[ii] += 100;
+        }
+        //We assign the new command (increment added)
+        ApplyQMessageHand[ii].DataFloat[0] = pos_finger[ii];
+        ApplyQMessageHand[ii].DataFloat[1] = pos_finger[ii];
+    }
+    SendAndReceiveHand(ApplyQMessageHand, true);
+    cout << "HAND MOVEMENT SENT" << endl;
+}
+
 // Wraps the set of input torques u up into a message and sends it to the Jaco2
 void Jaco2::ApplyU(float u[6]) {
     // load the torque signal into outbound message
@@ -507,7 +564,6 @@ void Jaco2::ApplyU(float u[6]) {
 // for each of the motors. Returns the number of motors message
 // was successfully sent to and received from.
 int Jaco2::SendAndReceive(RS485_Message message[6], bool loop) {
-
     int joints_updated = 0;
     while(joints_updated < 6) {
         joints_updated = 0;
@@ -529,6 +585,58 @@ int Jaco2::SendAndReceive(RS485_Message message[6], bool loop) {
         }
     }
     return joints_updated;
+}
+
+int Jaco2::SendAndReceiveHand(RS485_Message message[3], bool loop) {
+    int hand_updated = 0;
+    while(hand_updated < 3) {
+        hand_updated = 0;
+        MyRS485_Write(message, packets_sent, WriteCount);
+        usleep(delay);
+        MyRS485_Read(MessageListIn, packets_read, ReadCount);
+        
+        // reset variables for this time through
+        memset(updatedHand, 0, (size_t)sizeof(int)*3);
+        // cycle through all of the received messages and
+        // assign the received values to the corresponding joint
+        //currentMotor = 0;
+        for(int ii = 0; ii < ReadCount; ii++) {
+            cout << "ii " << ii << " of read count " << ReadCount << endl;
+            // actuator 0 is 16
+            //currentMotor = MessageListIn[ii].SourceAddress - 22;            
+            if (MessageListIn[ii].Command == 0x02 ||
+                MessageListIn[ii].Command == 0x11){
+                
+                currentMotor = MessageListIn[ii].SourceAddress - 22;
+                //pos_finger[currentMotor] = MessageListIn[ii].DataFloat[1];
+                updatedHand[currentMotor] = 1;
+                cout << "SET finger " << currentMotor << " updated to pos " 
+                    << pos_finger[currentMotor] << endl;
+            }
+            else {
+                cout << "Unexpected message received in hand comm" << endl;
+            }
+        }
+
+        for (int ii = 0; ii < 3; ii++) {
+            hand_updated += updatedHand[ii];
+            if (updatedHand[ii] == 0) {
+                cout << "Warning: Data for finger " << ii << " not updated."
+                    << endl;
+            }
+            else{
+                cout << "ALL GOOD: Data for finger " << ii << " updated."
+                    << endl;
+            }
+        }
+
+        cout << "hand updated: " << hand_updated << endl;
+
+        if (loop == false) {
+            break;
+        }
+    }
+    return hand_updated;
 }
 
 // Reads the class variable MessageListIn, checks for errors and then

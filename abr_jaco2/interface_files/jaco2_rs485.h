@@ -45,11 +45,13 @@ class Jaco2 {
         int ActuatorInitialized;
         int updated[6];
         int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
+        int updatedHand[3];
         int currentMotor;
         vector<string> errorMessage;
 
         // main functions
         void ApplyQ(float q_target[6]);
+        void ApplyQHand(bool open);
         void ApplyU(float u[6]);
         void Connect();
         void Disconnect();
@@ -58,9 +60,11 @@ class Jaco2 {
         void InitForceMode();
         void InitPositionMode();
         int SendAndReceive(RS485_Message message[6], bool loop);
+        int SendAndReceiveHand(RS485_Message message[3], bool loop);
 
         // read variables
         float pos[6]; //From Halls sensor
+        float pos_finger[3];
         float vel[6];
         float torque_load[6];
         bool read_input;
@@ -92,12 +96,15 @@ class Jaco2 {
         int WriteCount;
         int ReadCount;
         unsigned char joint[6];
+        unsigned char hand[3];
 
         // RS485 arrays of structs
         RS485_Message ApplyQMessage[6];
+        RS485_Message ApplyQMessageHand[3];
         RS485_Message ClearError[6];
         RS485_Message ForceMessage[6];
         RS485_Message GetPositionMessage[6];
+        RS485_Message GetPositionMessageHand[3];
         RS485_Message InitMessage[6];
         RS485_Message InitPositionMessage[6];
         RS485_Message InitTorqueMessage[6];

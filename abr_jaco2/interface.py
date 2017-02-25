@@ -57,6 +57,12 @@ class interface(interface.interface):
         q = np.array(q) * 180.0 / np.pi
         self.jaco2.ApplyQ(q)
 
+    def open_hand(self, open):
+        """ Send true to open hand, false to close, moves in
+        increments for each function call"""
+
+        self.jaco2.ApplyQHand(open)
+
     def init_force_mode(self):
         """ Changes the arm to torque control mode
         """
