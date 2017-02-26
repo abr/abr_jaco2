@@ -16,10 +16,15 @@ class robot_config(robot_config.robot_config):
         super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
 
+        self.demo_tooltip_read_pos = np.array(
+            [1.80, 3.26, 2.60, 1.04, 2.26, 1.65],
+            dtype='float32')
+
         self.demo_pos_xyz = np.array([.40, -.18, .85])
 
-        self.demo_pos_q = np.array([18.19, 109.26, 133.87, 268.51, 1.32, 181.14],
-                                   dtype="float32") * np.pi/180.0
+        self.demo_pos_q = np.array(
+            [18.19, 109.26, 133.87, 268.51, 1.32, 181.14],
+            dtype="float32") * np.pi/180.0
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -28,7 +33,7 @@ class robot_config(robot_config.robot_config):
         self.hand_attached = hand_attached
 
         self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
-                              '/saved_functions')
+                              '/saved_functions_with_hand')
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
@@ -160,7 +165,7 @@ class robot_config(robot_config.robot_config):
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
         if self.hand_attached is True:  # add in hand offset
-            self.L.append([0.000684, 0.0, 0.008222])
+            self.L.append([0.000684, 0.0, 0.20])
         self.L = np.array(self.L)
 
         self.L_motors = [
@@ -322,6 +327,19 @@ class robot_config(robot_config.robot_config):
                 [0, 0, 0, 1]])
             self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
+        self.Torgcama = sp.Matrix([
+            [sp.cos(-np.pi/4.0), -np.sin(-np.pi/4.0), 0.0, 0.0],
+            [sp.sin(-np.pi/4.0), sp.cos(-np.pi/4.0), 0, -0.29],
+            [0, 0, 1, 1.01],
+            [0, 0, 0, 1]])
+
+        self.Torgcamb = sp.Matrix([
+            [1, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, -1, 0, 0],
+            [0, 0, 0, 1]])
+        self.Torgcam = self.Torgcama * self.Torgcamb
+
         # ---- Motor Transform Matrices ----
 
         # Transform matrix : joint0 -> motor0
@@ -388,6 +406,7 @@ class robot_config(robot_config.robot_config):
         name string: name of the joint or link, or end-effector
         """
 
+        # TODO: use recursion to reduce this function size
         if self._T.get(name, None) is None:
             if name == 'link0':
                 self._T[name] = self.Torgl0
@@ -449,6 +468,9 @@ class robot_config(robot_config.robot_config):
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5 *
                     self.Tj5l6)
+            elif name == 'camera':
+                self._T[name] = self.Torgcam
+
             else:
                 raise Exception('Invalid transformation name: %s' % name)
 

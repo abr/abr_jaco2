@@ -14,18 +14,18 @@ import abr_jaco2
 import gc
 
 # ----TEST PARAMETERS-----
-s = 0 # have to manually go through runs
-name = '2lb_test1'
-notes = 'starting from friction_training5'
+s = 13 # have to manually go through runs
+name = '2.2'
+notes = 'starting from friction_training5, good to record to show learning'
 kp = 4.0
 kv = 2.0
-vmax = 0.25
+vmax = 0.5
 num_trials = 1  # how many trials of learning to go through for averaging
-num_runs = 10  # number of runs per trial (cumulative learning)
+num_runs = 20  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
 save_data = True  # whether to save joint angle and vel data or not
 save_learning = True  # whether the weights and plotting data get saved
-time_limit = 600  # how long the arm is allowed to reach for the target [sec]
+time_limit = 60  # how long the arm is allowed to reach for the target [sec]
 at_target = 200  # how long arm needs to be within tolerance of target
 num_targets = 1  # number of targets to move to in each trial
 
@@ -34,7 +34,7 @@ neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
 dim_in = 6  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.0e-2
+pes_learning_rate = 1.5e-2
 # ------------------------
 
 count = 0  # loop counter
@@ -46,11 +46,11 @@ error_track = []
 target_index = 1
 at_target_count = 0
 # list of targets to move to
-targets = [[-.4, .2, .70],
-           [-.467, -.22, .78],
-           [.467, -.22, .78],
-           [.467, .22, .78],
-           [-.467, .22, .78]]
+targets = [[.4, .2, .70],
+           [.3, -.22, .60],
+           [.45, 0.0, .65]]
+
+target_xyz = targets[0]
 
 # check if the weights file for n_neurons exists, if not create it
 if not os.path.exists('data/learning_osc/%s/%i_neurons' % (name, n_neurons)):
@@ -66,7 +66,7 @@ if (os.path.isfile('data/learning_osc/%s/%i_neurons/zeros.npz' %
 robot_config = abr_jaco2.robot_config_neural(
     use_cython=True, hand_attached=True)
 
-target_xyz = robot_config.demo_pos_xyz
+#target_xyz = robot_config.demo_pos_xyz
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax)

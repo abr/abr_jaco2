@@ -14,7 +14,7 @@ import abr_jaco2
 import gc
 
 # ----TEST PARAMETERS-----
-s = 0 # have to manually go through runs
+s = 0  # have to manually go through runs
 name = '2lb_test1'
 notes = 'starting from friction_training5'
 kp = 4.0
@@ -118,7 +118,7 @@ for hh in range(0, num_trials):
         # connect to the jaco
         interface.connect()
 
-        try:            
+        try:
             kb = abr_jaco2.KBHit()
             # move to the home position
             print('Moving to start position')
@@ -138,7 +138,7 @@ for hh in range(0, num_trials):
                 u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
                 u += adapt.generate(
                     q=q, dq=dq,
-                    training_signal=ctrlr.training_signal)                
+                    training_signal=ctrlr.training_signal)
 
                 interface.send_forces(np.array(u, dtype='float32'))
 
@@ -158,12 +158,11 @@ for hh in range(0, num_trials):
                 avg_loop_time += time.time() - loop_start
                 loop_time = time.time() - start_t
 
-
                 if kb.kbhit():
                     c = kb.getch()
-                    if ord(c) == 112: # letter p, closes hand
+                    if ord(c) == 112:  # letter p, closes hand
                         interface.open_hand(False)
-                    if ord(c) == 111: # letter o, opens hand
+                    if ord(c) == 111:  # letter o, opens hand
                         interface.open_hand(True)
 
         except Exception as e:

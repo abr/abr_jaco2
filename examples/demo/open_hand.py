@@ -47,27 +47,9 @@ class KBHit:
         dr,dw,de = select([sys.stdin], [], [], 0)
         return dr != []
 
-kp = 4.0
-kv = 2.0
-loop_limit = 15000
-
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
-    use_cython=True, hand_attached=False)
-
-# NOTE: right now, in the osc when vmax = None, velocity is compensated
-# for in joint space, with vmax set it's in task space
-
-# instantiate the REACH controller for the jaco2 robot
-ctrlr = abr_control.controllers.osc(
-    robot_config, kp=kp, kv=kv, vmax=1.0, null_control=False)
-# create signal to compensate for friction
-friction = abr_jaco2.signals.friction(robot_config)
-
-# run controller once to generate functions / take care of overhead
-# outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
-friction.generate(dq=np.zeros(6))
+    use_cython=True, hand_attached=True)
 
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
@@ -75,18 +57,15 @@ interface = abr_jaco2.interface(robot_config)
 interface.connect()
 
 try:
-    # move to the home position
-    interface.apply_q(robot_config.home_position_start)
-
     kb = KBHit()
 
     while True:
         start = time.time()
         if kb.kbhit():
             c = kb.getch()
-            if ord(c) == 99: # c
+            if ord(c) == 112: # o
                 interface.open_hand(False)
-            if ord(c) == 111: # o
+            if ord(c) == 111: # p
                 interface.open_hand(True)
 
     kb.set_normal_term()
@@ -95,8 +74,5 @@ except Exception as e:
      print(e)
 
 finally:
-    # return back to home position
-    interface.init_position_mode()
-    interface.apply_q(robot_config.home_position_start)
     # close the connection to the arm
     interface.disconnect()

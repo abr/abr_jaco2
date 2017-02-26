@@ -16,6 +16,7 @@ dq_track =[]
 robot_config = abr_jaco2.robot_config(
     use_cython=True, hand_attached=True)
 
+target_xyz = robot_config.demo_pos_xyz
 # NOTE: right now, in the osc when vmax = None, velocity is compensated
 # for in joint space, with vmax set it's in task space
 
@@ -39,12 +40,18 @@ interface.init_force_mode()
 try:
 
     kb = abr_jaco2.KBHit()
+    count = 0
     while 1:
         feedback = interface.get_feedback()
         q = np.array(feedback['q'])
         dq = np.array(feedback['dq'])
-        u = ctrlr.control(q=q, dq=dq, target_pos=robot_config.demo_pos_xyz)
+        u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
         interface.send_forces(np.array(u, dtype='float32'))
+        hand_xyz = robot_config.Tx('EE', q=q)
+        error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
+        count += 1
+        if count % 100 == 0:
+            print('error: ', error)
         #q_track.append(q)
         #dq_track.append(dq)
 

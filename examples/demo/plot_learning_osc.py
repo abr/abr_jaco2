@@ -26,9 +26,9 @@ fig = plt.figure(figsize=(6, 6))
 ax = fig.add_subplot(1, 1, 1, projection='3d')
 # baseline is the non-adaptive case
 ee_baseline = np.load('data/learning_osc/baseline/ee_no_learn.npz')['ee']
-target = [.40, -.18, .85] #np.load('data/learning_osc/baseline/targets.npz')['targets'][0]
-ax.plot(ee_baseline[:, 0], ee_baseline[:, 1],
-        ee_baseline[:, 2], 'k', lw=2)
+target = [.4, .2, .70] #np.load('data/learning_osc/baseline/targets.npz')['targets'][0]
+#ax.plot(ee_baseline[:, 0], ee_baseline[:, 1],
+#        ee_baseline[:, 2], 'k', lw=2)
 
 times = np.zeros((num_trials, num_runs))
 avg_times = np.zeros(num_runs)

@@ -3,8 +3,8 @@ import atexit
 from select import select
 import sys
 
-class KBHit: 
-    '''Class for dealing with keyboard inputs''' 
+class KBHit:
+    '''Class for dealing with keyboard inputs'''
     def __init__(self):
         '''Creates a KBHit object that you can call to do various keyboard things.
         '''
@@ -21,7 +21,7 @@ class KBHit:
         atexit.register(self.set_normal_term)
 
     def set_normal_term(self):
-        ''' Resets to normal terminal. 
+        ''' Resets to normal terminal.
         '''
         termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old_term)
 

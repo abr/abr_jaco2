@@ -1,0 +1,12 @@
+name: 2.2
+kp: 4.000
+kv: 2.000
+vmax: 0.500
+time limit: 60.000
+at target: 200.000
+neural backend: nengo
+dim in: 6.000
+n neurons: 20000.000
+n adapt pop: 1.000
+pes: 0.015
+notes: starting from friction_training5, good to record to show learning
