@@ -14,18 +14,18 @@ import abr_jaco2
 import gc
 
 # ----TEST PARAMETERS-----
-s = 4  # have to manually go through runs
-name = 'med_gains'
-notes = ''
-kp = 10.0
-kv = 3.0
-vmax = 1.0
+s = 0 # have to manually go through runs
+name = '2lb_test1'
+notes = 'starting from friction_training5'
+kp = 4.0
+kv = 2.0
+vmax = 0.25
 num_trials = 1  # how many trials of learning to go through for averaging
-num_runs = 5  # number of runs per trial (cumulative learning)
+num_runs = 10  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
-save_data = False  # whether to save joint angle and vel data or not
-save_learning = False  # whether the weights and plotting data get saved
-time_limit = 30  # how long the arm is allowed to reach for the target [sec]
+save_data = True  # whether to save joint angle and vel data or not
+save_learning = True  # whether the weights and plotting data get saved
+time_limit = 600  # how long the arm is allowed to reach for the target [sec]
 at_target = 200  # how long arm needs to be within tolerance of target
 num_targets = 1  # number of targets to move to in each trial
 
@@ -122,7 +122,8 @@ for hh in range(0, num_trials):
         # connect to the jaco
         interface.connect()
 
-        try:
+        try:            
+            kb = abr_jaco2.KBHit()
             # move to the home position
             print('Moving to start position')
             interface.apply_q(robot_config.home_position_start)
@@ -141,8 +142,7 @@ for hh in range(0, num_trials):
                 u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
                 u += adapt.generate(
                     q=q, dq=dq,
-                    training_signal=ctrlr.training_signal)
-                #u += friction.generate(dq=dq)
+                    training_signal=ctrlr.training_signal)                
 
                 interface.send_forces(np.array(u, dtype='float32'))
 
@@ -179,14 +179,22 @@ for hh in range(0, num_trials):
                     print("Time Limit Reached, Exiting...")
                     break
 
+                if kb.kbhit():
+                    c = kb.getch()
+                    if ord(c) == 112: # letter p, closes hand
+                        interface.open_hand(False)
+                    if ord(c) == 111: # letter o, opens hand
+                        interface.open_hand(True)
+
         except Exception as e:
             print(e)
 
         finally:
             # return back to home position and close the connection to the arm
             interface.init_position_mode()
-            interface.apply_q(robot_config.home_position_end)
+            interface.apply_q(robot_config.home_position_start)
             interface.disconnect()
+            kb.set_normal_term()
 
             print('Average Loop Time: ', avg_loop_time / count)
 

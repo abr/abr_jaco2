@@ -16,7 +16,7 @@ class robot_config(robot_config.robot_config):
         super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
 
-        self.demo_pos_xyz = np.array([.49, -.18, .89])
+        self.demo_pos_xyz = np.array([.40, -.18, .85])
 
         self.demo_pos_q = np.array([18.19, 109.26, 133.87, 268.51, 1.32, 181.14],
                                    dtype="float32") * np.pi/180.0

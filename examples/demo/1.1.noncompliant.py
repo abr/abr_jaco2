@@ -49,6 +49,6 @@ except Exception as e:
 finally:
     # return back to home position
     interface.init_position_mode()
-    interface.apply_q(robot_config.home_position_end)
+    interface.apply_q(robot_config.home_position_start)
     # close the connection to the arm
     interface.disconnect()

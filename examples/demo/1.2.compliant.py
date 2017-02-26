@@ -3,7 +3,6 @@ Demo script, compliant hold position.
 """
 import numpy as np
 import signal
-import sys
 import time
 import abr_control
 import abr_jaco2
@@ -38,7 +37,9 @@ interface.apply_q(robot_config.home_position_start)
 interface.init_force_mode()
 
 try:
-  while 1:
+
+    kb = abr_jaco2.KBHit()
+    while 1:
         feedback = interface.get_feedback()
         q = np.array(feedback['q'])
         dq = np.array(feedback['dq'])
@@ -47,14 +48,22 @@ try:
         #q_track.append(q)
         #dq_track.append(dq)
 
+        if kb.kbhit():
+            c = kb.getch()
+            if ord(c) == 112: # letter p, closes hand
+                interface.open_hand(False)
+            if ord(c) == 111: # letter o, opens hand
+                interface.open_hand(True)
+
 except Exception as e:
      print(e)
 finally:
     # return back to home position
     interface.init_position_mode()
-    interface.apply_q(robot_config.home_position_end)
+    interface.apply_q(robot_config.home_position_start)
     # close the connection to the arm
     interface.disconnect()
+    kb.set_normal_term()
 
     #np.savez_compressed('q', q=q_track)
     #np.savez_compressed('dq', dq=dq_track)

@@ -14,22 +14,47 @@ import abr_jaco2
 import gc
 
 # ----TEST PARAMETERS-----
-kp = 10.0
-kv = 3.0
-vmax = 1.0
+s = 0 # have to manually go through runs
+name = '2lb_test1'
+notes = 'starting from friction_training5'
+kp = 4.0
+kv = 2.0
+vmax = 0.5
+num_trials = 1  # how many trials of learning to go through for averaging
+num_runs = 1  # number of runs per trial (cumulative learning)
+save_history = 3   # number of latest weights files to save
+save_data = False  # whether to save joint angle and vel data or not
+save_learning = False  # whether the weights and plotting data get saved
+time_limit = None  # Not used
+at_target = 200  # how long arm needs to be within tolerance of target
+num_targets = 1  # number of targets to move to in each trial
 
 # parameters of adaptive controller
 neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
 dim_in = 6  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.0e-2
+pes_learning_rate = 1.5e-2
 # ------------------------
 
 count = 0  # loop counter
+q_track = []
+dq_track = []
+ee_track = []
 targets = []
+error_track = []
+target_index = 1
 at_target_count = 0
 # list of targets to move to
+targets = [[-.4, .2, .70],
+           [-.467, -.22, .78],
+           [.467, -.22, .78],
+           [.467, .22, .78],
+           [-.467, .22, .78]]
+
+# check if the weights file for n_neurons exists, if not create it
+if not os.path.exists('data/learning_osc/%s/%i_neurons' % (name, n_neurons)):
+    os.makedirs('data/learning_osc/%s/%i_neurons' % (name, n_neurons))
 
 # initialize our robot config for neural controllers
 #robot_config = abr_jaco2.robot_config_neural(
@@ -48,6 +73,9 @@ ctrlr = abr_control.controllers.osc(
 ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
+f = s+1
+for hh in range(0, num_trials):
+    for ii in range(s, f):
         print('Run %i/%i in trial %i/%i' % (ii+1, num_runs, hh+1, num_trials))
         if not os.path.exists('data/learning_osc/%s/%i_neurons/trial%i' %
                               (name, n_neurons, hh)):
@@ -57,10 +85,10 @@ interface = abr_jaco2.interface(robot_config)
         weights_location = []
         # load the weights files for each adaptive population
         if (ii == 0):
-            print('Loading zeros weight files...')
+            print('Loading friction comp weight files...')
             for jj in range(0, n_adapt_pop):
                 weights_location.append(
-                    'data/learning_osc/%s/%i_neurons/zeros.npz' %
+                    'data/learning_osc/%s/%i_neurons/friction_baseline.npz' %
                     (name, n_neurons))
         else:
             print('Loading previous weights...')
@@ -90,7 +118,8 @@ interface = abr_jaco2.interface(robot_config)
         # connect to the jaco
         interface.connect()
 
-        try:
+        try:            
+            kb = abr_jaco2.KBHit()
             # move to the home position
             print('Moving to start position')
             interface.apply_q(robot_config.home_position_start)
@@ -109,25 +138,11 @@ interface = abr_jaco2.interface(robot_config)
                 u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
                 u += adapt.generate(
                     q=q, dq=dq,
-                    training_signal=ctrlr.training_signal)
-                #u += friction.generate(dq=dq)
+                    training_signal=ctrlr.training_signal)                
 
                 interface.send_forces(np.array(u, dtype='float32'))
 
                 error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
-                if error < .01:
-                    # if we're at the target, start count
-                    # down to moving to the next target
-                    at_target_count += 1
-                    if at_target_count >= at_target:
-                        target_index += 1
-                        if target_index > num_targets:
-                            print('Target Reached')
-                            break
-                        else:
-                            target_xyz = targets[target_index]
-                            print('Moving to next target: ', target_xyz)
-                        at_target_count = 0
 
                 ee_track.append(hand_xyz)
 
@@ -143,9 +158,13 @@ interface = abr_jaco2.interface(robot_config)
                 avg_loop_time += time.time() - loop_start
                 loop_time = time.time() - start_t
 
-                if (loop_time) > time_limit:
-                    print("Time Limit Reached, Exiting...")
-                    break
+
+                if kb.kbhit():
+                    c = kb.getch()
+                    if ord(c) == 112: # letter p, closes hand
+                        interface.open_hand(False)
+                    if ord(c) == 111: # letter o, opens hand
+                        interface.open_hand(True)
 
         except Exception as e:
             print(e)
@@ -153,8 +172,9 @@ interface = abr_jaco2.interface(robot_config)
         finally:
             # return back to home position and close the connection to the arm
             interface.init_position_mode()
-            interface.apply_q(robot_config.home_position_end)
+            interface.apply_q(robot_config.home_position_start)
             interface.disconnect()
+            kb.set_normal_term()
 
             print('Average Loop Time: ', avg_loop_time / count)
 
