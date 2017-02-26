@@ -497,22 +497,14 @@ void Jaco2::ApplyQ(float q_target[6]) {
 // }
 
 void Jaco2::ApplyQHand(bool open) {
-    // STEP 0: Get initial position
-    cout << "STEP 0: Get current position" << endl;
-    //SendAndReceiveHand(GetPositionMessageHand, true);
-    cout << "start pos0: " << pos_finger[0] << endl;
-    cout << "start pos1: " << pos_finger[1] << endl;
-    cout << "start pos2: " << pos_finger[2] << endl;
 
     // STEP 1: move to rest position
     // increment joint command by 1 degree until target reached
     for (int ii = 0; ii<3; ii++) {
         if (open == true) {
-            cout << "opening hand" << endl;
             pos_finger[ii] -= 100;
         }
         else {
-            cout << "closing hand" << endl;
             pos_finger[ii] += 100;
         }
         //We assign the new command (increment added)
@@ -520,7 +512,6 @@ void Jaco2::ApplyQHand(bool open) {
         ApplyQMessageHand[ii].DataFloat[1] = pos_finger[ii];
     }
     SendAndReceiveHand(ApplyQMessageHand, true);
-    cout << "HAND MOVEMENT SENT" << endl;
 }
 
 // Wraps the set of input torques u up into a message and sends it to the Jaco2
@@ -601,7 +592,6 @@ int Jaco2::SendAndReceiveHand(RS485_Message message[3], bool loop) {
         // assign the received values to the corresponding joint
         //currentMotor = 0;
         for(int ii = 0; ii < ReadCount; ii++) {
-            cout << "ii " << ii << " of read count " << ReadCount << endl;
             // actuator 0 is 16
             //currentMotor = MessageListIn[ii].SourceAddress - 22;            
             if (MessageListIn[ii].Command == 0x02 ||
@@ -610,11 +600,6 @@ int Jaco2::SendAndReceiveHand(RS485_Message message[3], bool loop) {
                 currentMotor = MessageListIn[ii].SourceAddress - 22;
                 //pos_finger[currentMotor] = MessageListIn[ii].DataFloat[1];
                 updatedHand[currentMotor] = 1;
-                cout << "SET finger " << currentMotor << " updated to pos " 
-                    << pos_finger[currentMotor] << endl;
-            }
-            else {
-                cout << "Unexpected message received in hand comm" << endl;
             }
         }
 
@@ -624,13 +609,7 @@ int Jaco2::SendAndReceiveHand(RS485_Message message[3], bool loop) {
                 cout << "Warning: Data for finger " << ii << " not updated."
                     << endl;
             }
-            else{
-                cout << "ALL GOOD: Data for finger " << ii << " updated."
-                    << endl;
-            }
         }
-
-        cout << "hand updated: " << hand_updated << endl;
 
         if (loop == false) {
             break;

@@ -35,7 +35,7 @@ try:
         feedback = interface.get_feedback()
         q = np.array(feedback['q'])
         dq = np.array(feedback['dq'])
-
+        print('q: ', q)
         u = ctrlr.control(q=q, dq=dq)
         interface.send_forces(np.array(u, dtype='float32'))
 
