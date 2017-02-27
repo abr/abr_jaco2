@@ -2,8 +2,6 @@
 Demo script, compliant hold position.
 """
 import numpy as np
-import signal
-import time
 import abr_control
 import abr_jaco2
 import os
@@ -11,45 +9,54 @@ import os
 kp = 10.0
 kv = 3.0
 vmax = 1.0
-targets = [[.4, .2, .70],
-           [.3, -.22, .60],
-           [.45, 0.0, .65]]
+
+# targets in camera coordinates
+targets = [
+    [-0.34, -0.045, 0.69],  # left limit
+    [0.24, -0.015, 0.525],  # right limit
+    [0.04, 0.295, 0.957],  # middle bottom limit
+    [-0.023, -0.121, 0.424],  # middle upper limit
+    [0.006, -0.013, 0.682]]  # middle middle
 target_xyz = targets[0]
-q_track =[]
-dq_track =[]
+
+# filename where vision system writes object xyz coordinates
 filename = 'data/target_position.txt'
+
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
     use_cython=True, hand_attached=True)
-robot_config.generate_control_functions()
+
+offset = [0.0, 0.0, 0.01]
+# generate functions / take care of overhead outside of
+# the main loop, because force mode auto-exits after 200ms
+robot_config.generate_control_functions(x=offset)
 
 # NOTE: right now, in the osc when vmax = None, velocity is compensated
 # for in joint space, with vmax set it's in task space
 
 # instantiate the REACH controller for the jaco2 robot
-floating_ctrlr = abr_control.controllers.floating(
-    robot_config)
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax, null_control=False)
-
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
 # connect to the jaco
 interface.connect()
 # move to the home position
 interface.apply_q(robot_config.home_position_start)
-move_home = False
-target_xyz = None
 
 
 try:
-
+    # set up key input tracker
     kb = abr_jaco2.KBHit()
-    count = 0
-    start_movement = False
-    while 1:
-        if start_movement is True:
 
+    count = 0
+    move_home = False
+    start_movement = False
+    target_xyz = None
+    print('Arm Ready')
+    while 1:
+
+        if start_movement is True:
             # get feedback
             feedback = interface.get_feedback()
             q = np.array(feedback['q'])
@@ -71,12 +78,7 @@ try:
                         'camera', x=camera_xyz, q=np.zeros(6))
                     print('target position: ', target_xyz)
 
-            if target_xyz is None:
-                # until there's a target float
-                u = floating_ctrlr.control(q=q, dq=dq)
-            else:
-                # once a target is read drive arm to target
-                u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
+            u = ctrlr.control(q=q, dq=dq, offset=offset, target_pos=target_xyz)
 
             # send control signal to Jaco 2
             interface.send_forces(np.array(u, dtype='float32'))
@@ -106,7 +108,10 @@ try:
                 start_movement = False
                 move_home = True
                 # switch to position control mode
-                interface.init_posiition_mode()
+                interface.init_position_mode()
+            if ord(c) == 113:  # letter q, quits and goes to finally
+               print('Returning to home position')
+               break;
 
 except Exception as e:
      print(e)
@@ -118,6 +123,3 @@ finally:
     # close the connection to the arm
     interface.disconnect()
     kb.set_normal_term()
-
-    #np.savez_compressed('q', q=q_track)
-    #np.savez_compressed('dq', dq=dq_track)

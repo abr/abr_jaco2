@@ -30,26 +30,27 @@ class robot_config(robot_config.robot_config):
 
         self.F_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
 
-        self.hand_attached = hand_attached
-
         self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
-                              '/saved_functions_with_hand')
+                              '/saved_functions_')
+        if self.hand_attached is True:
+            self.config_folder += 'with_hand'
+        else:
+            self.config_folder += 'no_hand'
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
         # Kinova Home Position - straight up
-        self.home_position_start = np.array([1.22, 2.79, 2.62,
-                                       4.71, 0.0, 3.14], dtype="float32")
-        self.home_position_end = np.array([1.22, 3.14, 3.14,
-                                       4.71, 0.0, 3.14], dtype="float32")
+        self.home_position_start = np.array(
+            [1.22, 2.79, 2.62, 4.71, 0.0, 3.14],
+            dtype="float32")
+        self.home_position_end = np.array(
+            [1.22, 3.14, 3.14, 4.71, 0.0, 3.14],
+            dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array([0.0, 2.44, 2.44, 0.0, 0.0, 0.0],
-                                    dtype='float32')
-        self.mass_multiplier1 = 1.0#1.10
-        self.mass_multiplier2 = 1.0#1.20
-        self.mass_multiplier3 = 1.0#1.60
+        self.rest_angles = np.array(
+            [0.0, 2.44, 2.44, 0.0, 0.0, 0.0], dtype='float32')
         self.mass_multiplier_wrist = 1.3
 
         # create the inertia matrices for each link of the kinova jaco2
@@ -69,30 +70,30 @@ class robot_config(robot_config.robot_config):
                 [0.000, 0.000, 0.000, 0.0, 3.216e-4, 0.0],
                 [0.000, 0.000, 0.000, 8.32e-5, 0.0, 3.519e-4]]),
             sp.Matrix([  # link2
-                [0.424*self.mass_multiplier2, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.424*self.mass_multiplier2, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.424*self.mass_multiplier2, 0.000, 0.000, 0.000],
+                [0.424, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.424, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.424, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.000, 3.786e-3],
                 [0.000, 0.000, 0.000, 0.000, -3.725e-3, 0.000],
                 [0.000, 0.000, 0.000, 6.97e-5, 0.000, 0.000]]),
             sp.Matrix([  # link3
-                [0.211*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.211*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.211*self.mass_multiplier3, 0.000, 0.000, 0.000],
+                [0.211, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.211, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.2113, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, -1.44e-7, 0.000, 5.11e-4],
                 [0.000, 0.000, 0.000, 0.000, -4.8e-4, 0.000],
                 [0.000, 0.000, 0.000, 4.81e-5, 0.000, 1.533e-6]]),
             sp.Matrix([  # link4
-                [0.069*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.069*self.mass_multiplier3, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.069*self.mass_multiplier3, 0.000, 0.000, 0.000],
+                [0.069, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.069, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.069, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 1.72e-5, 1.815e-5, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.000, -3.89e-5],
                 [0.000, 0.000, 0.000, -9.87e-6 ,3.16e-5 ,0.000]]),
             sp.Matrix([  # link5
-                [0.069*self.mass_multiplier1, 0.000, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.069*self.mass_multiplier1, 0.000, 0.000, 0.000, 0.000],
-                [0.000, 0.000, 0.069*self.mass_multiplier1, 0.000, 0.000, 0.000],
+                [0.069, 0.000, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.069, 0.000, 0.000, 0.000, 0.000],
+                [0.000, 0.000, 0.069, 0.000, 0.000, 0.000],
                 [0.000, 0.000, 0.000, 1.72e-5, 1.815e-5, 0.000],
                 [0.000, 0.000, 0.000, 0.000, 0.000, -3.89e-5],
                 [0.000, 0.000, 0.000, -9.87e-6 ,3.16e-5 ,0.000]])]
@@ -165,7 +166,8 @@ class robot_config(robot_config.robot_config):
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
         if self.hand_attached is True:  # add in hand offset
-            self.L.append([0.000684, 0.0, 0.20])
+            self.L.append([0.000684, 0.0, 0.001])  # com of the hand
+            # TODO: need to add in the offset for the fingers
         self.L = np.array(self.L)
 
         self.L_motors = [
@@ -320,6 +322,7 @@ class robot_config(robot_config.robot_config):
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
             # no axes change, account for offsets
+            # NOTE: why are the x and y axes flipped?
             self.Tj5l6b = sp.Matrix([
                 [-1, 0, 0, self.L[12, 0]],
                 [0, -1, 0, self.L[12, 1]],
@@ -461,8 +464,8 @@ class robot_config(robot_config.robot_config):
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5)
-            elif name == 'link6' or (self.hand_attached is True and
-                                     name == 'EE'):
+            elif (self.hand_attached is True and
+              (name == 'EE' or name == 'link6')):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *

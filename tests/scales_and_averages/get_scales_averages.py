@@ -3,19 +3,19 @@ You have timer minutes to move the arm around
 in the space you want to work in at the desired /
 expected speed.
 
-After the timer completes the arm will move back 
+After the timer completes the arm will move back
 to home position and prinout the scales and averages"""
 import numpy as np
 import abr_control
 import abr_jaco2
 import time
+
 # --- NAME TEST FOR SAVING ---
 
 # ---------- INITIALIZATION ----------
-# initialize our robot config 
+# initialize our robot config
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=False, use_cython=True,
-    hand_attached=False)
+    use_cython=True, hand_attached=True)
 
 ctrlr = abr_control.controllers.floating(robot_config)
 ctrlr.control(np.zeros(6), np.zeros(6))
@@ -34,11 +34,8 @@ interface.apply_q(robot_config.home_position_start)
 
 try:
     # move to read position ii
-    t_feedback = interface.get_torque_load()
-    torque_load = np.array(t_feedback['torque_load'], dtype="float32")
-    t_feedback = interface.get_torque_load()
-
     interface.init_force_mode()
+
     start = time.time()
     while 1:
         # get arm feedback
@@ -68,7 +65,7 @@ finally:
 
     np.savez_compressed('q', q=qs)
     np.savez_compressed('dq', dq=dqs)
-    
+
     print('q means: ', qs.mean(axis=0))
     print('dq means: ', dqs.mean(axis=0))
     print('q scales: ', np.amax(qs,axis=0) - np.amin(qs,axis=0))

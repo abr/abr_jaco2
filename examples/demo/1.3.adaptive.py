@@ -6,28 +6,26 @@ to its default resting position. Arm saves weights each run and
 learns to adapt to unknown forces
 """
 import numpy as np
-import time
 import os
-import gen_zeros as gen
 import abr_control
 import abr_jaco2
 import gc
 
 # ----TEST PARAMETERS-----
-s = 0  # have to manually go through runs
-name = '2lb_test1'
-notes = 'starting from friction_training5'
-kp = 4.0
-kv = 2.0
-vmax = 0.5
+run_index = 0  # have to manually go through runs
+name = '1.3.test'
+notes = ''
+kp = 10.0
+kv = 3.0
+vmax = 1.0
 num_trials = 1  # how many trials of learning to go through for averaging
 num_runs = 1  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
-save_data = False  # whether to save joint angle and vel data or not
-save_learning = False  # whether the weights and plotting data get saved
-time_limit = None  # Not used
+save_data = True  # whether to save joint angle and vel data or not
+# TODO: if save_learning is false data doesn't save, separate
+save_learning = True  # whether the weights and plotting data get saved
+time_limit = -1# Not used
 at_target = 200  # how long arm needs to be within tolerance of target
-num_targets = 1  # number of targets to move to in each trial
 
 # parameters of adaptive controller
 neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
@@ -40,42 +38,33 @@ pes_learning_rate = 1.5e-2
 count = 0  # loop counter
 q_track = []
 dq_track = []
+adaptive_track = []
 ee_track = []
-targets = []
-error_track = []
-target_index = 1
-at_target_count = 0
-# list of targets to move to
-targets = [[-.4, .2, .70],
-           [-.467, -.22, .78],
-           [.467, -.22, .78],
-           [.467, .22, .78],
-           [-.467, .22, .78]]
+
+# filename where vision system writes object xyz coordinates
+filename = 'data/target_position.txt'
 
 # check if the weights file for n_neurons exists, if not create it
-if not os.path.exists('data/learning_osc/%s/%i_neurons' % (name, n_neurons)):
-    os.makedirs('data/learning_osc/%s/%i_neurons' % (name, n_neurons))
+abr_control.utils.os_utils.makedir(
+    'data/learning_osc/%s/%i_neurons' % (name, n_neurons))
 
 # initialize our robot config for neural controllers
-#robot_config = abr_jaco2.robot_config_neural(
-#    use_cython=True, hand_attached=False)
 robot_config = abr_jaco2.robot_config_neural(
     use_cython=True, hand_attached=True)
+# generate functions / take care of overhead outside of
+# the main loop, because force mode auto-exits after 200ms
+robot_config.generate_control_functions()
 
-target_xyz = robot_config.demo_pos_xyz
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax)
 
-# run controller once to generate functions / take care of overhead
-# outside of the main loop, because force mode auto-exits after 200ms
-#robot_config.generate_control_functions()
-ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
-f = s+1
+
+f = run_index + 1
 for hh in range(0, num_trials):
-    for ii in range(s, f):
+    for ii in range(run_index, f):
         print('Run %i/%i in trial %i/%i' % (ii+1, num_runs, hh+1, num_trials))
         if not os.path.exists('data/learning_osc/%s/%i_neurons/trial%i' %
                               (name, n_neurons, hh)):
@@ -84,19 +73,11 @@ for hh in range(0, num_trials):
 
         weights_location = []
         # load the weights files for each adaptive population
-        if (ii == 0):
-            print('Loading friction comp weight files...')
-            for jj in range(0, n_adapt_pop):
-                weights_location.append(
-                    'data/learning_osc/%s/%i_neurons/friction_baseline.npz' %
-                    (name, n_neurons))
-        else:
-            print('Loading previous weights...')
-            for jj in range(0, n_adapt_pop):
-                weights_location.append(
-                    'data/learning_osc/' +
-                    '%s/%i_neurons/trial%i/weights%i_pop%i.npz' %
-                    (name, n_neurons, hh, (ii - 1) % save_history, jj))
+        for jj in range(0, n_adapt_pop):
+            weights_location.append(
+                'data/learning_osc/' +
+                '%s/%i_neurons/trial%i/weights%i_pop%i.npz' %
+                (name, n_neurons, hh, (ii - 1) % save_history, jj))
 
         # instantiate the adaptive controller
         adapt = abr_control.controllers.signals.dynamics_adaptation(
@@ -108,55 +89,75 @@ for hh in range(0, num_trials):
 
         # run once to generate the functions we need
         adapt.generate(
-            q=np.zeros(6), dq=np.zeros(6),
-            training_signal=np.zeros(6))
-
-        friction = abr_jaco2.signals.friction(robot_config)
-
-        looptimes = np.zeros(num_trials)
+            q=np.zeros(robot_config.num_joints),
+            dq=np.zeros(robot_config.num_joints),
+            training_signal=np.zeros(robot_config.num_joints))
 
         # connect to the jaco
         interface.connect()
 
+        move_home = False
+        start_movement = False
         try:
+            # start key input tracker
             kb = abr_jaco2.KBHit()
+
             # move to the home position
             print('Moving to start position')
             interface.apply_q(robot_config.home_position_start)
-            print('Moving to first target: ', target_xyz)
-            interface.init_force_mode()
-            start_t = time.time()
-            avg_loop_time = 0.0
-            loop_time = time.time()
+
+            print('Arm ready')
+
             while 1:
-                loop_start = time.time()
-                feedback = interface.get_feedback()
-                q = np.array(feedback['q'])
-                dq = np.array(feedback['dq'])
-                hand_xyz = robot_config.Tx('EE', q=q)
 
-                u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
-                u += adapt.generate(
-                    q=q, dq=dq,
-                    training_signal=ctrlr.training_signal)
+                if start_movement is True:
+                    # get robot feedback
+                    feedback = interface.get_feedback()
+                    q = np.array(feedback['q'])
+                    dq = np.array(feedback['dq'])
 
-                interface.send_forces(np.array(u, dtype='float32'))
+                    # get the target location from camera
+                    if count % 125 == 0:
+                        # check that file isn't empty
+                        if os.path.getsize(filename) > 0:
+                            # read the target position
+                            with open(filename, 'r') as f:
+                                camera_xyz = (f.readline()).split(',')
+                            # cast as floats
+                            camera_xyz = np.array(
+                                [float(i) for i in camera_xyz],
+                                dtype='float32')
+                            # transform from camera to robot reference frame
+                            target_xyz = robot_config.Tx(
+                                'camera', x=camera_xyz, q=np.zeros(6))
+                            print('target position: ', target_xyz)
+                        # calculate and print error
+                        hand_xyz = robot_config.Tx('EE', q=q)
+                        error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
+                        print('error: ', error)
 
-                error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
+                    if target_xyz is None:
+                        target_xyz = robot_config.Tx('EE', q=q)
 
-                ee_track.append(hand_xyz)
+                    u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
+                    adaptive = adapt.generate(
+                        q=q, dq=dq,
+                        training_signal=ctrlr.training_signal)
+                    u += adaptive
 
-                if save_data is True:
-                    q_track.append(q)
-                    dq_track.append(dq)
+                    # send control signal to robot arm
+                    interface.send_forces(np.array(u, dtype='float32'))
 
-                count += 1
-                if count % 100 == 0:
-                    print('error: ', error)
-                    #print('ts: ', ctrlr.training_signal)
+                    if save_data is True:
+                        q_track.append(q)
+                        dq_track.append(dq)
+                        adaptive_track.append(adaptive)
 
-                avg_loop_time += time.time() - loop_start
-                loop_time = time.time() - start_t
+                    count += 1
+
+                if move_home is True:
+                    interface.apply_q(robot_config.home_position_start)
+                    move_home = False
 
                 if kb.kbhit():
                     c = kb.getch()
@@ -164,6 +165,18 @@ for hh in range(0, num_trials):
                         interface.open_hand(False)
                     if ord(c) == 111:  # letter o, opens hand
                         interface.open_hand(True)
+                    if ord(c) == 115:  # letter s, starts movement
+                        start_movement = True
+                        # switch to torque control mode
+                        interface.init_force_mode()
+                    if ord(c) == 104:  # letter h, move to home
+                        start_movement = False
+                        move_home = True
+                        # switch to position control mode
+                        interface.init_position_mode()
+                    if ord(c) == 113:  # letter q, quits and goes to finally
+                       print('Returning to home position')
+                       break;
 
         except Exception as e:
             print(e)
@@ -174,8 +187,6 @@ for hh in range(0, num_trials):
             interface.apply_q(robot_config.home_position_start)
             interface.disconnect()
             kb.set_normal_term()
-
-            print('Average Loop Time: ', avg_loop_time / count)
 
             if save_learning is True:
                 # save weights from adaptive population
@@ -200,9 +211,6 @@ for hh in range(0, num_trials):
                     else:
                         append_write = 'w'  # make a new file if it does not exist
                     time_file = open(filename, append_write)
-                    time_file.write('%.3f\n' % loop_time)
-                    time_file.close()
-                    print('Time to Target : %.3f' % loop_time)
 
                     # save time to target
                     filename = ('data/learning_osc/%s/%i_neurons/'
