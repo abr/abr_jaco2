@@ -2,6 +2,7 @@ import numpy as np
 import os
 import sympy as sp
 
+import abr_control
 from abr_control.arms import robot_config
 import abr_jaco2
 
@@ -36,7 +37,9 @@ class robot_config(robot_config.robot_config):
             self.config_folder += 'with_hand'
         else:
             self.config_folder += 'no_hand'
-        self.config_folder += '.7pmfeb28'
+        self.config_folder += self.config_hash
+        # make config folder if it doesn't exist
+        abr_control.utils.os.makedir(self.config_folder)
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]

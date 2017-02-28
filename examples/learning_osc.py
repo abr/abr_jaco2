@@ -66,14 +66,16 @@ if (os.path.isfile('data/learning_osc/%s/%i_neurons/zeros.npz' %
 #    use_cython=True, hand_attached=False)
 robot_config = abr_jaco2.robot_config_neural(
     use_cython=True, hand_attached=False)
+
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-#robot_config.generate_control_functions()
-ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
+robot_config.generate_control_functions()
+
+>>>>>>> add hash for config, use generate_control method
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
 f = s+1
