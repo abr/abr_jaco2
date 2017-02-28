@@ -2,8 +2,6 @@
 Demo script, non-compliant hold position.
 """
 import numpy as np
-import signal
-import sys
 import time
 import abr_control
 import abr_jaco2

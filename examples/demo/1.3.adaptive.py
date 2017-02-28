@@ -24,12 +24,12 @@ save_history = 3   # number of latest weights files to save
 save_data = True  # whether to save joint angle and vel data or not
 # TODO: if save_learning is false data doesn't save, separate
 save_learning = True  # whether the weights and plotting data get saved
-time_limit = -1# Not used
+time_limit = -1  # Not used
 at_target = 200  # how long arm needs to be within tolerance of target
 
 # parameters of adaptive controller
 neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
-dim_in = 6  # number of dimensions
+dim_in = 12  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
 pes_learning_rate = 1.5e-1
@@ -49,7 +49,7 @@ abr_control.utils.os_utils.makedir(
     'data/learning_osc/%s/%i_neurons' % (name, n_neurons))
 
 # initialize our robot config for neural controllers
-robot_config = abr_jaco2.robot_config_neural(
+robot_config = abr_jaco2.robot_config_neural_1_3(
     use_cython=True, hand_attached=True)
 # generate functions / take care of overhead outside of
 # the main loop, because force mode auto-exits after 200ms
@@ -117,7 +117,7 @@ for hh in range(0, num_trials):
                     feedback = interface.get_feedback()
                     q = np.array(feedback['q'])
                     dq = np.array(feedback['dq'])
-
+                    print('q: ', q)
                     # get the target location from camera
                     if count % 125 == 0:
                         # calculate and print error

@@ -23,8 +23,8 @@ class robot_config(robot_config.robot_config):
         self.demo_pos_xyz = np.array([.40, -.18, .85])
 
         self.demo_pos_q = np.array(
-            [18.19, 109.26, 133.87, 268.51, 1.32, 181.14],
-            dtype="float32") * np.pi/180.0
+            [0.36, 2.19, 2.63, 4.69, 0.024, 3.16],
+            dtype="float32")
 
         self._T = {}  # dictionary for storing calculated transforms
 

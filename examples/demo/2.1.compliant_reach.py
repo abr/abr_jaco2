@@ -26,17 +26,17 @@ filename = 'data/target_position.txt'
 robot_config = abr_jaco2.robot_config(
     use_cython=True, hand_attached=True)
 
-offset = [0.0, 0.0, 0.01]
-# generate functions / take care of overhead outside of
-# the main loop, because force mode auto-exits after 200ms
-robot_config.generate_control_functions(x=offset)
-
 # NOTE: right now, in the osc when vmax = None, velocity is compensated
 # for in joint space, with vmax set it's in task space
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax, null_control=False)
+
+# run controller once to generate functions / take care of overhead
+# outside of the main loop, because force mode auto-exits after 200ms
+ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
+
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
 # connect to the jaco
@@ -54,6 +54,7 @@ try:
     start_movement = False
     target_xyz = None
     print('Arm Ready')
+
     while 1:
 
         if start_movement is True:
@@ -76,9 +77,13 @@ try:
                     # transform from camera to robot reference frame
                     target_xyz = robot_config.Tx(
                         'camera', x=camera_xyz, q=np.zeros(6))
-                    print('target position: ', target_xyz)
+                    # set it so that target is no farther than .8m away
+                    norm = np.linalg.norm(target_xyz)
+                    if norm > .8:
+                        target_xyz = (target_xyz /
+                                      np.linalg.norm(target_xyz) * .8)
 
-            u = ctrlr.control(q=q, dq=dq, offset=offset, target_pos=target_xyz)
+            u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
 
             # send control signal to Jaco 2
             interface.send_forces(np.array(u, dtype='float32'))

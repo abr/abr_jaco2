@@ -29,10 +29,10 @@ at_target = 200  # how long arm needs to be within tolerance of target
 
 # parameters of adaptive controller
 neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
-dim_in = 6  # number of dimensions
+dim_in = 12  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.0e-3
+pes_learning_rate = 1.5e-2
 # ------------------------
 
 count = 0  # loop counter
@@ -49,7 +49,7 @@ abr_control.utils.os_utils.makedir(
     'data/learning_osc/%s/%i_neurons' % (name, n_neurons))
 
 # initialize our robot config for neural controllers
-robot_config = abr_jaco2.robot_config_neural(
+robot_config = abr_jaco2.robot_config_neural_2_2(
     use_cython=True, hand_attached=True)
 # generate functions / take care of overhead outside of
 # the main loop, because force mode auto-exits after 200ms
