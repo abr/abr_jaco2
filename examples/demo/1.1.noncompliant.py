@@ -2,45 +2,29 @@
 Demo script, non-compliant hold position.
 """
 import time
-import abr_control
+
 import abr_jaco2
+from demo import Demo
 
-kp = 4.0
-kv = 2.0
-loop_limit = 15000
+class Demo11(Demo):
+    def __init__(self):
+        super(Demo11, self).__init__()
 
-# initialize our robot config for neural controllers
-robot_config = abr_jaco2.robot_config(
-    use_cython=True, hand_attached=False)
+        # initialize our robot config for neural controllers
+        self.robot_config = abr_jaco2.robot_config(
+            use_cython=True, hand_attached=True)
+        self.target_xyz = robot_config.demo_pos_xyz
 
-# NOTE: right now, in the osc when vmax = None, velocity is compensated
-# for in joint space, with vmax set it's in task space
-
-# instantiate the REACH controller for the jaco2 robot
-ctrlr = abr_control.controllers.osc(
-    robot_config, kp=kp, kv=kv, vmax=1.0, null_control=False)
-# create signal to compensate for friction
-friction = abr_jaco2.signals.friction(robot_config)
-
-# create our interface for the jaco2
-interface = abr_jaco2.interface(robot_config)
-# connect to the jaco
-interface.connect()
+    def start_loop(self, q, dq):
+        self.interface.apply_q(self.demo_pos_q)
+        time.sleep(1)
 
 try:
-    # move to the home position
-    interface.apply_q(robot_config.demo_pos_q)
-
-    # just hold current position
-    while 1:
-       time.sleep(1)
+    demo = Demo()
+    demo.run()
 
 except Exception as e:
      print(e)
 
 finally:
-    # return back to home position
-    interface.init_position_mode()
-    interface.apply_q(robot_config.home_position_start)
-    # close the connection to the arm
-    interface.disconnect()
+    demo.stop()
