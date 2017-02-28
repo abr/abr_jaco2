@@ -1,10 +1,12 @@
 """
 Demo script, compliant hold position.
 """
+import os
+
 import numpy as np
+
 import abr_control
 import abr_jaco2
-import os
 
 kp = 10.0
 kv = 3.0
@@ -23,19 +25,20 @@ target_xyz = targets[0]
 filename = 'data/target_position.txt'
 
 # initialize our robot config for neural controllers
-robot_config = abr_jaco2.robot_config(
+robot_config = abr_jaco2.robot_config3(
     use_cython=True, hand_attached=True)
 
 # NOTE: right now, in the osc when vmax = None, velocity is compensated
 # for in joint space, with vmax set it's in task space
-
+offset = [0.0, 0.0, 0.00]
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=vmax, null_control=False)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
+ctrlr.control(np.zeros(6), np.zeros(6), offset=offset,
+              target_pos=np.zeros(3))
 
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
@@ -83,7 +86,9 @@ try:
                         target_xyz = (target_xyz /
                                       np.linalg.norm(target_xyz) * .8)
 
-            u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
+            u = ctrlr.control(q=q, dq=dq,
+                    offset=offset,
+                    target_pos=target_xyz)
 
             # send control signal to Jaco 2
             interface.send_forces(np.array(u, dtype='float32'))

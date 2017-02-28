@@ -33,6 +33,7 @@ dim_in = 12  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
 pes_learning_rate = 1.5e-1
+intercepts = (0.7, 1.0)
 # ------------------------
 
 count = 0  # loop counter
@@ -85,7 +86,8 @@ for hh in range(0, num_trials):
             weights_file=weights_location,
             n_neurons=n_neurons,
             n_adapt_pop=n_adapt_pop,
-            pes_learning_rate=pes_learning_rate)
+            pes_learning_rate=pes_learning_rate,
+            intercepts=intercepts)
 
         # run once to generate the functions we need
         adapt.generate(

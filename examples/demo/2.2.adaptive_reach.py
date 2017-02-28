@@ -6,33 +6,37 @@ to its default resting position. Arm saves weights each run and
 learns to adapt to unknown forces
 """
 import numpy as np
-import os
+import time
 import abr_control
 import abr_jaco2
-import gc
+import os
 
-# ----TEST PARAMETERS-----
-run_index = 0  # have to manually go through runs
-name = '2.2'
-notes = 'starting from friction_training5'
 kp = 10.0
 kv = 3.0
 vmax = 1.0
+
+# ----TEST PARAMETERS-----
+run_index = 13  # have to manually go through runs
+name = '2.2.0.8'
+notes = ''
 num_trials = 1  # how many trials of learning to go through for averaging
-num_runs = 1  # number of runs per trial (cumulative learning)
+num_runs = 30  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
 save_data = True  # whether to save joint angle and vel data or not
+# TO DO: save data does not save if save learning is false
 # TODO: if save_learning is false data doesn't save, separate
 save_learning = True  # whether the weights and plotting data get saved
-time_limit = -1  # Not used
+time_limit = 1000  # Not used
 at_target = 200  # how long arm needs to be within tolerance of target
+start_time = 0
 
 # parameters of adaptive controller
 neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
 dim_in = 12  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.5e-2
+pes_learning_rate = 1.5e-1
+intercepts = (0.7, 1.0)
 # ------------------------
 
 count = 0  # loop counter
@@ -51,13 +55,17 @@ abr_control.utils.os_utils.makedir(
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config_neural_2_2(
     use_cython=True, hand_attached=True)
-# generate functions / take care of overhead outside of
-# the main loop, because force mode auto-exits after 200ms
-robot_config.generate_control_functions()
+
+# NOTE: right now, in the osc when vmax = None, velocity is compensated
+# for in joint space, with vmax set it's in task space
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=kp, kv=kv, vmax=vmax)
+    robot_config, kp=kp, kv=kv, vmax=vmax, null_control=False)
+
+# run controller once to generate functions / take care of overhead
+# outside of the main loop, because force mode auto-exits after 200ms
+ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
 
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
@@ -71,7 +79,6 @@ for hh in range(0, num_trials):
 
         weights_location = []
         # load the weights files for each adaptive population
-        print('Loading previous weights...')
         for jj in range(0, n_adapt_pop):
             weights_location.append(
                 'data/learning_osc/' +
@@ -84,7 +91,8 @@ for hh in range(0, num_trials):
             weights_file=weights_location,
             n_neurons=n_neurons,
             n_adapt_pop=n_adapt_pop,
-            pes_learning_rate=pes_learning_rate)
+            pes_learning_rate=pes_learning_rate,
+            intercepts=intercepts)
 
         # run once to generate the functions we need
         # TODO: double check what the full training signal should be
@@ -105,6 +113,9 @@ for hh in range(0, num_trials):
             # move to the home position
             print('Moving to start position')
             interface.apply_q(robot_config.home_position_start)
+            move_home = False
+
+            print('Arm ready')
 
             while 1:
 
@@ -129,6 +140,12 @@ for hh in range(0, num_trials):
                             target_xyz = robot_config.Tx(
                                 'camera', x=camera_xyz, q=np.zeros(6))
                             print('target position: ', target_xyz)
+                            # set it so that target is no farther than .8m away
+                            norm = np.linalg.norm(target_xyz)
+                            if norm > .8:
+                                target_xyz = (target_xyz /
+                                              np.linalg.norm(target_xyz) * .8)
+
                         # calculate and print error
                         hand_xyz = robot_config.Tx('EE', q=q)
                         error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
@@ -139,7 +156,8 @@ for hh in range(0, num_trials):
 
                     # generate osc signal
                     # TODO NOTE: when it uses offset shit is terrible, WHY???
-                    u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz,)
+                    # NOTE: maybe just change target position by offset amount for now
+                    u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
                                       # offset=[0, 0, .001])
                     # generate adaptive dynamics signal
                     adaptive = adapt.generate(
@@ -156,6 +174,10 @@ for hh in range(0, num_trials):
 
                     count += 1
 
+                    if time.time() - start_time > time_limit:
+                        print('Time limit reach')
+                        break;
+
                 if move_home is True:
                     interface.apply_q(robot_config.home_position_start)
                     move_home = False
@@ -168,6 +190,7 @@ for hh in range(0, num_trials):
                         interface.open_hand(True)
                     if ord(c) == 115:  # letter s, starts movement
                         start_movement = True
+                        start_time = time.time()
                         # switch to torque control mode
                         interface.init_force_mode()
                     if ord(c) == 104:  # letter h, move to home
@@ -212,10 +235,6 @@ for hh in range(0, num_trials):
                         append_write = 'a'  # append if file exists
                     else:
                         append_write = 'w'  # make file if it does not exist
-                    # time_file = open(filename, append_write)
-                    # time_file.write('%.3f\n' % loop_time)
-                    # time_file.close()
-                    # print('Time to Target : %.3f' % loop_time)
 
                     # save parameters list
                     filename = ('data/learning_osc/%s/%i_neurons/'
@@ -275,6 +294,3 @@ for hh in range(0, num_trials):
                             adapt=adaptive_track)
             else:
                 print('save_learning is False...exiting')
-
-            adapt = None
-            gc.collect()
