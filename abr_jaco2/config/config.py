@@ -50,7 +50,7 @@ class robot_config(robot_config.robot_config):
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
         self.rest_angles = np.array(
-            [0.0, 2.44, 2.44, 0.0, 0.0, 0.0], dtype='float32')
+            [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
         self.mass_multiplier_wrist = 1.3
 
         # create the inertia matrices for each link of the kinova jaco2

@@ -32,7 +32,7 @@ neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
 dim_in = 6  # number of dimensions
 n_neurons = 20000  # number of neurons (20k ~ max with 1 pop)
 n_adapt_pop = 1  # number of adaptive populations
-pes_learning_rate = 1.5e-2
+pes_learning_rate = 1.5e-1
 # ------------------------
 
 count = 0  # loop counter
@@ -96,6 +96,8 @@ for hh in range(0, num_trials):
         # connect to the jaco
         interface.connect()
 
+        target_xyz = robot_config.demo_pos_xyz
+
         move_home = False
         start_movement = False
         try:
@@ -118,28 +120,13 @@ for hh in range(0, num_trials):
 
                     # get the target location from camera
                     if count % 125 == 0:
-                        # check that file isn't empty
-                        if os.path.getsize(filename) > 0:
-                            # read the target position
-                            with open(filename, 'r') as f:
-                                camera_xyz = (f.readline()).split(',')
-                            # cast as floats
-                            camera_xyz = np.array(
-                                [float(i) for i in camera_xyz],
-                                dtype='float32')
-                            # transform from camera to robot reference frame
-                            target_xyz = robot_config.Tx(
-                                'camera', x=camera_xyz, q=np.zeros(6))
-                            print('target position: ', target_xyz)
                         # calculate and print error
                         hand_xyz = robot_config.Tx('EE', q=q)
                         error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
                         print('error: ', error)
 
-                    if target_xyz is None:
-                        target_xyz = robot_config.Tx('EE', q=q)
-
-                    u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
+                    u = ctrlr.control(q=q, dq=dq,
+                        target_pos=target_xyz)
                     adaptive = adapt.generate(
                         q=q, dq=dq,
                         training_signal=ctrlr.training_signal)
