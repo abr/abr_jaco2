@@ -5,8 +5,6 @@ once the final target is reached, and the arm has moved back
 to its default resting position.
 """
 import numpy as np
-import signal
-import sys
 import time
 import abr_control
 import abr_jaco2
@@ -139,8 +137,6 @@ finally:
     ee_track = np.array(ee_track)
     target_track = np.array(target_track)
     u_track = np.array(u_track)
-
-    import matplotlib.pyplot as plt
 
     # plot targets and trajectory of end-effectory in 3D
     #abr_control.utils.plotting.plot_trajectory(ee_track, target_track)
