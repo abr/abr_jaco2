@@ -3,22 +3,21 @@ A class to use for the demo scripts. Handles the common code.
 """
 import numpy as np
 
-import abr_control
 import abr_jaco2
 
 
 class Demo(object):
 
-    def __init__(self, config, ctrlr):
+    def __init__(self):
         self.track = {'q': [],
                       'dq': []}
 
         # create our interface for the jaco2
-        self.interface = abr_jaco2.interface(robot_config)
+        self.interface = abr_jaco2.interface(self.robot_config)
         # connect to the jaco
         self.interface.connect()
         # move to the home position
-        interface.apply_q(robot_config.home_position_start)
+        self.interface.apply_q(self.robot_config.home_position_start)
 
         self.count = 0
         self.move_home = False
@@ -27,7 +26,7 @@ class Demo(object):
 
     def run(self):
         # set up key input tracker
-        kb = abr_jaco2.KBHit()
+        self.kb = abr_jaco2.KBHit()
 
         self.count = 0
         while 1:
@@ -38,14 +37,14 @@ class Demo(object):
                 self.q = np.array(feedback['q'])
                 self.dq = np.array(feedback['dq'])
 
-                self.start_loop(q=q, dq=dq)
+                self.start_loop()
 
-            if move_home is True:
-                self.interface.apply_q(robot_config.home_position_start)
+            if self.move_home is True:
+                self.interface.apply_q(self.robot_config.home_position_start)
                 self.move_home = False
 
-            if kb.kbhit():
-                c = kb.getch()
+            if self.kb.kbhit():
+                c = self.kb.getch()
                 if ord(c) == 112:  # letter p, closes hand
                     self.interface.open_hand(False)
                 if ord(c) == 111:  # letter o, opens hand
@@ -67,16 +66,16 @@ class Demo(object):
 
     def stop(self):
         # return back to home position
-        interface.init_position_mode()
-        interface.apply_q(robot_config.home_position_start)
+        self.interface.init_position_mode()
+        self.interface.apply_q(self.robot_config.home_position_start)
         # close the connection to the arm
-        interface.disconnect()
-        kb.set_normal_term()
+        self.interface.disconnect()
+        self.kb.set_normal_term()
 
     def generate_u(self):
-        raise Exception('generate_u method not implemented'
+        raise Exception('generate_u method not implemented')
 
     def print_error(self):
-        hand_xyz = self.robot_config.Tx('EE', q=q)
+        hand_xyz = self.robot_config.Tx('EE', q=self.q)
         error = np.sqrt(np.sum((hand_xyz - self.target_xyz)**2))
         print('error: ', error)
