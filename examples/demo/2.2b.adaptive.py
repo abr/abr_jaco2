@@ -1,34 +1,31 @@
 """
-1 basic script for connecting and moving the arm to 4 targets.
+A basic script for connecting and moving the arm to 4 targets.
 The end-effector and target postions are recorded and plotted
 once the final target is reached, and the arm has moved back
 to its default resting position. Arm saves weights each run and
 learns to adapt to unknown forces
 """
 import numpy as np
-import time
+import os
 import abr_control
 import abr_jaco2
-import os
-
-kp = 10.0
-kv = 3.0
-vmax = 1.0
+import gc
 
 # ----TEST PARAMETERS-----
 run_index = 0  # have to manually go through runs
-name = '2.2.0.8-tatatat'
+name = '1.3.test'
 notes = ''
+kp = 10.0
+kv = 3.0
+vmax = 1.0
 num_trials = 1  # how many trials of learning to go through for averaging
-num_runs = 30  # number of runs per trial (cumulative learning)
+num_runs = 1  # number of runs per trial (cumulative learning)
 save_history = 3   # number of latest weights files to save
 save_data = True  # whether to save joint angle and vel data or not
-# TO DO: save data does not save if save learning is false
 # TODO: if save_learning is false data doesn't save, separate
 save_learning = True  # whether the weights and plotting data get saved
-time_limit = 1000  # Not used
+time_limit = -1  # Not used
 at_target = 200  # how long arm needs to be within tolerance of target
-start_time = 0
 
 # parameters of adaptive controller
 neural_backend = 'nengo'  # can be nengo, nengo_ocl, nengo_spinnaker
@@ -53,31 +50,27 @@ abr_control.utils.os_utils.makedir(
     'data/learning_osc/%s/%i_neurons' % (name, n_neurons))
 
 # initialize our robot config for neural controllers
-robot_config = abr_jaco2.robot_config_neural_2_2(
+robot_config = abr_jaco2.robot_config_neural_1_3(
     use_cython=True, hand_attached=True)
-
-# NOTE: right now, in the osc when vmax = None, velocity is compensated
-# for in joint space, with vmax set it's in task space
+# generate functions / take care of overhead outside of
+# the main loop, because force mode auto-exits after 200ms
+robot_config.generate_control_functions()
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=kp, kv=kv, vmax=vmax, null_control=False)
-
-# run controller once to generate functions / take care of overhead
-# outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
+    robot_config, kp=kp, kv=kv, vmax=vmax)
 
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
-
-tool_offset = [0.0, 0.0, 0.0]
 
 f = run_index + 1
 for hh in range(0, num_trials):
     for ii in range(run_index, f):
         print('Run %i/%i in trial %i/%i' % (ii+1, num_runs, hh+1, num_trials))
-        abr_control.utils.os_utils.makedir(
-            'data/learning_osc/%s/%i_neurons/trial%i' % (name, n_neurons, hh))
+        if not os.path.exists('data/learning_osc/%s/%i_neurons/trial%i' %
+                              (name, n_neurons, hh)):
+            os.makedirs('data/learning_osc/%s/%i_neurons/trial%i' %
+                        (name, n_neurons, hh))
 
         weights_location = []
         # load the weights files for each adaptive population
@@ -97,14 +90,15 @@ for hh in range(0, num_trials):
             intercepts=intercepts)
 
         # run once to generate the functions we need
-        # TODO: double check what the full training signal should be
-        adapt.generate(q=np.zeros(6), dq=np.zeros(6),
-                       training_signal=np.zeros(6))
-
-        looptimes = np.zeros(num_trials)
+        adapt.generate(
+            q=np.zeros(robot_config.num_joints),
+            dq=np.zeros(robot_config.num_joints),
+            training_signal=np.zeros(robot_config.num_joints))
 
         # connect to the jaco
         interface.connect()
+
+        target_xyz = robot_config.demo_pos_xyz
 
         move_home = False
         start_movement = False
@@ -115,20 +109,19 @@ for hh in range(0, num_trials):
             # move to the home position
             print('Moving to start position')
             interface.apply_q(robot_config.home_position_start)
-            move_home = False
 
             print('Arm ready')
 
             while 1:
 
-                if start_movement:
+                if start_movement is True:
                     # get robot feedback
                     feedback = interface.get_feedback()
                     q = np.array(feedback['q'])
                     dq = np.array(feedback['dq'])
 
                     # get the target location from camera
-                    if count % 125 == 0:
+                    if count % 500 == 0:
                         # check that file isn't empty
                         if os.path.getsize(filename) > 0:
                             # read the target position
@@ -141,7 +134,11 @@ for hh in range(0, num_trials):
                             # transform from camera to robot reference frame
                             target_xyz = robot_config.Tx(
                                 'camera', x=camera_xyz, q=np.zeros(6))
-                            print('target position: ', target_xyz)
+                            # account for offset of tool
+                            # R = R_func(*(tuple(q)))
+                            # target_xyz += np.dot(R, tool_offset)
+                            # print('offset: ', [float('%4f' % val) for val in
+                            #                    np.dot(R, tool_offset)])
                             # set it so that target is too far
                             norm = np.linalg.norm(target_xyz)
                             if norm > 1.0:
@@ -149,22 +146,16 @@ for hh in range(0, num_trials):
                                               np.linalg.norm(target_xyz) * 1.0)
                             print('target_xyz: ', target_xyz)
 
-                        # calculate and print error
+                        # print out the error every so often
                         hand_xyz = robot_config.Tx('EE', q=q)
                         error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
                         print('error: ', error)
 
-                    if target_xyz is None:
-                        target_xyz = robot_config.Tx('EE', q=q)
-
-                    # generate osc signal
-                    # TODO NOTE: when it uses offset shit is terrible, WHY???
-                    # NOTE: maybe just change target position by offset amount for now
-                    u = ctrlr.control(q=q, dq=dq, target_pos=target_xyz)
-                                      # offset=[0, 0, .001])
-                    # generate adaptive dynamics signal
+                    u = ctrlr.control(q=q, dq=dq,
+                        target_pos=target_xyz)
                     adaptive = adapt.generate(
-                        q=q, dq=dq, training_signal=ctrlr.training_signal)
+                        q=q, dq=dq,
+                        training_signal=ctrlr.training_signal)
                     u += adaptive
 
                     # send control signal to robot arm
@@ -176,10 +167,6 @@ for hh in range(0, num_trials):
                         adaptive_track.append(adaptive)
 
                     count += 1
-
-                    if time.time() - start_time > time_limit:
-                        print('Time limit reach')
-                        break;
 
                 if move_home is True:
                     interface.apply_q(robot_config.home_position_start)
@@ -193,7 +180,6 @@ for hh in range(0, num_trials):
                         interface.open_hand(True)
                     if ord(c) == 115:  # letter s, starts movement
                         start_movement = True
-                        start_time = time.time()
                         # switch to torque control mode
                         interface.init_force_mode()
                     if ord(c) == 104:  # letter h, move to home
@@ -220,10 +206,9 @@ for hh in range(0, num_trials):
                 for nn in range(0, n_adapt_pop):
                     print('saving weights...')
                     np.savez_compressed(
-                        'data/learning_osc/' +
-                        '%s/%i_neurons/trial%i/weights%i_pop%i' %
-                        (name, n_neurons, hh, ii % save_history, nn),
-                        weights=[adapt.sim.data[adapt.probe_weights[nn]][-1]])
+                        'data/learning_osc/%s/%i_neurons/trial%i/weights%i_pop%i' %
+                        (name, n_neurons, hh, ii % save_history, nn), weights=
+                        [adapt.sim.data[adapt.probe_weights[nn]][-1]])
 
                     print('saving plotting data...')
                     np.savez_compressed('data/learning_osc/%s/%i_neurons/'
@@ -237,32 +222,32 @@ for hh in range(0, num_trials):
                     if os.path.exists(filename):
                         append_write = 'a'  # append if file exists
                     else:
-                        append_write = 'w'  # make file if it does not exist
+                        append_write = 'w'  # make a new file if it does not exist
+                    time_file = open(filename, append_write)
 
-                    # save parameters list
+                    # save time to target
                     filename = ('data/learning_osc/%s/%i_neurons/'
                                 'run_parameters.txt' %
                                 (name, n_neurons))
                     if os.path.exists(filename):
                         append_write = 'a'  # append if file exists
                     else:
-                        append_write = 'w'  # make file if it does not exist
+                        append_write = 'w'  # make a new file if it does not exist
                     parameter_file = open(filename, append_write)
                     parameter_file.seek(0)
                     parameter_file.truncate(0)
-                    parameter_file.write(
-                        'name: %s\n' % name +
-                        'kp: %.3f\n' % kp +
-                        'kv: %.3f\n' % kv +
-                        'vmax: %.3f\n' % vmax +
-                        'time limit: %.3f\n' % time_limit +
-                        'at target: %.3f\n' % at_target +
-                        'neural backend: %s\n' % neural_backend +
-                        'dim in: %.3f\n' % dim_in +
-                        'n neurons: %.3f\n' % n_neurons +
-                        'n adapt pop: %.3f\n' % n_adapt_pop +
-                        'pes: %.3f\n' % pes_learning_rate +
-                        'notes: %s' % notes)
+                    parameter_file.write('name: %s\n' % name +
+                                         'kp: %.3f\n' % kp +
+                                         'kv: %.3f\n' % kv +
+                                         'vmax: %.3f\n' % vmax +
+                                         'time limit: %.3f\n' % time_limit +
+                                         'at target: %.3f\n' % at_target +
+                                         'neural backend: %s\n' % neural_backend +
+                                         'dim in: %.3f\n' % dim_in +
+                                         'n neurons: %.3f\n' % n_neurons +
+                                         'n adapt pop: %.3f\n' % n_adapt_pop +
+                                         'pes: %.3f\n' % pes_learning_rate +
+                                         'notes: %s' % notes)
                     parameter_file.close()
 
                     # save run info for plotting
@@ -270,30 +255,26 @@ for hh in range(0, num_trials):
                     if os.path.exists(filename):
                         append_write = 'a'  # append if file exists
                     else:
-                        append_write = 'w'  # make a new file if DNE
+                        append_write = 'w'  # make a new file if it does not exist
                     info_file = open(filename, append_write)
                     info_file.seek(0)
                     info_file.truncate()
-                    info_file.write('%s,%s,%s,%s' %
-                                    (name, n_neurons, num_trials, num_runs))
+                    info_file.write('%s,%s,%s,%s' % (name, n_neurons, num_trials,
+                                                     num_runs))
                     info_file.close()
 
                     if save_data is True:
                         print('saving extra data...')
 
-                        np.savez_compressed(
-                            'data/learning_osc/%s/%i_neurons/'
-                            'trial%i/q%i' % (name, n_neurons, hh, ii),
-                            q=q_track)
+                        np.savez_compressed('data/learning_osc/%s/%i_neurons/'
+                                            'trial%i/q%i' % (name, n_neurons,
+                                                             hh, ii), q=q_track)
 
-                        np.savez_compressed(
-                            'data/learning_osc/%s/%i_neurons/'
-                            'trial%i/dq%i' % (name, n_neurons, hh, ii),
-                            dq=dq_track)
-
-                        np.savez_compressed(
-                            'data/learning_osc/%s/%i_neurons/'
-                            'trial%i/adapt%i' % (name, n_neurons, hh, ii),
-                            adapt=adaptive_track)
+                        np.savez_compressed('data/learning_osc/%s/%i_neurons/'
+                                            'trial%i/dq%i' % (name, n_neurons,
+                                                              hh, ii), dq=dq_track)
             else:
-                print('save_learning is False...exiting')
+                print('Save learning turned off...exiting')
+
+            adapt = None
+            gc.collect()

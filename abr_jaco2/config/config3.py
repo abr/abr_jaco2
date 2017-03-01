@@ -51,7 +51,7 @@ class robot_config(robot_config.robot_config):
         # currently set to the center of the limits
         self.rest_angles = np.array(
             [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
-        self.mass_multiplier_wrist = 1.3
+        self.mass_multiplier_wrist = 2
 
         # create the inertia matrices for each link of the kinova jaco2
         self._M_links = [
@@ -394,12 +394,12 @@ class robot_config(robot_config.robot_config):
             [0, 0, 1, self.L_motors[5, 2]],
             [0, 0, 0, 1]])
 
-        # Transform matrix : joint5 -> motor5
+        # Transform matrix : joint5 -> motor6 / hand
         # no change of axes, account for offsets
         self.Tj5m6 = sp.Matrix([
             [1, 0, 0, self.L_motors[6, 0]],
             [0, 1, 0, self.L_motors[6, 1]],
-            [0, 0, 1, self.L_motors[6, 2]],
+            [0, 0, -1, self.L_motors[6, 2]],
             [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for orientations)

@@ -30,10 +30,11 @@ robot_config = abr_jaco2.robot_config3(
 
 # NOTE: right now, in the osc when vmax = None, velocity is compensated
 # for in joint space, with vmax set it's in task space
-offset = [0.0, 0.0, 0.00]
+offset = [0.0, 0.0, 0.0]
+tool_offset = [0.0, 0.0, 0.08]
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=kp, kv=kv, vmax=vmax, null_control=False)
+    robot_config, kp=kp, kv=kv, vmax=vmax)# , null_control=False)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
@@ -48,88 +49,96 @@ interface.connect()
 interface.apply_q(robot_config.home_position_start)
 
 
-try:
-    # set up key input tracker
-    kb = abr_jaco2.KBHit()
+# try:
+# set up key input tracker
+kb = abr_jaco2.KBHit()
 
-    count = 0
-    move_home = False
-    start_movement = False
-    target_xyz = None
-    print('Arm Ready')
+count = 0
+move_home = False
+start_movement = False
+target_xyz = None
+print('Arm Ready')
 
-    while 1:
+R_func = robot_config._calc_R('EE')
 
-        if start_movement is True:
-            # get feedback
-            feedback = interface.get_feedback()
-            q = np.array(feedback['q'])
-            dq = np.array(feedback['dq'])
+while 1:
 
-            # get the target location from camera
-            if count % 125 == 0:
-                # check that file isn't empty
-                if os.path.getsize(filename) > 0:
-                    # read the target position
-                    with open(filename, 'r') as f:
-                        camera_xyz = (f.readline()).split(',')
-                    # cast as floats
-                    camera_xyz = np.array(
-                        [float(i) for i in camera_xyz],
-                        dtype='float32')
-                    # transform from camera to robot reference frame
-                    target_xyz = robot_config.Tx(
-                        'camera', x=camera_xyz, q=np.zeros(6))
-                    # set it so that target is no farther than .8m away
-                    norm = np.linalg.norm(target_xyz)
-                    if norm > .8:
-                        target_xyz = (target_xyz /
-                                      np.linalg.norm(target_xyz) * .8)
+    if start_movement is True:
+        # get feedback
+        feedback = interface.get_feedback()
+        q = np.array(feedback['q'])
+        dq = np.array(feedback['dq'])
 
-            u = ctrlr.control(q=q, dq=dq,
-                    offset=offset,
-                    target_pos=target_xyz)
-
-            # send control signal to Jaco 2
-            interface.send_forces(np.array(u, dtype='float32'))
+        # get the target location from camera
+        if count % 500 == 0:
+            # check that file isn't empty
+            if os.path.getsize(filename) > 0:
+                # read the target position
+                with open(filename, 'r') as f:
+                    camera_xyz = (f.readline()).split(',')
+                # cast as floats
+                camera_xyz = np.array(
+                    [float(i) for i in camera_xyz],
+                    dtype='float32')
+                # transform from camera to robot reference frame
+                target_xyz = robot_config.Tx(
+                    'camera', x=camera_xyz, q=np.zeros(6))
+                # account for offset of tool
+                R = R_func(*(tuple(q)))
+                target_xyz += np.dot(R, tool_offset)
+                print('offset: ', [float('%4f' % val) for val in
+                                   np.dot(R, tool_offset)])
+                # set it so that target is too far
+                norm = np.linalg.norm(target_xyz)
+                if norm > 1.0:
+                    target_xyz = (target_xyz /
+                                  np.linalg.norm(target_xyz) * 1.0)
+                print('target_xyz: ', target_xyz)
 
             # print out the error every so often
-            if count % 100 == 0:
-                hand_xyz = robot_config.Tx('EE', q=q)
-                error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
-                print('error: ', error)
-            count += 1
+            hand_xyz = robot_config.Tx('EE', q=q)
+            link6_xyz = robot_config.Tx('link6', q=q)
+            error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
+            print('error: ', error)
 
-        if move_home is True:
-            interface.apply_q(robot_config.home_position_start)
-            move_home = False
+        u = ctrlr.control(q=q, dq=dq, offset=offset,
+                          target_pos=target_xyz)
 
-        if kb.kbhit():
-            c = kb.getch()
-            if ord(c) == 112:  # letter p, closes hand
-                interface.open_hand(False)
-            if ord(c) == 111:  # letter o, opens hand
-                interface.open_hand(True)
-            if ord(c) == 115:  # letter s, starts movement
-                start_movement = True
-                # switch to torque control mode
-                interface.init_force_mode()
-            if ord(c) == 104:  # letter h, move to home
-                start_movement = False
-                move_home = True
-                # switch to position control mode
-                interface.init_position_mode()
-            if ord(c) == 113:  # letter q, quits and goes to finally
-               print('Returning to home position')
-               break;
+        # send control signal to Jaco 2
+        interface.send_forces(np.array(u, dtype='float32'))
 
-except Exception as e:
-     print(e)
+        count += 1
 
-finally:
-    # return back to home position
-    interface.init_position_mode()
-    interface.apply_q(robot_config.home_position_start)
-    # close the connection to the arm
-    interface.disconnect()
-    kb.set_normal_term()
+    if move_home is True:
+        interface.apply_q(robot_config.home_position_start)
+        move_home = False
+
+    if kb.kbhit():
+        c = kb.getch()
+        if ord(c) == 112:  # letter p, closes hand
+            interface.open_hand(False)
+        if ord(c) == 111:  # letter o, opens hand
+            interface.open_hand(True)
+        if ord(c) == 115:  # letter s, starts movement
+            start_movement = True
+            # switch to torque control mode
+            interface.init_force_mode()
+        if ord(c) == 104:  # letter h, move to home
+            start_movement = False
+            move_home = True
+            # switch to position control mode
+            interface.init_position_mode()
+        if ord(c) == 113:  # letter q, quits and goes to finally
+           print('Returning to home position')
+           break;
+#
+# except Exception as e:
+#      print(e)
+#
+# finally:
+#     # return back to home position
+#     interface.init_position_mode()
+#     interface.apply_q(robot_config.home_position_start)
+#     # close the connection to the arm
+#     interface.disconnect()
+#     kb.set_normal_term()

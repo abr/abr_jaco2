@@ -36,6 +36,7 @@ class robot_config(robot_config.robot_config):
             self.config_folder += 'with_hand'
         else:
             self.config_folder += 'no_hand'
+        self.config_folder += '.7pmfeb28'
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]

@@ -1,7 +1,6 @@
 """
 Demo script, non-compliant hold position.
 """
-import numpy as np
 import time
 import abr_control
 import abr_jaco2
@@ -22,11 +21,6 @@ ctrlr = abr_control.controllers.osc(
     robot_config, kp=kp, kv=kv, vmax=1.0, null_control=False)
 # create signal to compensate for friction
 friction = abr_jaco2.signals.friction(robot_config)
-
-# run controller once to generate functions / take care of overhead
-# outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
-friction.generate(dq=np.zeros(6))
 
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)

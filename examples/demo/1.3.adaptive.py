@@ -119,7 +119,6 @@ for hh in range(0, num_trials):
                     feedback = interface.get_feedback()
                     q = np.array(feedback['q'])
                     dq = np.array(feedback['dq'])
-                    print('q: ', q)
                     # get the target location from camera
                     if count % 125 == 0:
                         # calculate and print error
