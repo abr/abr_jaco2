@@ -53,6 +53,7 @@ class interface(interface.interface):
         q np.array: the target joint angles (radians)
 
         """
+        # TODO: clip this into the 0 to 2*pi range
         # convert from radians into degrees the Jaco expects
         q = np.array(q) * 180.0 / np.pi
         self.jaco2.ApplyQ(q)

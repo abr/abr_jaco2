@@ -4,9 +4,9 @@ Demo script, non-compliant hold position.
 import time
 
 import abr_jaco2
-import demo_class
+from demo_class import Demo
 
-class Demo11(demo_class.Demo):
+class Demo11(Demo):
     def __init__(self):
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config(
