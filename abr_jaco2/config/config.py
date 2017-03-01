@@ -3,11 +3,11 @@ import os
 import sympy as sp
 
 import abr_control
-from abr_control.arms import robot_config
+from abr_control.arms.robot_config import robot_config
 import abr_jaco2
 
 
-class robot_config(robot_config.robot_config):
+class robot_config(robot_config):
     """ Robot config file for the Kinova Jaco^2 V2"""
 
     def __init__(self, hand_attached=True, **kwargs):
@@ -16,46 +16,30 @@ class robot_config(robot_config.robot_config):
         num_links = 7 if hand_attached is True else 6
         super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
-
-        self.demo_tooltip_read_pos = np.array(
-            [1.80, 3.26, 2.60, 1.04, 2.26, 1.65],
-            dtype='float32')
-
-        self.demo_pos_xyz = np.array([.40, -.18, .85])
-
-        self.demo_pos_q = np.array(
-            [0.36, 2.19, 2.63, 4.69, 0.024, 3.16],
-            dtype="float32")
-
         self._T = {}  # dictionary for storing calculated transforms
+
+        # set up saved functions folder to be in the abr_jaco repo
+        self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
+                              '/saved_functions_')
+        self.config_folder += ('with_hand' if self.hand_attached is True
+                               else 'no_hand')
+        self.config_folder += '_' + self.config_hash
+        # make folder if it doesn't exist
+        abr_control.utils.os_utils.makedir(self.config_folder)
 
         self.F_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
 
-        self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
-                              '/saved_functions_')
-        if self.hand_attached is True:
-            self.config_folder += 'with_hand'
-        else:
-            self.config_folder += 'no_hand'
-        self.config_folder += self.config_hash
-        # make config folder if it doesn't exist
-        abr_control.utils.os.makedir(self.config_folder)
-
-        self.joint_names = ['joint%i' % ii
-                            for ii in range(self.num_joints)]
-        # Kinova Home Position - straight up
-        self.home_position_start = np.array(
-            [1.22, 2.79, 2.62, 4.71, 0.0, 3.14],
-            dtype="float32")
-        self.home_position_end = np.array(
-            [1.22, 3.14, 3.14, 4.71, 0.0, 3.14],
-            dtype="float32")
+        # position to move to before switching to torque mode
+        self.init_torque_position = np.array(
+            [1.22, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
         self.rest_angles = np.array(
             [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
-        self.mass_multiplier_wrist = 1.3
+
+        # a gain to help the robot compensate for gravity
+        self.mass_multiplier_wrist = 1.2
 
         # create the inertia matrices for each link of the kinova jaco2
         self._M_links = [
@@ -170,8 +154,7 @@ class robot_config(robot_config.robot_config):
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
         if self.hand_attached is True:  # add in hand offset
-            self.L.append([0.000684, 0.0, 0.001])  # com of the hand
-            # TODO: need to add in the offset for the fingers
+            self.L.append([0.0, 0.0, 0.0])  # offset for the end of fingers
         self.L = np.array(self.L)
 
         self.L_motors = [
@@ -181,8 +164,10 @@ class robot_config(robot_config.robot_config):
             [0.0, 0.0, -0.00566],   # motor3
             [0.0, 0.0, -0.00566],   # motor4
             [0.0, 0.0, -0.00566]]   # motor5
-
+        if self.hand_attached is True:  # add in hand offset
+            self.L_motors.append([0.0, 0.0, 0.0])  # com of the hand
         self.L_motors = np.array(self.L_motors)
+
         # ---- Transform Matrices ----
 
         # Transform matrix : origin -> link 0
@@ -317,29 +302,29 @@ class robot_config(robot_config.robot_config):
             [0, -0.461245863, 0.887272337, self.L[11, 2]],
             [0, 0, 0, 1]])
 
-        # Transform matrix: joint 5 -> link 6
+        # Transform matrix: joint 5 -> link 6 / hand
         # account for rotations due to q
-        if self.hand_attached is True:
-            self.Tj5l6a = sp.Matrix([
-                [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
-                [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1]])
-            # no axes change, account for offsets
-            # NOTE: why are the x and y axes flipped?
-            self.Tj5l6b = sp.Matrix([
-                [-1, 0, 0, self.L[12, 0]],
-                [0, -1, 0, self.L[12, 1]],
-                [0, 0, 1, self.L[12, 2]],
-                [0, 0, 0, 1]])
-            self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
+        self.Tj5l6a = sp.Matrix([
+            [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
+            [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]])
+        # no axes change, account for offsets
+        self.Tj5l6b = sp.Matrix([
+            [1, 0, 0, self.L[12, 0]],
+            [0, 1, 0, self.L[12, 1]],
+            [0, 0, -1, self.L[12, 2]],
+            [0, 0, 0, 1]])
+        self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
+        # Transform matrix: camera -> origin
+        # account for rotation and offset
         self.Torgcama = sp.Matrix([
             [sp.cos(-np.pi/4.0), -np.sin(-np.pi/4.0), 0.0, 0.0],
             [sp.sin(-np.pi/4.0), sp.cos(-np.pi/4.0), 0, -0.29],
             [0, 0, 1, 1.01],
             [0, 0, 0, 1]])
-
+        # account for axes changes
         self.Torgcamb = sp.Matrix([
             [1, 0, 0, 0],
             [0, 0, 1, 0],
@@ -397,6 +382,14 @@ class robot_config(robot_config.robot_config):
             [0, 0, 1, self.L_motors[5, 2]],
             [0, 0, 0, 1]])
 
+        # Transform matrix : joint5 -> motor6 / hand
+        # no change of axes, account for offsets
+        self.Tj5m6 = sp.Matrix([
+            [1, 0, 0, self.L_motors[6, 0]],
+            [0, 1, 0, self.L_motors[6, 1]],
+            [0, 0, -1, self.L_motors[6, 2]],
+            [0, 0, 0, 1]])
+
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
         self.J_orientation = [
@@ -413,68 +406,49 @@ class robot_config(robot_config.robot_config):
         name string: name of the joint or link, or end-effector
         """
 
-        # TODO: use recursion to reduce this function size
         if self._T.get(name, None) is None:
             if name == 'link0':
                 self._T[name] = self.Torgl0
             elif name == 'joint0':
-                self._T[name] = self.Torgl0 * self.Tl0j0 * self.Tj0m0
+                self._T[name] = self._calc_T('link0') * self.Tl0j0 * self.Tj0m0
             elif name == 'link1':
-                self._T[name] = self.Torgl0 * self.Tl0j0 * self.Tj0l1
+                self._T[name] = self._calc_T('link0') * self.Tl0j0 * self.Tj0l1
             elif name == 'joint1':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1m1)
+                    self._calc_T('link1') * self.Tl1j1 * self.Tj1m1)
             elif name == 'link2':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2)
+                    self._calc_T('link1') * self.Tl1j1 * self.Tj1l2)
             elif name == 'joint2':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2m2)
+                    self._calc_T('link2') * self.Tl2j2 * self.Tj2m2)
             elif name == 'link3':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3)
+                    self._calc_T('link2') * self.Tl2j2 * self.Tj2l3)
             elif name == 'joint3':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3m3)
+                    self._calc_T('link3') * self.Tl3j3 * self.Tj3m3)
             elif name == 'link4':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4)
+                    self._calc_T('link3') * self.Tl3j3 * self.Tj3l4)
             elif name == 'joint4':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4m4)
+                    self._calc_T('link4') * self.Tl4j4 * self.Tj4m4)
             elif name == 'link5':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5)
+                    self._calc_T('link4') * self.Tl4j4 * self.Tj4l5)
             elif name == 'joint5':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5 *
-                    self.Tj5m5)
+                    self._calc_T('link5') * self.Tl5j5 * self.Tj5m5)
             elif name == 'EE' and self.hand_attached is False:
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5)
-            elif (self.hand_attached is True and
-              (name == 'EE' or name == 'link6')):
+                    self._calc_T('link5') * self.Tl5j5)
+            elif self.hand_attached is True and name == 'link6':
                 self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5 *
-                    self.Tj5l6)
+                    self._calc_T('link5') * self.Tl5j5 * self.Tj5m6)
+            elif self.hand_attached is True and name == 'EE':
+                self._T[name] = (
+                    self._calc_T('link5') * self.Tl5j5 * self.Tj5l6)
             elif name == 'camera':
                 self._T[name] = self.Torgcam
 
