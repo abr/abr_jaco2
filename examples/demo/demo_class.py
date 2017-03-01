@@ -9,8 +9,9 @@ import abr_jaco2
 class Demo(object):
 
     def __init__(self):
-        self.track = {'q': [],
-                      'dq': []}
+        self.count = 0
+        self.move_home = False
+        self.start_movement = False
 
         # create our interface for the jaco2
         self.interface = abr_jaco2.interface(self.robot_config)
@@ -19,9 +20,6 @@ class Demo(object):
         # move to the home position
         self.interface.apply_q(self.robot_config.home_position_start)
 
-        self.count = 0
-        self.move_home = False
-        self.start_movement = False
         print('Arm Ready')
 
     def run(self):
@@ -32,11 +30,6 @@ class Demo(object):
         while 1:
 
             if self.start_movement is True:
-                # get feedback
-                feedback = self.interface.get_feedback()
-                self.q = np.array(feedback['q'])
-                self.dq = np.array(feedback['dq'])
-
                 self.start_loop()
 
             if self.move_home is True:
@@ -50,9 +43,8 @@ class Demo(object):
                 if ord(c) == 111:  # letter o, opens hand
                     self.interface.open_hand(True)
                 if ord(c) == 115:  # letter s, starts movement
+                    self.start_setup()
                     self.start_movement = True
-                    # switch to torque control mode
-                    self.interface.init_force_mode()
                 if ord(c) == 104:  # letter h, move to home
                     self.start_movement = False
                     self.move_home = True

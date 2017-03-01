@@ -15,9 +15,18 @@ class Demo11(demo_class.Demo):
         super(Demo11, self).__init__()
 
         self.target_xyz = self.robot_config.demo_pos_xyz
+        self.moved = False
+
+    def start_setup(self):
+        # switch to position control mode
+        self.interface.init_position_mode()
 
     def start_loop(self):
-        self.interface.apply_q(self.demo_pos_q)
+        # TODO: possibly update this so it can move to target
+        # position more than once per run
+        if self.moved is False:
+            self.interface.apply_q(self.robot_config.demo_pos_q)
+            self.moved = True
         time.sleep(1)
 
 try:
