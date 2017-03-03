@@ -41,7 +41,7 @@ class interface(interface.interface):
         """
         # convert from degrees from the Jaco into radians
         feedback = self.jaco2.GetFeedback()
-        feedback['q'] = np.array(feedback['q']) * np.pi / 180.0
+        feedback['q'] = (np.array(feedback['q']) * np.pi / 180.0) % (2 * np.pi)
         feedback['dq'] = np.array(feedback['dq']) * np.pi / 180.0
         return feedback
 

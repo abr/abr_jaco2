@@ -14,7 +14,6 @@ class Demo11(Demo):
 
         super(Demo11, self).__init__()
 
-        self.target_xyz = self.robot_config.demo_pos_xyz
         self.moved = False
 
     def start_setup(self):
@@ -25,7 +24,7 @@ class Demo11(Demo):
         # TODO: possibly update this so it can move to target
         # position more than once per run
         if self.moved is False:
-            self.interface.apply_q(self.robot_config.demo_pos_q)
+            self.interface.apply_q(self.demo_pos_q)
             self.moved = True
         time.sleep(1)
 

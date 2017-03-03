@@ -18,11 +18,11 @@ class Demo13(Demo):
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
-        self.fingers_offset = np.array([0.0, 0.0, 0.16])  # 20 cm from wrist
+        self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=10, kv=3, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=4, vmax=1, null_control=False)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
@@ -49,10 +49,11 @@ class Demo13(Demo):
 
         # normalized target and incorporate offset
         self.offset_and_normalize_target(
-            self.robot_config.demo_pos_xyz, self.fingers_offset)
+            self.demo_pos_xyz, self.fingers_offset)
 
         # generate osc signal
-        u = self.ctrlr.control(q=self.q, dq=self.dq, target_pos=self.target_xyz)
+        u = self.ctrlr.control(q=self.q, dq=self.dq,
+            target_pos=self.demo_pos_xyz)
         # generate adaptive signal
         adaptive = self.adapt.generate(
             q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
