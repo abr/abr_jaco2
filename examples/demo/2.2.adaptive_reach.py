@@ -2,13 +2,14 @@
 Demo script, adaptive hold position.
 """
 import numpy as np
+import redis
 
 import abr_control
 import abr_jaco2
 from demo_class import Demo
 
 class Demo22(Demo):
-    def __init__(self):
+    def __init__(self, weights_file):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural_1_3(
@@ -18,7 +19,7 @@ class Demo22(Demo):
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
-        self.fingers_offset = np.array([0.0, 0.0, 0.20])  # 20 cm from wrist
+        self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
@@ -32,6 +33,7 @@ class Demo22(Demo):
         self.adapt = abr_control.controllers.signals.dynamics_adaptation(
             self.robot_config, backend='nengo',
             n_neurons=20000, n_adapt_pop=1,
+            weights_file=weights_file,
             pes_learning_rate=1e-1, intercepts=(0.7, 1.0))
         # run once to generate the functions we need
         self.adapt.generate(zeros, zeros, zeros)
@@ -51,7 +53,7 @@ class Demo22(Demo):
 
     def start_loop(self):
         # get position feedback from robot
-        sef.get_qdq()
+        self.get_qdq()
 
         # read from vision, update target if new
         # which also does the offset and normalization
@@ -77,7 +79,16 @@ class Demo22(Demo):
         self.tracked_data['dq'].append(np.copy(self.dq))
 
 try:
-    demo = Demo22()
+
+    # if trial = 0 it creates a new set of decoders = 0
+    # otherwise it loads the weights from trial - 1
+    trial = 0
+    if trial > 0:
+        weights_file = ['data/weights_trial%i.npz' % (trial - 1)]
+    elif trial == 0:
+        weights_file = None
+
+    demo = Demo22(weights_file)
     demo.run()
 
 except Exception as e:
@@ -86,3 +97,7 @@ except Exception as e:
 finally:
     demo.stop()
     demo.write_data()
+    # write weights from dynamics adaptation to file
+    np.savez_compressed(
+        'data/weights_trial%i' % trial,
+        weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])

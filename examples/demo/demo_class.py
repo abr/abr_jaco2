@@ -1,5 +1,8 @@
 """
 A class to use for the demo scripts. Handles the common code.
+
+NOTE: To start the redis server run 'redis-server redis.conf' in the terminal
+from the home directory
 """
 import numpy as np
 import redis

@@ -52,7 +52,6 @@ class Demo12(Demo):
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error()
-            print('q0: ', self.q[0])
         # track data
         self.tracked_data['target'].append(self.demo_pos_xyz)
         self.tracked_data['wrist'].append(self.robot_config.Tx('EE', self.q))

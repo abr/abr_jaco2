@@ -96,3 +96,5 @@ ENV/
 *.npz
 
 saved_functions/
+
+backup_saved_functions/
