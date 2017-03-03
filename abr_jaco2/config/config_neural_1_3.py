@@ -13,14 +13,13 @@ class robot_config(config.robot_config):
         super(robot_config, self).__init__(**kwargs)
 
         self.means = {
-            'q': np.array([0, np.pi, np.pi, 0, 0, 0]),
+            'q': np.ones(self.num_joints) * np.pi,
             'dq': np.array([-0.01337, 0.00192, 0.00324,
                             0.02502, -0.02226, -0.01342])
             }
 
         self.scales = {
-            'q': np.array([2*np.pi, 5.42-0.873, 5.952-0.332,
-                           2*np.pi, 2*np.pi, 2*np.pi]),
+            'q' : np.ones(self.num_joints) * np.pi,
             'dq': np.array([1.22826, 2.0, 1.42348,
                             2.58221, 2.50768, 1.27004])
             }
