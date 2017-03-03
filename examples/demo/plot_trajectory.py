@@ -7,6 +7,7 @@ import abr_jaco2
 target = np.load('data/target.npz')['arr_0']
 wrist = np.load('data/wrist.npz')['arr_0']
 #fingers = np.load('data/fingers.npz')['arr_0']
+print('targets: ', target)
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
