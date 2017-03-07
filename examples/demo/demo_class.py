@@ -21,8 +21,12 @@ class Demo(object):
         self.interface = abr_jaco2.interface(self.robot_config)
         # connect to the jaco
         self.interface.connect()
+
+        self.demo_init_torque_position = np.array(
+            [0.0, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
+
         # move to the home position
-        self.interface.apply_q(self.robot_config.init_torque_position)
+        self.interface.apply_q(self.demo_init_torque_position)
 
         self.demo_tooltip_read_pos = np.array(
             [1.80, 3.26, 2.60, 1.04, 2.26, 1.65], dtype='float32')
@@ -49,7 +53,7 @@ class Demo(object):
 
             if self.move_home is True:
                 self.interface.init_position_mode()
-                self.interface.apply_q(self.robot_config.init_torque_position)
+                self.interface.apply_q(self.demo_init_torque_position)
                 self.move_home = False
 
             if self.kb.kbhit():
@@ -75,9 +79,10 @@ class Demo(object):
     def stop(self):
         # return back to home position
         self.interface.init_position_mode()
-        self.interface.apply_q(self.robot_config.init_torque_position)
+        self.interface.apply_q(self.demo_init_torque_position)
         # close the connection to the arm
         self.interface.disconnect()
+        # set the terminal back to its initial state
         self.kb.set_normal_term()
 
     def get_qdq(self):
@@ -85,15 +90,16 @@ class Demo(object):
         feedback = self.interface.get_feedback()
         self.q = np.array(feedback['q'])
         self.dq = np.array(feedback['dq'])
+        self.xyz = self.robot_config.Tx('EE', q=self.q)
 
     def get_target_from_camera(self):
+        self.camera_xyz = '0, 0, 0'
         # if not connected to server, connect and set up variables
         if self.redis_server is None:
-            self.redis_server = redis.StrictRedis(host='localhost')
             # create a server for the vision system to connect to
-            self.camera_xyz = '0, 0, 0'
-            self.target_xyz = self.robot_config.Tx(
-                'EE', self.interface.get_feedback()['q'])
+            self.redis_server = redis.StrictRedis(host='localhost')
+            # self.target_xyz = self.robot_config.Tx(
+            #     'EE', self.interface.get_feedback()['q'])
 
         # read from server
         new_camera_xyz = self.redis_server.get('target_xyz')
@@ -106,19 +112,23 @@ class Demo(object):
             self.target_xyz = self.robot_config.Tx(
                 'camera', x=camera_xyz, q=np.zeros(6))
 
+            self.redis_server.set('transformed', '%g,%g,%g' % tuple(self.target_xyz))
+
             self.offset_and_normalize_target(self.target_xyz,
                                              self.fingers_offset)
+            #print(self.target_xyz)
+            self.redis_server.set('normalized', '%g,%g,%g' % tuple(self.target_xyz))
 
     def offset_and_normalize_target(self, target, offset=np.zeros(3)):
         # account for offset of fingers from wrist
         R = self.R_func(*(tuple(self.q)))
         self.target_xyz = target + np.dot(R, offset)
 
-        # set it so that target is too far
+        # set it so that target is not too far
         magnitude = 0.9
         norm = np.linalg.norm(self.target_xyz)
         if norm > magnitude:
-            self.target_xyz = (self.target_xyz / norm * magnitude)
+            self.target_xyz = (self.target_xyz / norm) * magnitude
 
     def start_setup(self):
         raise Exception('start setup method not implemented')
@@ -128,8 +138,12 @@ class Demo(object):
 
     def print_error(self):
         """ Print out the distance from the end-effector to xyz target """
-        hand_xyz = self.robot_config.Tx('EE', q=self.q)
-        error = np.sqrt(np.sum((hand_xyz - self.target_xyz)**2))
+        error = np.sqrt(np.sum((self.xyz - self.target_xyz)**2))
+        if self.redis_server is not None:
+            self.redis_server.set('error', error)  # Send to redis
+            self.redis_server.set('xyz', self.xyz)
+            self.redis_server.set(
+                'training_signal', self.ctrlr.training_signal)
         print('error: ', error)
 
     def write_data(self):

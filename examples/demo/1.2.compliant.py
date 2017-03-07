@@ -2,6 +2,7 @@
 Demo script, compliant hold position.
 """
 import numpy as np
+import redis
 
 import abr_control
 import abr_jaco2
@@ -30,6 +31,8 @@ class Demo12(Demo):
 
         # track data
         self.tracked_data = {'target': [], 'wrist': []}
+        self.redis_server = redis.StrictRedis(host='localhost')
+        self.redis_server.set("controller_name", "Compliant")
 
     def start_setup(self):
         # switch to torque control mode

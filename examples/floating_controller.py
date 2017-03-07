@@ -21,7 +21,7 @@ interface.init_position_mode()
 
 # ---------- MAIN BODY ----------
 # Move to home position
-interface.apply_q(robot_config.home_position_start)
+interface.apply_q(robot_config.init_torque_position)
 
 try:
     # move to read position ii
@@ -36,6 +36,7 @@ try:
         q = np.array(feedback['q'])
         dq = np.array(feedback['dq'])
         print('q: ', q)
+        print('xyz: ', robot_config.Tx('EE', q=q))
         u = ctrlr.control(q=q, dq=dq)
         interface.send_forces(np.array(u, dtype='float32'))
 
@@ -44,6 +45,6 @@ except Exception as e:
 
 finally:
     interface.init_position_mode()
-    interface.apply_q(robot_config.home_position_end)
+    interface.apply_q(robot_config.init_torque_position)
     interface.disconnect()
     print('Disconnected')

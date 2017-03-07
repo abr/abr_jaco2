@@ -2,6 +2,8 @@
 Demo script, compliant reach to target.
 """
 import numpy as np
+import redis
+import timeit
 
 import abr_control
 import abr_jaco2
@@ -29,37 +31,52 @@ class Demo21(Demo):
         self.ctrlr.control(zeros, zeros, np.zeros(3))
 
         # track data
-        self.tracked_data = {'q': [], 'dq': []}
-        self.tracked_data['target'] = []
-        self.tracked_data['wrist'] = []
+        self.tracked_data = {'q': [], 'dq': [], 'filtered_target': []}
+        self.redis_server = redis.StrictRedis(host='localhost')
+        self.redis_server.set("controller_name", "Compliant")
+
+        self.previous = None
 
     def start_setup(self):
         # switch to torque control mode
         self.interface.init_force_mode()
 
+        # get position feedback from robot
+        self.get_qdq()
+        self.filtered_target = self.robot_config.Tx(
+            'EE', q=self.q)
+
     def start_loop(self):
+        now = timeit.default_timer()
+        if self.previous is not None and self.count % 1000 == 0:
+            print("dt:", now - self.previous)
+        self.previous = now
+
         # get position feedback from robot
         self.get_qdq()
 
         # read from vision, update target if new
         # which also does the offset and normalization
         self.get_target_from_camera()
+        # filter the target so that it doesn't jump, but moves smoothly
+        self.filtered_target += .005 * (self.target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(
-            q=self.q, dq=self.dq, target_pos=self.target_xyz)
+            q=self.q, dq=self.dq, target_pos=self.filtered_target)
         # send control signal to Jaco 2
         self.interface.send_forces(np.array(u, dtype='float32'))
 
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error()
+            print('q: ', self.q)
 
         # track data
         self.tracked_data['q'].append(np.copy(self.q))
         self.tracked_data['dq'].append(np.copy(self.dq))
-        self.tracked_data['target'].append(self.target_xyz)
-        self.tracked_data['wrist'].append(self.robot_config.Tx('EE', self.q))
+        self.tracked_data['filtered_target'].append(np.copy(self.filtered_target))
+
 try:
     demo = Demo21()
     demo.run()

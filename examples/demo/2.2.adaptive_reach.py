@@ -3,6 +3,7 @@ Demo script, adaptive hold position.
 """
 import numpy as np
 import redis
+import timeit
 
 import abr_control
 import abr_jaco2
@@ -23,45 +24,73 @@ class Demo22(Demo):
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=10, kv=3, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=4, vmax=1, null_control=False)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3))
 
         # instantiate the adaptive controller
+        self.n_neurons = 10000
         self.adapt = abr_control.controllers.signals.dynamics_adaptation(
             self.robot_config, backend='nengo',
-            n_neurons=20000, n_adapt_pop=1,
+            n_neurons=self.n_neurons,
+            n_adapt_pop=1,
             weights_file=weights_file,
-            pes_learning_rate=1e-1, intercepts=(0.7, 1.0))
+            pes_learning_rate=1e-5,
+            intercepts=(-0.1, 1.0),
+            use_area_intercepts=True,
+            spiking=False,
+            extra_dimension=False,
+            use_probes=False)
+
         # run once to generate the functions we need
         self.adapt.generate(zeros, zeros, zeros)
 
         # track data
-        self.tracked_data = {'q': [], 'dq': []}
+        self.tracked_data = {'q': [], 'dq': [], 'training_signal': []}
 
         # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
+        self.redis_server.set("controller_name", "Adaptive")
         self.camera_xyz = '0, 0, 0'
-        self.target_xyz = self.robot_config.Tx(
-            'EE', self.interface.get_feedback()['q'])
+
+        self.get_qdq()
+        self.target_xyz = self.xyz
+
+        self.previous = None
 
     def start_setup(self):
         # switch to torque control mode
         self.interface.init_force_mode()
 
+        # get position feedback from robot
+        self.get_qdq()
+        self.filtered_target = self.xyz
+
     def start_loop(self):
         # get position feedback from robot
+        now = timeit.default_timer()
+        if self.previous is not None and self.count%1000 == 0:
+            print("dt:",now-self.previous)
+            #Determine how many neurons are active then delete the data
+            #if len(self.adapt.sim._probe_outputs[self.adapt.ens_activity]) != 0:
+            #    tmp = self.adapt.sim._probe_outputs[self.adapt.ens_activity][-1]
+            #    print("percent neurons active:", np.count_nonzero(tmp)/self.n_neurons)
+            #    del self.adapt.sim._probe_outputs[self.adapt.ens_activity][:]
+
+        self.previous = now
         self.get_qdq()
 
         # read from vision, update target if new
         # which also does the offset and normalization
         self.get_target_from_camera()
+        # filter the target so that it doesn't jump, but moves smoothly
+        self.filtered_target += .001 * (self.target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
-                               target_pos=self.target_xyz)
+                               target_pos=self.filtered_target)
         # generate adaptive signal
         adaptive = self.adapt.generate(
             q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
@@ -73,10 +102,17 @@ class Demo22(Demo):
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error()
+            # self.redis_server.set('transformed', '%g,%g,%g' % tuple(self.target_xyz))
+            # print('target: ', self.target_xyz)
+            # print('filtered target: ', self.filtered_target)
+            # print('filtered error: ',
+            #       np.sqrt(np.sum((self.xyz - self.filtered_target)**2)))
 
         # track data
-        self.tracked_data['q'].append(np.copy(self.q))
-        self.tracked_data['dq'].append(np.copy(self.dq))
+        # self.tracked_data['training_signal'].append(
+        #     np.copy(self.ctrlr.training_signal))
+        # self.tracked_data['q'].append(np.copy(self.q))
+        # self.tracked_data['dq'].append(np.copy(self.dq))
 
 try:
 
@@ -98,6 +134,7 @@ finally:
     demo.stop()
     demo.write_data()
     # write weights from dynamics adaptation to file
-    np.savez_compressed(
-        'data/weights_trial%i' % trial,
-        weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])
+    if demo.adapt.probe_weights is not None:
+        np.savez_compressed(
+            'data/weights_trial%i' % trial,
+            weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])
