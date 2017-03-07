@@ -4,6 +4,7 @@ Demo script, adaptive hold position.
 import numpy as np
 import redis
 import timeit
+import traceback
 
 import abr_control
 import abr_jaco2
@@ -14,21 +15,22 @@ class Demo22(Demo):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural_1_3(
-            use_cython=True, hand_attached=True)
+            use_cython=True, hand_attached=False)
 
         super(Demo22, self).__init__()
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
         self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
+        self.offset = [0,0,-0.2]
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=4, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=4, vmax=1, null_control=True)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
-        self.ctrlr.control(zeros, zeros, np.zeros(3))
+        self.ctrlr.control(zeros, zeros, np.zeros(3), offset=self.offset)
 
         # instantiate the adaptive controller
         self.n_neurons = 10000
@@ -48,7 +50,8 @@ class Demo22(Demo):
         self.adapt.generate(zeros, zeros, zeros)
 
         # track data
-        self.tracked_data = {'q': [], 'dq': [], 'training_signal': []}
+        self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
+            'wrist': [], 'offset': [], 'target': []}
 
         # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
@@ -90,7 +93,8 @@ class Demo22(Demo):
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
-                               target_pos=self.filtered_target)
+                               target_pos=self.filtered_target,
+                               offset=self.offset)
         # generate adaptive signal
         adaptive = self.adapt.generate(
             q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
@@ -113,7 +117,11 @@ class Demo22(Demo):
         #     np.copy(self.ctrlr.training_signal))
         # self.tracked_data['q'].append(np.copy(self.q))
         # self.tracked_data['dq'].append(np.copy(self.dq))
-
+        self.tracked_data['wrist'].append(np.copy(self.robot_config.Tx('EE',
+          self.q)))
+        self.tracked_data['offset'].append(np.copy(self.robot_config.Tx('EE',
+          self.q, x=self.offset)))
+        self.tracked_data['target'].append(np.copy(self.filtered_target))
 try:
 
     # if trial = 0 it creates a new set of decoders = 0
@@ -128,7 +136,7 @@ try:
     demo.run()
 
 except Exception as e:
-     print(e)
+     print(traceback.format_exc())
 
 finally:
     demo.stop()

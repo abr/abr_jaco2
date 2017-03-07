@@ -39,6 +39,8 @@ class Demo(object):
         # for communicating with the vision system
         self.redis_server = None
 
+        self.offset = None
+
     def run(self):
         print('Arm Ready')
 
@@ -90,7 +92,10 @@ class Demo(object):
         feedback = self.interface.get_feedback()
         self.q = np.array(feedback['q'])
         self.dq = np.array(feedback['dq'])
-        self.xyz = self.robot_config.Tx('EE', q=self.q)
+        if self.offset is None:
+          self.xyz = self.robot_config.Tx('EE', q=self.q)
+        else:
+          self.xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
 
     def get_target_from_camera(self):
         self.camera_xyz = '0, 0, 0'

@@ -4,6 +4,7 @@ Demo script, compliant reach to target.
 import numpy as np
 import redis
 import timeit
+import traceback
 
 import abr_control
 import abr_jaco2
@@ -21,14 +22,14 @@ class Demo21(Demo):
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
         self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
-
+        self.offset = [0.0, 0.0, .2]
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=4, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=4, vmax=1, null_control=True)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
-        self.ctrlr.control(zeros, zeros, np.zeros(3))
+        self.ctrlr.control(zeros, zeros, np.zeros(3), offset=self.offset)
 
         # track data
         self.tracked_data = {'q': [], 'dq': [], 'filtered_target': []}
@@ -63,7 +64,8 @@ class Demo21(Demo):
 
         # generate osc signal
         u = self.ctrlr.control(
-            q=self.q, dq=self.dq, target_pos=self.filtered_target)
+            q=self.q, dq=self.dq, target_pos=self.filtered_target,
+            offset=self.offset)
         # send control signal to Jaco 2
         self.interface.send_forces(np.array(u, dtype='float32'))
 
@@ -81,8 +83,8 @@ try:
     demo = Demo21()
     demo.run()
 
-except Exception as e:
-     print(e)
+except:
+     print(traceback.format_exc())
 
 finally:
     demo.stop()

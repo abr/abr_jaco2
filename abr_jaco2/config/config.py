@@ -36,7 +36,7 @@ class robot_config(robot_config):
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
         self.rest_angles = np.array(
-            [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
+            [None, 2.42, 2.42, 0.3, 0.3, 0.3], dtype='float32')
 
         # a gain to help the robot compensate for gravity
         self.mass_multiplier_wrist = 1.2
@@ -312,7 +312,7 @@ class robot_config(robot_config):
                 [0, 0, 0, 1]])
             # no axes change, account for offsets
             self.Tj5l6b = sp.Matrix([
-                [1, 0, 0, self.L[12, 0]],
+                [-1, 0, 0, self.L[12, 0]],
                 [0, 1, 0, self.L[12, 1]],
                 [0, 0, -1, self.L[12, 2]],
                 [0, 0, 0, 1]])
@@ -383,13 +383,14 @@ class robot_config(robot_config):
             [0, 0, 1, self.L_motors[5, 2]],
             [0, 0, 0, 1]])
 
-        # Transform matrix : joint5 -> motor6 / hand
-        # no change of axes, account for offsets
-        self.Tj5m6 = sp.Matrix([
-            [1, 0, 0, self.L_motors[6, 0]],
-            [0, 1, 0, self.L_motors[6, 1]],
-            [0, 0, -1, self.L_motors[6, 2]],
-            [0, 0, 0, 1]])
+        if self.hand_attached is True:
+            # Transform matrix : joint5 -> motor6 / hand
+            # no change of axes, account for offsets
+            self.Tj5m6 = sp.Matrix([
+                [1, 0, 0, self.L_motors[6, 0]],
+                [0, 1, 0, self.L_motors[6, 1]],
+                [0, 0, -1, self.L_motors[6, 2]],
+                [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
