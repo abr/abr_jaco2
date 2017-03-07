@@ -36,7 +36,7 @@ class robot_config(robot_config):
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
         self.rest_angles = np.array(
-            [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
+            [None, 2.42, 2.42, 0.3, 0.3, 0.3], dtype='float32')
 
         # a gain to help the robot compensate for gravity
         self.mass_multiplier_wrist = 1.2
@@ -157,16 +157,8 @@ class robot_config(robot_config):
             self.L.append([0.0, 0.0, 0.0])  # offset for the end of fingers
         self.L = np.array(self.L)
 
-        self.L_motors = [
-            [0.0, 0.0, -0.00856],   # motor0
-            [0.0, 0.0, -0.00806],   # motor1
-            [0.0, 0.0, -0.00856],   # motor2
-            [0.0, 0.0, -0.00566],   # motor3
-            [0.0, 0.0, -0.00566],   # motor4
-            [0.0, 0.0, -0.00566]]   # motor5
         if self.hand_attached is True:  # add in hand offset
-            self.L_motors.append([0.0, 0.0, 0.0])  # com of the hand
-        self.L_motors = np.array(self.L_motors)
+            self.L_handcom = np.array([0.0, 0.0, -0.08])  # com of the hand
 
         # ---- Transform Matrices ----
 
@@ -303,20 +295,27 @@ class robot_config(robot_config):
             [0, 0, 0, 1]])
 
         if self.hand_attached is True:  # add in hand offset
-            # Transform matrix: joint 5 -> link 6 / hand
+            # Transform matrix: joint 5 -> hand COM
             # account for rotations due to q
-            self.Tj5l6a = sp.Matrix([
+            self.Tj5handcoma = sp.Matrix([
                 [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
                 [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
+            # account for axes changes and offsets
+            self.Tj5handcomb = sp.Matrix([
+                [-1, 0, 0, self.L_handcom[0]],
+                [0, 1, 0, self.L_handcom[1]],
+                [0, 0, -1, self.L_handcom[2]],
+                [0, 0, 0, 1]])
+            self.Tj5handcom = self.Tj5handcoma * self.Tj5handcomb
+
             # no axes change, account for offsets
-            self.Tj5l6b = sp.Matrix([
+            self.Thandcomfingers = sp.Matrix([
                 [1, 0, 0, self.L[12, 0]],
                 [0, 1, 0, self.L[12, 1]],
-                [0, 0, -1, self.L[12, 2]],
+                [0, 0, 1, self.L[12, 2]],
                 [0, 0, 0, 1]])
-            self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # Transform matrix: camera -> origin
         # account for rotation and offset
@@ -332,64 +331,6 @@ class robot_config(robot_config):
             [0, -1, 0, 0],
             [0, 0, 0, 1]])
         self.Torgcam = self.Torgcama * self.Torgcamb
-
-        # ---- Motor Transform Matrices ----
-
-        # Transform matrix : joint0 -> motor0
-        # no change of axes, account for offsets
-        self.Tj0m0 = sp.Matrix([
-            [1, 0, 0, self.L_motors[0, 0]],
-            [0, 1, 0, self.L_motors[0, 1]],
-            [0, 0, 1, self.L_motors[0, 2]],
-            [0, 0, 0, 1]])
-
-        # Transform matrix : joint1 -> motor1
-        # no change of axes, account for offsets
-        self.Tj1m1 = sp.Matrix([
-            [1, 0, 0, self.L_motors[1, 0]],
-            [0, 1, 0, self.L_motors[1, 1]],
-            [0, 0, 1, self.L_motors[1, 2]],
-            [0, 0, 0, 1]])
-
-        # Transform matrix : joint2 -> motor2
-        # no change of axes, account for offsets
-        self.Tj2m2 = sp.Matrix([
-            [1, 0, 0, self.L_motors[2, 0]],
-            [0, 1, 0, self.L_motors[2, 1]],
-            [0, 0, 1, self.L_motors[2, 2]],
-            [0, 0, 0, 1]])
-
-        # Transform matrix : joint3 -> motor3
-        # no change of axes, account for offsets
-        self.Tj3m3 = sp.Matrix([
-            [1, 0, 0, self.L_motors[3, 0]],
-            [0, 1, 0, self.L_motors[3, 1]],
-            [0, 0, 1, self.L_motors[3, 2]],
-            [0, 0, 0, 1]])
-
-        # Transform matrix : joint4 -> motor4
-        # no change of axes, account for offsets
-        self.Tj4m4 = sp.Matrix([
-            [1, 0, 0, self.L_motors[4, 0]],
-            [0, 1, 0, self.L_motors[4, 1]],
-            [0, 0, 1, self.L_motors[4, 2]],
-            [0, 0, 0, 1]])
-
-        # Transform matrix : joint5 -> motor5
-        # no change of axes, account for offsets
-        self.Tj5m5 = sp.Matrix([
-            [1, 0, 0, self.L_motors[5, 0]],
-            [0, 1, 0, self.L_motors[5, 1]],
-            [0, 0, 1, self.L_motors[5, 2]],
-            [0, 0, 0, 1]])
-
-        # Transform matrix : joint5 -> motor6 / hand
-        # no change of axes, account for offsets
-        self.Tj5m6 = sp.Matrix([
-            [1, 0, 0, self.L_motors[6, 0]],
-            [0, 1, 0, self.L_motors[6, 1]],
-            [0, 0, -1, self.L_motors[6, 2]],
-            [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
@@ -411,33 +352,33 @@ class robot_config(robot_config):
             if name == 'link0':
                 self._T[name] = self.Torgl0
             elif name == 'joint0':
-                self._T[name] = self._calc_T('link0') * self.Tl0j0 * self.Tj0m0
+                self._T[name] = self._calc_T('link0') * self.Tl0j0
             elif name == 'link1':
-                self._T[name] = self._calc_T('link0') * self.Tl0j0 * self.Tj0l1
+                self._T[name] = self._calc_T('joint0') * self.Tj0l1
             elif name == 'joint1':
-                self._T[name] = self._calc_T('link1') * self.Tl1j1 * self.Tj1m1
+                self._T[name] = self._calc_T('link1') * self.Tl1j1
             elif name == 'link2':
-                self._T[name] = self._calc_T('link1') * self.Tl1j1 * self.Tj1l2
+                self._T[name] = self._calc_T('joint1') * self.Tj1l2
             elif name == 'joint2':
-                self._T[name] = self._calc_T('link2') * self.Tl2j2 * self.Tj2m2
+                self._T[name] = self._calc_T('link2') * self.Tl2j2
             elif name == 'link3':
-                self._T[name] = self._calc_T('link2') * self.Tl2j2 * self.Tj2l3
+                self._T[name] = self._calc_T('joint2') * self.Tj2l3
             elif name == 'joint3':
-                self._T[name] = self._calc_T('link3') * self.Tl3j3 * self.Tj3m3
+                self._T[name] = self._calc_T('link3') * self.Tl3j3
             elif name == 'link4':
-                self._T[name] = self._calc_T('link3') * self.Tl3j3 * self.Tj3l4
+                self._T[name] = self._calc_T('joint3') * self.Tj3l4
             elif name == 'joint4':
-                self._T[name] = self._calc_T('link4') * self.Tl4j4 * self.Tj4m4
+                self._T[name] = self._calc_T('link4') * self.Tl4j4
             elif name == 'link5':
-                self._T[name] = self._calc_T('link4') * self.Tl4j4 * self.Tj4l5
+                self._T[name] = self._calc_T('joint4') * self.Tj4l5
             elif name == 'joint5':
-                self._T[name] = self._calc_T('link5') * self.Tl5j5 * self.Tj5m5
-            elif name == 'link6':
-                self._T[name] = self._calc_T('link5') * self.Tl5j5 * self.Tj5m6
-            elif self.hand_attached is False and name == 'EE':
                 self._T[name] = self._calc_T('link5') * self.Tl5j5
+            elif self.hand_attached is False and name == 'EE':
+                self._T[name] = self._calc_T('joint5')
+            elif self.hand_attached is True and name == 'link6':
+                self._T[name] = self._calc_T('joint5') * self.Tj5handcom
             elif self.hand_attached is True and name == 'EE':
-                self._T[name] = self._calc_T('link5') * self.Tl5j5 * self.Tj5l6
+                self._T[name] = self._calc_T('link6') * self.Thandcomfingers
             elif name == 'camera':
                 self._T[name] = self.Torgcam
 
