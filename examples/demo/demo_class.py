@@ -28,8 +28,9 @@ class Demo(object):
         # move to the home position
         self.interface.apply_q(self.demo_init_torque_position)
 
-        self.demo_tooltip_read_pos = np.array(
-            [1.80, 3.26, 2.60, 1.04, 2.26, 1.65], dtype='float32')
+        self.demo_tooltip_read_positions = np.array(
+            [[4.56668477, 2.09768783, 1.87899504,
+              5.13325312, 1.63491513, 2.75462523]], dtype='float32')
 
         self.demo_pos_xyz = np.array([.40, -.18, .85])
 
@@ -47,16 +48,19 @@ class Demo(object):
         # set up key input tracker
         self.kb = abr_jaco2.KBHit()
 
+        self.mode = ''
         self.count = 0
         while 1:
 
-            if self.start_movement is True:
+            if self.mode == 'start':
                 self.start_loop()
 
-            if self.move_home is True:
-                self.interface.init_position_mode()
+            elif self.mode == 'move_home':
                 self.interface.apply_q(self.demo_init_torque_position)
-                self.move_home = False
+                self.mode = ''
+
+            elif self.mode == 'get_tooltip':
+                self.get_tooltip_loop()
 
             if self.kb.kbhit():
                 c = self.kb.getch()
@@ -65,14 +69,17 @@ class Demo(object):
                 if ord(c) == 111:  # letter o, opens hand
                     self.interface.open_hand(True)
                 if ord(c) == 115:  # letter s, starts movement
-                    if self.start_movement is False:
+                    if self.mode != 'start':
                         self.start_setup()
-                        self.start_movement = True
+                        self.mode = 'start'
+                if ord(c) == 116:  # letter t, starts tooltip reading process
+                    if self.mode != 'get_tooltip':
+                        self.interface.init_position_mode()
+                        self.mode = 'get_tooltip'
                 if ord(c) == 104:  # letter h, move to home
-                    self.start_movement = False
-                    self.move_home = True
                     # switch to position control mode
                     self.interface.init_position_mode()
+                    self.mode = 'move_home'
                 if ord(c) == 113:  # letter q, quits and goes to finally
                    print('Returning to home position')
                    break;
