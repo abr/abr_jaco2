@@ -5,7 +5,7 @@ import numpy as np
 
 setup(
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension('wrapper_module_2', ['wrapper_module_2.pyx', 'wrapped_code_2.c'],
+    ext_modules = [Extension('wrapper_module_4', ['wrapper_module_4.pyx', 'wrapped_code_4.c'],
                              extra_compile_args=['-std=c99'])],
     include_dirs = [np.get_include()],
         )

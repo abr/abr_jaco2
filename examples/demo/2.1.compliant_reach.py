@@ -21,18 +21,18 @@ class Demo21(Demo):
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
-        self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
-        self.offset = [0.0, 0.0, 0.0]
+        # self.target_subtraction_offset = np.array([0.0, 0.0, 0.12])  # 20 cm from wrist
+        self.offset = [0.0, 0.0, 0.31]
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=4, vmax=1, null_control=True)
+            self.robot_config, kp=20, kv=4, vmax=1, null_control=False)
+
+        self.robot_config.Tx(
+            'camera', x=np.zeros(3), q=np.zeros(6))
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3), offset=self.offset)
-
-        self.robot_config.Tx(
-            'camera', x=np.zeros(3), q=np.zeros(6))
 
         # track data
         self.tracked_data = {'q': [], 'dq': [], 'filtered_target': [],
@@ -43,6 +43,7 @@ class Demo21(Demo):
         self.previous = None
 
     def start_setup(self):
+
         # switch to torque control mode
         self.interface.init_force_mode()
 
@@ -59,12 +60,18 @@ class Demo21(Demo):
 
         # get position feedback from robot
         self.get_qdq()
+        xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
 
         # read from vision, update target if new
         # which also does the offset and normalization
-        self.get_target_from_camera()
+        # target_xyz = self.get_target_from_camera()
+        target_xyz = np.array([0.46, -0.06, 0.75])
+        # target_xyz = self.target_subtraction(
+        #     target_xyz, self.target_subtraction_offset)
+        target_xyz = self.normalize_target(target_xyz)
+        #self.target_xyz = np.array([0.55, 0.05, 0.98])
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .005 * (self.target_xyz - self.filtered_target)
+        self.filtered_target += .001 * (target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(
@@ -75,17 +82,16 @@ class Demo21(Demo):
 
         # print out the error every so often
         if self.count % 100 == 0:
-            self.print_error()
-            print('q: ', self.q)
+            self.print_error(xyz, target_xyz)
+            #print('q: ', self.q)
 
         # track data
-        self.tracked_data['q'].append(np.copy(self.q))
-        self.tracked_data['dq'].append(np.copy(self.dq))
+        # self.tracked_data['q'].append(np.copy(self.q))
+        # self.tracked_data['dq'].append(np.copy(self.dq))
         self.tracked_data['filtered_target'].append(np.copy(self.filtered_target))
-        self.tracked_data['wrist'].append(np.copy(self.robot_config.Tx('EE',
-          self.q)))
-        self.tracked_data['offset'].append(np.copy(self.robot_config.Tx('EE',
-          self.q, x=self.offset)))
+        self.tracked_data['wrist'].append(np.copy(
+          self.robot_config.Tx('EE', self.q)))
+        self.tracked_data['offset'].append(np.copy(xyz))
         self.tracked_data['target'].append(np.copy(self.filtered_target))
 
 try:

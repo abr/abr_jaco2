@@ -87,18 +87,13 @@ class Demo(object):
         # set the terminal back to its initial state
         self.kb.set_normal_term()
 
-    def get_qdq(self):
+    def get_qdq(self, offset=[0, 0, 0]):
         # get feedback
         feedback = self.interface.get_feedback()
         self.q = np.array(feedback['q'])
         self.dq = np.array(feedback['dq'])
-        if self.offset is None:
-          self.xyz = self.robot_config.Tx('EE', q=self.q)
-        else:
-          self.xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
 
     def get_target_from_camera(self):
-        self.camera_xyz = '0, 0, 0'
         # if not connected to server, connect and set up variables
         if self.redis_server is None:
             # create a server for the vision system to connect to
@@ -107,33 +102,31 @@ class Demo(object):
             #     'EE', self.interface.get_feedback()['q'])
 
         # read from server
-        new_camera_xyz = self.redis_server.get('target_xyz')
+        camera_xyz = self.redis_server.get('target_xyz')
         # if the target has changed, recalculate things
-        if not self.camera_xyz == new_camera_xyz:
-            self.camera_xyz = np.copy(new_camera_xyz)
-            vals = str(self.camera_xyz)[2:-1].split(',')
-            camera_xyz = np.array([float(val) for val in vals])
-            # transform from camera to robot reference frame
-            self.target_xyz = self.robot_config.Tx(
-                'camera', x=camera_xyz, q=np.zeros(6))
+        vals = str(camera_xyz)[2:-1].split(',')
+        camera_xyz = np.array([float(val) for val in vals])
+        # transform from camera to robot reference frame
+        target_xyz = self.robot_config.Tx(
+            'camera', x=camera_xyz, q=np.zeros(6))
 
-            self.redis_server.set('transformed', '%g,%g,%g' % tuple(self.target_xyz))
+        self.redis_server.set('transformed', '%g,%g,%g' % tuple(target_xyz))
 
-            self.offset_and_normalize_target(self.target_xyz,
-                                             self.fingers_offset)
-            #print(self.target_xyz)
-            self.redis_server.set('normalized', '%g,%g,%g' % tuple(self.target_xyz))
+        return target_xyz
 
-    def offset_and_normalize_target(self, target, offset=np.zeros(3)):
+    def target_subtraction(self, target, offset=np.zeros(3)):
         # account for offset of fingers from wrist
         R = self.R_func(*(tuple(self.q)))
-        self.target_xyz = target + np.dot(R, offset)
+        return target + np.dot(R, offset)
 
-        # set it so that target is not too far
-        magnitude = 0.9
-        norm = np.linalg.norm(self.target_xyz)
+    def normalize_target(self, target, magnitude=0.7):
+        # set it so that target is not too far from joint 1
+        joint1_offset = np.array([0, 0, 0.273])
+        norm = np.linalg.norm(target - joint1_offset)
         if norm > magnitude:
-            self.target_xyz = (self.target_xyz / norm) * magnitude
+            target = ((target - joint1_offset) / norm) * magnitude + joint1_offset
+        self.redis_server.set('normalized', '%g,%g,%g' % tuple(target))
+        return target
 
     def start_setup(self):
         raise Exception('start setup method not implemented')
@@ -141,12 +134,12 @@ class Demo(object):
     def start_loop(self):
         raise Exception('start loop method not implemented')
 
-    def print_error(self):
+    def print_error(self, xyz, target):
         """ Print out the distance from the end-effector to xyz target """
-        error = np.sqrt(np.sum((self.xyz - self.target_xyz)**2))
+        error = np.sqrt(np.sum((xyz - target)**2))
         if self.redis_server is not None:
             self.redis_server.set('error', error)  # Send to redis
-            self.redis_server.set('xyz', self.xyz)
+            self.redis_server.set('xyz', xyz)
             self.redis_server.set(
                 'training_signal', self.ctrlr.training_signal)
         print('error: ', error)

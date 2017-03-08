@@ -15,14 +15,14 @@ class Demo22(Demo):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural_1_3(
-            use_cython=True, hand_attached=False)
+            use_cython=True, hand_attached=True)
 
         super(Demo22, self).__init__()
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
-        self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
-        self.offset = [0,0,-0.2]
+        # self.target_subtraction_offset = np.array([0.0, 0.0, 0.31])  # 20 cm from wrist
+        self.offset = np.array([0, 0, 0.31])
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
@@ -59,7 +59,6 @@ class Demo22(Demo):
         self.camera_xyz = '0, 0, 0'
 
         self.get_qdq()
-        self.target_xyz = self.xyz
 
         self.previous = None
 
@@ -69,7 +68,8 @@ class Demo22(Demo):
 
         # get position feedback from robot
         self.get_qdq()
-        self.filtered_target = self.xyz
+        xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
+        self.filtered_target = xyz
 
     def start_loop(self):
         # get position feedback from robot
@@ -84,12 +84,17 @@ class Demo22(Demo):
 
         self.previous = now
         self.get_qdq()
+        xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
 
         # read from vision, update target if new
         # which also does the offset and normalization
-        self.get_target_from_camera()
+        # target_xyz = self.get_target_from_camera()
+        target_xyz = np.array([0.46, -0.06, 0.75])
+        # target_xyz = self.target_subtraction(
+        #     target_xyz, self.target_subtraction_offset)
+        target_xyz = self.normalize_target(target_xyz)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .001 * (self.target_xyz - self.filtered_target)
+        self.filtered_target += .001 * (target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
@@ -105,22 +110,26 @@ class Demo22(Demo):
 
         # print out the error every so often
         if self.count % 100 == 0:
-            self.print_error()
+            self.print_error(xyz, target_xyz)
+            print('current xyz: ', xyz)
+            print('target_xyz: ', target_xyz)
             # self.redis_server.set('transformed', '%g,%g,%g' % tuple(self.target_xyz))
             # print('target: ', self.target_xyz)
             # print('filtered target: ', self.filtered_target)
             # print('filtered error: ',
-            #       np.sqrt(np.sum((self.xyz - self.filtered_target)**2)))
+            #       np.sqrt(np.sum((xyz - self.filtered_target)**2)))
 
         # track data
         # self.tracked_data['training_signal'].append(
         #     np.copy(self.ctrlr.training_signal))
         # self.tracked_data['q'].append(np.copy(self.q))
         # self.tracked_data['dq'].append(np.copy(self.dq))
-        self.tracked_data['wrist'].append(np.copy(self.robot_config.Tx('EE',
-          self.q)))
-        self.tracked_data['offset'].append(np.copy(self.robot_config.Tx('EE',
-          self.q, x=self.offset)))
+        self.tracked_data['wrist'].append(np.copy(
+          self.robot_config.Tx('EE', self.q)))
+        # R = self.R_func(*(tuple(self.q)))
+        # self.tracked_data['offset'].append(xyz - np.dot(R,
+        #   self.target_subtraction_offset))
+        self.tracked_data['offset'].append(np.copy(xyz))
         self.tracked_data['target'].append(np.copy(self.filtered_target))
 try:
 
