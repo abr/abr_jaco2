@@ -3,6 +3,7 @@ Demo script, compliant hold position.
 """
 import numpy as np
 import redis
+import traceback
 
 import abr_control
 import abr_jaco2
@@ -19,7 +20,7 @@ class Demo12(Demo):
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
-        self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
+        self.offset = np.array([0.0, 0.0, 0.12])  # 20 cm from wrist
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
@@ -35,36 +36,42 @@ class Demo12(Demo):
         self.redis_server.set("controller_name", "Compliant")
 
     def start_setup(self):
+        self.get_qdq()
+        self.filtered_target = self.robot_config.Tx(
+            'EE', q=self.q, x=self.offset)
         # switch to torque control mode
         self.interface.init_force_mode()
 
     def start_loop(self):
         # get position feedback from robot
         self.get_qdq()
+        self.filtered_target += .005 * (self.demo_pos_xyz - self.filtered_target)
+        xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
 
         # normalized target and incorporate offset
-        self.offset_and_normalize_target(
-            self.demo_pos_xyz, self.fingers_offset)
+        self.target_subtraction(
+            self.demo_pos_xyz, self.offset)
 
         # generate osc signal
-        u = self.ctrlr.control(q=self.q, dq=self.dq, target_pos=self.target_xyz)
+        u = self.ctrlr.control(
+            q=self.q, dq=self.dq, target_pos=self.filtered_target)
 
         # send control signal to Jaco 2
         self.interface.send_forces(np.array(u, dtype='float32'))
 
         # print out the error every so often
         if self.count % 100 == 0:
-            self.print_error()
+            self.print_error(xyz, self.demo_pos_xyz)
         # track data
-        self.tracked_data['target'].append(self.demo_pos_xyz)
-        self.tracked_data['wrist'].append(self.robot_config.Tx('EE', self.q))
+        # self.tracked_data['target'].append(self.demo_pos_xyz)
+        # self.tracked_data['wrist'].append(self.robot_config.Tx('EE', self.q))
 
 try:
     demo = Demo12()
     demo.run()
 
 except Exception as e:
-     print(e)
+     print(traceback.format_exc())
 
 finally:
     demo.stop()

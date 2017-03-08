@@ -98,3 +98,5 @@ ENV/
 *saved_functions*
 
 *backup_saved_functions*
+
+*.swo
