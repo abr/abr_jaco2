@@ -20,8 +20,18 @@ class Demo31(Demo):
 
         super(Demo31, self).__init__()
 
+        # create a server for the vision system to connect to
+        self.redis_server = redis.StrictRedis(host='localhost')
+        self.redis_server.set("controller_name", "Adaptive")
+
         # account for wrist to fingers offset
-        self.offset = np.array([0, 0, 0.12])
+        self.offset = self.redis_server.get("offset")
+        if self.offset is None:
+            self.offset = np.array([0, 0, 0.12])
+        else:
+            self.offset = self.offset.decode('ascii')
+            self.offset = np.array(
+                [float(v) for v in self.offset.split()])
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
@@ -51,11 +61,6 @@ class Demo31(Demo):
         # track data
         self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
             'wrist': [], 'offset': [], 'target': []}
-
-        # create a server for the vision system to connect to
-        self.redis_server = redis.StrictRedis(host='localhost')
-        self.redis_server.set("controller_name", "Adaptive")
-        self.camera_xyz = '0, 0, 0'
 
         self.get_qdq()
 
@@ -88,9 +93,9 @@ class Demo31(Demo):
         # read from vision, update target if new
         # which also does the offset and normalization
         target_xyz = self.get_target_from_camera()
-        target_xyz = self.normalize_target(target_xyz)
+        target_xyz = self.normalize_target(target_xyz, 1.1)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .005 * (target_xyz - self.filtered_target)
+        self.filtered_target += .0025 * (target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
@@ -167,6 +172,8 @@ class Demo31(Demo):
 
         # calculate average offset
         self.offset = tooltip_offsets.mean(axis=0)
+        self.redis_server.set(
+            "offset", '%.3f %.3f %.3f' % tuple(self.offset))
         print('Estimated tooltip offset from end-effector: ', self.offset)
 
         # return to home position
