@@ -22,7 +22,7 @@ class Demo21(Demo):
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
         self.fingers_offset = np.array([0.0, 0.0, 0.0])  # 20 cm from wrist
-        self.offset = [0.0, 0.0, .2]
+        self.offset = [0.0, 0.0, 0.0]
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
             self.robot_config, kp=20, kv=4, vmax=1, null_control=True)
@@ -31,8 +31,12 @@ class Demo21(Demo):
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3), offset=self.offset)
 
+        self.robot_config.Tx(
+            'camera', x=np.zeros(3), q=np.zeros(6))
+
         # track data
-        self.tracked_data = {'q': [], 'dq': [], 'filtered_target': []}
+        self.tracked_data = {'q': [], 'dq': [], 'filtered_target': [],
+            'wrist': [], 'offset': [], 'target': []}
         self.redis_server = redis.StrictRedis(host='localhost')
         self.redis_server.set("controller_name", "Compliant")
 
@@ -45,7 +49,7 @@ class Demo21(Demo):
         # get position feedback from robot
         self.get_qdq()
         self.filtered_target = self.robot_config.Tx(
-            'EE', q=self.q)
+            'EE', q=self.q, x=self.offset)
 
     def start_loop(self):
         now = timeit.default_timer()
@@ -78,6 +82,11 @@ class Demo21(Demo):
         self.tracked_data['q'].append(np.copy(self.q))
         self.tracked_data['dq'].append(np.copy(self.dq))
         self.tracked_data['filtered_target'].append(np.copy(self.filtered_target))
+        self.tracked_data['wrist'].append(np.copy(self.robot_config.Tx('EE',
+          self.q)))
+        self.tracked_data['offset'].append(np.copy(self.robot_config.Tx('EE',
+          self.q, x=self.offset)))
+        self.tracked_data['target'].append(np.copy(self.filtered_target))
 
 try:
     demo = Demo21()
