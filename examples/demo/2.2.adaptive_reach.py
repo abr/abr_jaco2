@@ -20,9 +20,7 @@ class Demo22(Demo):
         super(Demo22, self).__init__()
 
         # account for wrist to fingers offset
-        self.R_func = self.robot_config._calc_R('EE')
-        # self.target_subtraction_offset = np.array([0.0, 0.0, 0.31])  # 20 cm from wrist
-        self.offset = np.array([0, 0, 0.31])
+        self.offset = np.array([0, 0, 0.12])
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
@@ -88,13 +86,10 @@ class Demo22(Demo):
 
         # read from vision, update target if new
         # which also does the offset and normalization
-        # target_xyz = self.get_target_from_camera()
-        target_xyz = np.array([0.46, -0.06, 0.75])
-        # target_xyz = self.target_subtraction(
-        #     target_xyz, self.target_subtraction_offset)
+        target_xyz = self.get_target_from_camera()
         target_xyz = self.normalize_target(target_xyz)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .001 * (target_xyz - self.filtered_target)
+        self.filtered_target += .005 * (target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,

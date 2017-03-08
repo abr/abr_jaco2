@@ -65,8 +65,9 @@ class Demo(object):
                 if ord(c) == 111:  # letter o, opens hand
                     self.interface.open_hand(True)
                 if ord(c) == 115:  # letter s, starts movement
-                    self.start_setup()
-                    self.start_movement = True
+                    if self.start_movement is False:
+                        self.start_setup()
+                        self.start_movement = True
                 if ord(c) == 104:  # letter h, move to home
                     self.start_movement = False
                     self.move_home = True
@@ -114,12 +115,7 @@ class Demo(object):
 
         return target_xyz
 
-    def target_subtraction(self, target, offset=np.zeros(3)):
-        # account for offset of fingers from wrist
-        R = self.R_func(*(tuple(self.q)))
-        return target + np.dot(R, offset)
-
-    def normalize_target(self, target, magnitude=0.7):
+    def normalize_target(self, target, magnitude=0.9):
         # set it so that target is not too far from joint 1
         joint1_offset = np.array([0, 0, 0.273])
         norm = np.linalg.norm(target - joint1_offset)

@@ -20,12 +20,11 @@ class Demo21(Demo):
         super(Demo21, self).__init__()
 
         # account for wrist to fingers offset
-        self.R_func = self.robot_config._calc_R('EE')
-        # self.target_subtraction_offset = np.array([0.0, 0.0, 0.12])  # 20 cm from wrist
-        self.offset = [0.0, 0.0, 0.31]
+        self.offset = [0.0, 0.0, 0.12]
+
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=4, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=2, vmax=1, null_control=False)
 
         self.robot_config.Tx(
             'camera', x=np.zeros(3), q=np.zeros(6))
@@ -64,14 +63,11 @@ class Demo21(Demo):
 
         # read from vision, update target if new
         # which also does the offset and normalization
-        # target_xyz = self.get_target_from_camera()
-        target_xyz = np.array([0.46, -0.06, 0.75])
-        # target_xyz = self.target_subtraction(
-        #     target_xyz, self.target_subtraction_offset)
+        target_xyz = self.get_target_from_camera()
+        camera_target = np.copy(target_xyz)
         target_xyz = self.normalize_target(target_xyz)
-        #self.target_xyz = np.array([0.55, 0.05, 0.98])
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .001 * (target_xyz - self.filtered_target)
+        self.filtered_target += .005 * (target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(
@@ -83,6 +79,7 @@ class Demo21(Demo):
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error(xyz, target_xyz)
+            print('target without normalization: ', camera_target)
             #print('q: ', self.q)
 
         # track data
