@@ -2,7 +2,6 @@
 Demo script, non-compliant hold position.
 """
 import time
-import redis
 
 import abr_jaco2
 from demo_class import Demo
@@ -16,8 +15,6 @@ class Demo11(Demo):
         super(Demo11, self).__init__()
 
         self.moved = False
-        self.redis_server = redis.StrictRedis(host='localhost')
-        self.redis_server.set("controller_name", "Non-Compliant")
 
     def start_setup(self):
         # switch to position control mode

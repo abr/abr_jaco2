@@ -38,7 +38,7 @@ class Demo22(Demo):
             n_neurons=self.n_neurons,
             n_adapt_pop=1,
             weights_file=weights_file,
-            pes_learning_rate=1e-5,
+            pes_learning_rate=2e-5,
             intercepts=(-0.1, 1.0),
             use_area_intercepts=True,
             spiking=False,
@@ -52,8 +52,8 @@ class Demo22(Demo):
         self.tracked_data = {'q': [], 'dq': []}
 
         # create a server for the vision system to connect to
-        self.redis_server = redis.StrictRedis(host='localhost')
-        self.redis_server.set("controller_name", "Adaptive")
+        # self.redis_server = redis.StrictRedis(host='localhost')
+        # self.redis_server.set("controller_name", "Adaptive")
         self.camera_xyz = '0, 0, 0'
         self.target_xyz = self.robot_config.Tx(
             'EE', self.interface.get_feedback()['q'])
@@ -81,10 +81,6 @@ class Demo22(Demo):
         self.get_qdq()
         self.filtered_target += .005 * (self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
-
-        # normalized target and incorporate offset
-        self.target_subtraction(
-            self.demo_pos_xyz, self.offset)
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,

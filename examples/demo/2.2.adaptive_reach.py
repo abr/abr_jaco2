@@ -42,7 +42,7 @@ class Demo22(Demo):
             use_area_intercepts=True,
             spiking=False,
             extra_dimension=False,
-            use_probes=False)
+            use_probes=True)
 
         # run once to generate the functions we need
         self.adapt.generate(zeros, zeros, zeros)
@@ -106,8 +106,8 @@ class Demo22(Demo):
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error(xyz, target_xyz)
-            print('current xyz: ', xyz)
-            print('target_xyz: ', target_xyz)
+            # print('current xyz: ', xyz)
+            # print('target_xyz: ', target_xyz)
             # self.redis_server.set('transformed', '%g,%g,%g' % tuple(self.target_xyz))
             # print('target: ', self.target_xyz)
             # print('filtered target: ', self.filtered_target)
@@ -130,7 +130,7 @@ try:
 
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
-    trial = 0
+    trial = 20
     if trial > 0:
         weights_file = ['data/weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:
@@ -145,8 +145,9 @@ except Exception as e:
 finally:
     demo.stop()
     demo.write_data()
-    # write weights from dynamics adaptation to file
+    # write weights from dynamics adaptation to filei
     if demo.adapt.probe_weights is not None:
+        print('Saving weights for trial %i' % trial)
         np.savez_compressed(
             'data/weights_trial%i' % trial,
             weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])

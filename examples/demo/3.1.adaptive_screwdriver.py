@@ -48,7 +48,7 @@ class Demo31(Demo):
             n_neurons=self.n_neurons,
             n_adapt_pop=1,
             weights_file=weights_file,
-            pes_learning_rate=1e-5,
+            pes_learning_rate=2e-5,
             intercepts=(-0.1, 1.0),
             use_area_intercepts=True,
             spiking=False,
@@ -150,14 +150,22 @@ class Demo31(Demo):
             # read tooltip position from camera
             self.redis_server.set("tooltip", "")
             self.redis_server.set("get_tooltip", "True")
-            while 1:
+            while self.mode == 'get_tooltip':
                 tooltip_camera = self.redis_server.get("tooltip").decode('ascii')
                 print(tooltip_camera)
-                # TODO: add in 'q' and 'h' options here
+
+                # check keyboard input
+                self.get_input()
+
                 if tooltip_camera != "":
                     self.redis_server.set("get_tooltip", "False")
                     break
                 time.sleep(1)
+
+            # Used to exit if user hits 'q' or 'h'
+            # TODO: CLEAN THIS UP
+            if self.mode != 'get_tooltip':
+                return
 
             tooltip_camera = [float(v) for v in tooltip_camera.split()]
             # convert to robot coordinates

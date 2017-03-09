@@ -2,7 +2,6 @@
 Demo script, compliant hold position.
 """
 import numpy as np
-import redis
 import traceback
 
 import abr_control
@@ -32,8 +31,6 @@ class Demo12(Demo):
 
         # track data
         self.tracked_data = {'target': [], 'wrist': []}
-        self.redis_server = redis.StrictRedis(host='localhost')
-        self.redis_server.set("controller_name", "Compliant")
 
     def start_setup(self):
         self.get_qdq()
@@ -47,10 +44,6 @@ class Demo12(Demo):
         self.get_qdq()
         self.filtered_target += .005 * (self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
-
-        # normalized target and incorporate offset
-        self.target_subtraction(
-            self.demo_pos_xyz, self.offset)
 
         # generate osc signal
         u = self.ctrlr.control(
