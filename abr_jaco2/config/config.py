@@ -320,8 +320,8 @@ class robot_config(robot_config):
         # Transform matrix: camera -> origin
         # account for rotation and offset
         self.Torgcama = sp.Matrix([
-            [sp.cos(-np.pi/4.0), -np.sin(-np.pi/4.0), 0.0, 0.025],
-            [sp.sin(-np.pi/4.0), sp.cos(-np.pi/4.0), 0, -0.33],
+            [sp.cos(-np.pi/4.0), -np.sin(-np.pi/4.0), 0.0, 0.024],
+            [sp.sin(-np.pi/4.0), sp.cos(-np.pi/4.0), 0, -0.319],
             [0, 0, 1, 0.785],
             [0, 0, 0, 1]])
         # account for axes changes
