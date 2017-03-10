@@ -16,6 +16,12 @@ class robot_config(robot_config):
         num_links = 7 if hand_attached is True else 6
         super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
+        # Move from hand COM to fingers
+        if self.hand_attached is True:
+            self.offset = np.array([0.06, 0.0, 0.12])
+        else:
+            self.offset = np.array([0.0, 0.0, 0.0])
+
         self._T = {}  # dictionary for storing calculated transforms
 
         # set up saved functions folder to be in the abr_jaco repo
@@ -332,15 +338,15 @@ class robot_config(robot_config):
             [0, 0, 0, 1]])
         self.Torgcam = self.Torgcama * self.Torgcamb
 
-        # orientation part of the Jacobian (compensating for orientations)
+        # orientation part of the Jacobian (compensating for angular velocity)
         kz = sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
-            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
-            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 angular velocity
-            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 angular velocity
-            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 angular velocity
-            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 angular velocity
+            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 orientation
+            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 orientation
+            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 orientation
+            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
+            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -386,5 +392,3 @@ class robot_config(robot_config):
                 raise Exception('Invalid transformation name: %s' % name)
 
         return self._T[name]
-
-
