@@ -13,10 +13,10 @@ from demo_class import Demo
 
 class Demo22(Demo):
     def __init__(self, weights_file, track_data=False,
-                 learning_rate=3e-5, use_probes=False):
+                 learning_rate=3e-5, use_probes=True):
 
         # initialize our robot config for neural controllers
-        self.robot_config = abr_jaco2.robot_config_neural_1_3(
+        self.robot_config = abr_jaco2.robot_config_neural(
             use_cython=True, hand_attached=True)
 
         super(Demo22, self).__init__(track_data)
@@ -35,6 +35,8 @@ class Demo22(Demo):
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3), offset=self.offset)
+        self.robot_config.Tx('EE', q=zeros, x=self.robot_config.offset)
+        # self.robot_config.Tx('camera', x=np.ones(3), q=np.zeros(6))
 
         # instantiate the adaptive controller
         self.n_neurons = 10000
@@ -62,6 +64,8 @@ class Demo22(Demo):
 
         self.previous = None
 
+        self.get_target_from_vision = True
+
     def start_setup(self):
         # switch to torque control mode
         self.interface.init_force_mode()
@@ -79,9 +83,6 @@ class Demo22(Demo):
 
         self.previous = now
         self.get_qdq()
-        self.redis_server.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
-                          (self.q[0],self.q[1],self.q[2],
-                           self.q[3],self.q[4],self.q[5]))
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
 
         # read from vision, update target if new
@@ -128,17 +129,18 @@ try:
     elif trial == 0:
         weights_file = None
 
-    demo = Demo22(weights_file)
-    demo.run()
+    demo22 = Demo22(weights_file, use_probes=True)
+    demo22.trial = trial
+    demo22.run()
 
 except Exception as e:
     print(traceback.format_exc())
 
 finally:
-    demo.stop()
+    demo22.stop()
     # write weights from dynamics adaptation to filei
-    if demo.adapt.probe_weights is not None:
-        print('Saving weights for trial %i' % trial)
+    if demo22.adapt.probe_weights is not None:
+        print('Saving weights for trial %i' % demo22.trial)
         np.savez_compressed(
-            'data/demo22_weights_trial%i' % trial,
-            weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])
+            'data/demo22_weights_trial%i' % demo22.trial,
+            weights=[demo22.adapt.sim.data[demo22.adapt.probe_weights[0]]])

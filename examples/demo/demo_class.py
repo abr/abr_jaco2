@@ -20,6 +20,7 @@ class Demo(object):
         self.count = 0
         self.move_home = False
         self.start_movement = False
+        self.trial = 0
 
         # create our interface for the jaco2
         self.interface = abr_jaco2.interface(self.robot_config)
@@ -44,7 +45,9 @@ class Demo(object):
             [0.212, 1.884, 2.65, 4.69, 0.016, 3.16], dtype="float32")
 
         # for communicating with the vision system
-        self.redis_server = None
+        self.redis_server = redis.StrictRedis(host='localhost')
+        # read the target_xyz from redis or not
+        self.get_target_from_vision = False
 
         self.offset = None
 
@@ -90,8 +93,7 @@ class Demo(object):
         self.interface.disconnect()
         # set the terminal back to its initial state
         self.kb.set_normal_term()
-        if self.redis_server is not None:
-            self.redis_server.set("get_target", "False")
+        self.redis_server.set("get_target", "False")
         # write data to file if it was tracked
         self.write_data()
 
@@ -107,7 +109,7 @@ class Demo(object):
             if ord(c) == 115:  # letter s, starts movement
                 if self.mode != 'start':
                     # tell vision system to track target, if connected
-                    if self.redis_server is not None:
+                    if self.get_target_from_vision is True:
                         self.redis_server.set("get_target", "True")
                         print('Waiting for vision system to load')
                         while 1:
@@ -134,14 +136,12 @@ class Demo(object):
                 self.interface.init_position_mode()
                 self.mode = 'move_home'
                 # tell vision system to stop tracking target, if connected
-                if self.redis_server is not None:
-                    self.redis_server.set("get_target", "False")
+                self.redis_server.set("get_target", "False")
 
             if ord(c) == 113:  # letter q, quits and goes to finally
-               print('Returning to home position')
-               if self.redis_server is not None:
-                  self.redis_server.set("get_target", "False")
-               self.mode = 'quit'
+                print('Returning to home position')
+                self.redis_server.set("get_target", "False")
+                self.mode = 'quit'
 
 
     def get_qdq(self, offset=[0, 0, 0]):
@@ -149,15 +149,11 @@ class Demo(object):
         feedback = self.interface.get_feedback()
         self.q = np.array(feedback['q'])
         self.dq = np.array(feedback['dq'])
+        self.redis_server.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
+                             (self.q[0],self.q[1],self.q[2],
+                              self.q[3],self.q[4],self.q[5]))
 
     def get_target_from_camera(self):
-        # if not connected to server, connect and set up variables
-        if self.redis_server is None:
-            # create a server for the vision system to connect to
-            self.redis_server = redis.StrictRedis(host='localhost')
-            # self.target_xyz = self.robot_config.Tx(
-            #     'EE', self.interface.get_feedback()['q'])
-
         # read from server
         camera_xyz = self.redis_server.get('target_xyz').decode('ascii')
         # if the target has changed, recalculate things
@@ -166,7 +162,8 @@ class Demo(object):
         target_xyz = self.robot_config.Tx(
             'camera', x=camera_xyz, q=np.zeros(6))
 
-        self.redis_server.set('transformed', '%g,%g,%g' % tuple(target_xyz))
+        self.redis_server.set(
+            'target_xyz_robot_coords', '%.3f %.3f %.3f' % tuple(target_xyz))
 
         return target_xyz
 
@@ -176,7 +173,11 @@ class Demo(object):
         norm = np.linalg.norm(target - joint1_offset)
         if norm > magnitude:
             target = ((target - joint1_offset) / norm) * magnitude + joint1_offset
-        self.redis_server.set('normalized', '%g,%g,%g' % tuple(target))
+        # format used in nengo display, not sure if needs %g format
+        #self.redis_server.set('normalized', '%g,%g,%g' % tuple(target))
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' % (target[0],
+            target[1], target[2]))
         return target
 
     def start_setup(self):
@@ -185,18 +186,21 @@ class Demo(object):
     def start_loop(self):
         raise Exception('start loop method not implemented')
 
+    def get_tooltip_loop(self):
+        raise Exception('get tooltip loop method not implemented')
+
     def print_error(self, xyz, target):
         """ Print out the distance from the end-effector to xyz target """
         error = np.sqrt(np.sum((xyz - target)**2))
-        if self.redis_server is not None:
-            self.redis_server.set('error', error)  # Send to redis
-            self.redis_server.set('xyz', xyz)
-            self.redis_server.set(
-                'training_signal', self.ctrlr.training_signal)
+        self.redis_server.set('error', error)  # Send to redis
+        self.redis_server.set('xyz', xyz)
+        self.redis_server.set(
+            'training_signal', self.ctrlr.training_signal)
         print('error: ', error)
 
     def write_data(self):
         """ Write the data stored in the data dictionary to file """
         if self.track_data is True:
             for key in self.tracked_data:
-                np.savez_compressed('data/%s' % key, self.tracked_data[key])
+                np.savez_compressed('data/%s%i' % (key, self.trial),
+                                    self.tracked_data[key])

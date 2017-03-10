@@ -34,6 +34,11 @@ class Demo12(Demo):
         if self.track_data is True:
             self.tracked_data = {'target': [], 'EE': []}
 
+        # set target for vrep display
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' %
+            tuple(self.demo_pos_xyz))
+
     def start_setup(self):
         self.get_qdq()
         self.filtered_target = self.robot_config.Tx(
@@ -44,7 +49,7 @@ class Demo12(Demo):
     def start_loop(self):
         # get position feedback from robot
         self.get_qdq()
-        self.filtered_target += .005 * (
+        self.filtered_target += .01 * (
             self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
 

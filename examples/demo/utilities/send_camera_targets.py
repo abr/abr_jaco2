@@ -13,6 +13,9 @@ import traceback
 redis_server = redis.StrictRedis(host='localhost')
 redis_server.set("controller_name", "Adaptive")
 
+# set true if only want to loop through targets once
+single_pass = True
+
 # in camera coordinate system
 target_positions = np.array([[0.195,-0.070,0.510],
                             [0.028,0.094,0.753],
@@ -23,6 +26,8 @@ first_pass = True
 get_target = redis_server.get("get_target").decode('ascii')
 
 try:
+    print('waiting for control to initialize...')
+
     while first_pass is True or get_target == 'True':
         # wait until until user starts main loop to send targets
         get_target = redis_server.get("get_target").decode('ascii')
@@ -35,16 +40,22 @@ try:
 
             # loop through target positions
             for ii in range(0,len(target_positions)):
+                # check get target to see if control side quit script
                 get_target = redis_server.get("get_target").decode('ascii')
-                    if get_target == 'True':
-                        print('sending to position %i' % ii)
-                        redis_server.set('target_xyz', '%.3f %.3f %.3f'
-                            % (target_positions[ii,0], target_positions[ii,1],
-                               target_positions[ii,2]))
-                        time.sleep(10)
-           # break
+                if get_target == 'True':
+                    print('sending to position %i' % ii)
+                    redis_server.set('target_xyz', '%.3f %.3f %.3f'
+                        % (target_positions[ii,0], target_positions[ii,1],
+                           target_positions[ii,2]))
+                    time.sleep(10)
+                else:
+                    print('User quit, exiting script...')
+                    break
+
+            if single_pass is True:
+                break
         else:
-            print('waiting for control...')
+            pass
 
 except Exception as e:
     print(traceback.format_exc())

@@ -11,14 +11,15 @@ import abr_control
 import abr_jaco2
 from demo_class import Demo
 
-class Demo31(Demo):
+
+class Demo32(Demo):
     def __init__(self, weights_file):
 
         # initialize our robot config for neural controllers
-        self.robot_config = abr_jaco2.robot_config_neural_1_3(
+        self.robot_config = abr_jaco2.robot_config_neural(
             use_cython=True, hand_attached=True)
 
-        super(Demo31, self).__init__()
+        super(Demo32, self).__init__()
 
         # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
@@ -48,7 +49,7 @@ class Demo31(Demo):
             n_neurons=self.n_neurons,
             n_adapt_pop=1,
             weights_file=weights_file,
-            pes_learning_rate=2e-5,
+            pes_learning_rate=3e-5,
             intercepts=(-0.1, 1.0),
             use_area_intercepts=True,
             spiking=False,
@@ -66,6 +67,8 @@ class Demo31(Demo):
 
         self.previous = None
 
+        self.get_target_from_vision = True
+
     def start_setup(self):
         # switch to torque control mode
         self.interface.init_force_mode()
@@ -80,11 +83,6 @@ class Demo31(Demo):
         now = timeit.default_timer()
         if self.previous is not None and self.count%1000 == 0:
             print("dt:",now-self.previous)
-            #Determine how many neurons are active then delete the data
-            #if len(self.adapt.sim._probe_outputs[self.adapt.ens_activity]) != 0:
-            #    tmp = self.adapt.sim._probe_outputs[self.adapt.ens_activity][-1]
-            #    print("percent neurons active:", np.count_nonzero(tmp)/self.n_neurons)
-            #    del self.adapt.sim._probe_outputs[self.adapt.ens_activity][:]
 
         self.previous = now
         self.get_qdq()
@@ -95,7 +93,7 @@ class Demo31(Demo):
         target_xyz = self.get_target_from_camera()
         target_xyz = self.normalize_target(target_xyz, magnitude=0.9)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .0025 * (target_xyz - self.filtered_target)
+        self.filtered_target += .005 * (target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
@@ -114,24 +112,17 @@ class Demo31(Demo):
             self.print_error(xyz, target_xyz)
             print('current xyz: ', xyz)
             print('target_xyz: ', target_xyz)
-            # self.redis_server.set('transformed', '%g,%g,%g' % tuple(self.target_xyz))
-            # print('target: ', self.target_xyz)
-            # print('filtered target: ', self.filtered_target)
-            # print('filtered error: ',
-            #       np.sqrt(np.sum((xyz - self.filtered_target)**2)))
 
         # track data
-        # self.tracked_data['training_signal'].append(
-        #     np.copy(self.ctrlr.training_signal))
-        # self.tracked_data['q'].append(np.copy(self.q))
-        # self.tracked_data['dq'].append(np.copy(self.dq))
-        self.tracked_data['wrist'].append(np.copy(
-          self.robot_config.Tx('EE', self.q)))
-        # R = self.R_func(*(tuple(self.q)))
-        # self.tracked_data['offset'].append(xyz - np.dot(R,
-        #   self.target_subtraction_offset))
-        self.tracked_data['offset'].append(np.copy(xyz))
-        self.tracked_data['target'].append(np.copy(self.filtered_target))
+        if self.track_data is True:
+            self.tracked_data['q'].append(np.copy(self.q))
+            self.tracked_data['dq'].append(np.copy(self.dq))
+            self.tracked_data['training_signal'].append(
+                np.copy(self.ctrlr.training_signal))
+            self.tracked_data['filtered_target'].append(
+                np.copy(self.filtered_target))
+            self.tracked_data['target'].append(np.copy(target_xyz))
+            self.tracked_data['EE'].append(np.copy(xyz))
 
     def get_tooltip_loop(self):
         num_positions = len(self.demo_tooltip_read_positions)
@@ -193,21 +184,22 @@ try:
     # otherwise it loads the weights from trial - 1
     trial = 0
     if trial > 0:
-        weights_file = ['data/weights_trial%i.npz' % (trial - 1)]
+        weights_file = ['data/demo32_weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:
         weights_file = None
 
-    demo = Demo31(weights_file)
-    demo.run()
+    demo32 = Demo32(weights_file)
+    demo32.trial = trial
+    demo32.run()
 
 except Exception as e:
      print(traceback.format_exc())
 
 finally:
-    demo.stop()
-    demo.write_data()
+    demo32.stop()
+    demo32.write_data()
     # write weights from dynamics adaptation to file
-    if demo.adapt.probe_weights is not None:
+    if demo32.adapt.probe_weights is not None:
         np.savez_compressed(
-            'data/weights_trial%i' % trial,
-            weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])
+            'data/demo32_weights_trial%i' % trial,
+            weights=[demo32.adapt.sim.data[demo32.adapt.probe_weights[0]]])

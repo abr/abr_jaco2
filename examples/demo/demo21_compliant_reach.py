@@ -24,15 +24,15 @@ class Demo21(Demo):
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=8, vmax=1.0, null_control=False)
+            self.robot_config, kp=20, kv=6, vmax=1.0, null_control=False)
 
-        self.robot_config.Tx(
-            'camera', x=np.zeros(3), q=np.zeros(6))
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3),
                            offset=self.robot_config.offset)
+        self.robot_config.Tx('EE', q=zeros, x=self.robot_config.offset)
+        self.robot_config.Tx('camera', x=np.ones(3), q=np.zeros(6))
 
         # track data
         if self.track_data is True:
@@ -42,6 +42,8 @@ class Demo21(Demo):
         self.redis_server.set("controller_name", "Compliant")
 
         self.previous = None
+
+        self.get_target_from_vision = True
 
     def start_setup(self):
 

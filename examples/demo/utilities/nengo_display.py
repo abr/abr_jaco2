@@ -5,7 +5,7 @@ import numpy as np
 r = redis.StrictRedis(host='192.168.0.3')
 
 def read_target_info(t):
-    t_xyz = r.get('transformed')
+    t_xyz = r.get('target_xyz_robot_coords')
     n_xyz = r.get('normalized')
     if t_xyz is None:
         t_xyz = np.zeros(3)

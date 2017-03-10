@@ -14,7 +14,7 @@ class Demo22(Demo):
     def __init__(self, weights_file, track_data=False):
 
         # initialize our robot config for neural controllers
-        self.robot_config = abr_jaco2.robot_config_neural_1_3(
+        self.robot_config = abr_jaco2.robot_config_neural(
             use_cython=True, hand_attached=True)
 
         super(Demo22, self).__init__(track_data)
@@ -24,11 +24,12 @@ class Demo22(Demo):
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=5, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=6, vmax=1, null_control=False)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3))
+        self.robot_config.Tx('EE', q=zeros, x=self.robot_config.offset)
 
         # instantiate the adaptive controller
         self.n_neurons = 2000
@@ -52,8 +53,10 @@ class Demo22(Demo):
             self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
                                  'target': [], 'EE': []}
 
-        self.target_xyz = self.robot_config.Tx(
-            'EE', self.interface.get_feedback()['q'])
+        # set target for vrep display
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' %
+            tuple(self.demo_pos_xyz))
 
     def start_setup(self):
         self.get_qdq()
@@ -71,7 +74,7 @@ class Demo22(Demo):
 
         self.previous = now
         self.get_qdq()
-        self.filtered_target += .005 * (
+        self.filtered_target += .01 * (
             self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
 
