@@ -98,4 +98,3 @@ except:
 
 finally:
     demo.stop()
-    demo.write_data()

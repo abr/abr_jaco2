@@ -72,4 +72,3 @@ except Exception as e:
 
 finally:
     demo.stop()
-    demo.write_data()

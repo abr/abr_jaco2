@@ -92,6 +92,8 @@ class Demo(object):
         self.kb.set_normal_term()
         if self.redis_server is not None:
             self.redis_server.set("get_target", "False")
+        # write data to file if it was tracked
+        self.write_data()
 
     def get_input(self):
         if self.kb.kbhit():
@@ -195,5 +197,6 @@ class Demo(object):
 
     def write_data(self):
         """ Write the data stored in the data dictionary to file """
-        for key in self.tracked_data:
-            np.savez_compressed('data/%s' % key, self.tracked_data[key])
+        if self.track_data is True:
+            for key in self.tracked_data:
+                np.savez_compressed('data/%s' % key, self.tracked_data[key])

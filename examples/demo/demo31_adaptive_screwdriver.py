@@ -100,7 +100,6 @@ except Exception as e:
 
 finally:
     demo.stop()
-    demo.write_data()
     # write weights from dynamics adaptation to file
     if demo.adapt.probe_weights is not None:
         print('Saving weights for trial %i' % trial)
