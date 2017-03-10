@@ -332,15 +332,15 @@ class robot_config(robot_config):
             [0, 0, 0, 1]])
         self.Torgcam = self.Torgcama * self.Torgcamb
 
-        # orientation part of the Jacobian (compensating for orientations)
+        # orientation part of the Jacobian (compensating for angular velocity)
         kz = sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
-            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
-            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 angular velocity
-            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 angular velocity
-            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 angular velocity
-            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 angular velocity
+            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 orientation
+            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 orientation
+            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 orientation
+            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
+            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -386,5 +386,3 @@ class robot_config(robot_config):
                 raise Exception('Invalid transformation name: %s' % name)
 
         return self._T[name]
-
-

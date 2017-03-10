@@ -19,19 +19,17 @@ class Demo21(Demo):
 
         super(Demo21, self).__init__()
 
-        # account for wrist to fingers offset
-        self.offset = [0.0, 0.0, 0.12]
-
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=2, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=8, vmax=1.0, null_control=False)
 
         self.robot_config.Tx(
             'camera', x=np.zeros(3), q=np.zeros(6))
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
-        self.ctrlr.control(zeros, zeros, np.zeros(3), offset=self.offset)
+        self.ctrlr.control(zeros, zeros, np.zeros(3),
+            offset=self.robot_config.offset)
 
         # track data
         self.tracked_data = {'q': [], 'dq': [], 'filtered_target': [],
@@ -49,7 +47,7 @@ class Demo21(Demo):
         # get position feedback from robot
         self.get_qdq()
         self.filtered_target = self.robot_config.Tx(
-            'EE', q=self.q, x=self.offset)
+            'EE', q=self.q, x=self.robot_config.offset)
 
     def start_loop(self):
         now = timeit.default_timer()
@@ -59,7 +57,7 @@ class Demo21(Demo):
 
         # get position feedback from robot
         self.get_qdq()
-        xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
+        xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
 
         # read from vision, update target if new
         # which also does the offset and normalization
@@ -67,12 +65,14 @@ class Demo21(Demo):
         camera_target = np.copy(target_xyz)
         target_xyz = self.normalize_target(target_xyz)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .005 * (target_xyz - self.filtered_target)
+        # self.filtered_target += .005 * (target_xyz - self.filtered_target)
+        self.filtered_target += .01 * (target_xyz - self.filtered_target)
 
         # generate osc signal
         u = self.ctrlr.control(
             q=self.q, dq=self.dq, target_pos=self.filtered_target,
-            offset=self.offset)
+            offset=self.robot_config.offset)
+        u[0] *= 2.0
         # send control signal to Jaco 2
         self.interface.send_forces(np.array(u, dtype='float32'))
 

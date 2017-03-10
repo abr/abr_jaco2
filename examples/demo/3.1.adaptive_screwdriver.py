@@ -93,7 +93,7 @@ class Demo31(Demo):
         # read from vision, update target if new
         # which also does the offset and normalization
         target_xyz = self.get_target_from_camera()
-        target_xyz = self.normalize_target(target_xyz, 1.1)
+        target_xyz = self.normalize_target(target_xyz, magnitude=1.1)
         # filter the target so that it doesn't jump, but moves smoothly
         self.filtered_target += .0025 * (target_xyz - self.filtered_target)
 

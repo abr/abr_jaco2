@@ -19,15 +19,15 @@ class Demo12(Demo):
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
-        self.offset = np.array([0.0, 0.0, 0.12])  # 20 cm from wrist
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=4, vmax=1, null_control=False)
+            self.robot_config, kp=20, kv=6, vmax=1, null_control=False)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3))
+        xyz = self.robot_config.Tx('EE', q=zeros, x=self.robot_config.offset)
 
         # track data
         self.tracked_data = {'target': [], 'wrist': []}
@@ -35,7 +35,7 @@ class Demo12(Demo):
     def start_setup(self):
         self.get_qdq()
         self.filtered_target = self.robot_config.Tx(
-            'EE', q=self.q, x=self.offset)
+            'EE', q=self.q, x=self.robot_config.offset)
         # switch to torque control mode
         self.interface.init_force_mode()
 
@@ -43,12 +43,12 @@ class Demo12(Demo):
         # get position feedback from robot
         self.get_qdq()
         self.filtered_target += .005 * (self.demo_pos_xyz - self.filtered_target)
-        xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
+        xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
 
         # generate osc signal
         u = self.ctrlr.control(
             q=self.q, dq=self.dq, target_pos=self.filtered_target)
-
+        u[0] *= 2.0
         # send control signal to Jaco 2
         self.interface.send_forces(np.array(u, dtype='float32'))
 

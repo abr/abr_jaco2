@@ -35,10 +35,10 @@ class Demo(object):
              [6.1248166, 1.35746381, 1.28933629,
               1.01879334, 6.26423963, 2.91255281]], dtype='float32')
 
-        self.demo_pos_xyz = np.array([.40, -.18, .85])
+        self.demo_pos_xyz = np.array([.70, -.18, .75])
 
         self.demo_pos_q = np.array(
-            [0.36, 2.19, 2.63, 4.69, 0.024, 3.16], dtype="float32")
+            [0.212, 1.884, 2.65, 4.69, 0.016, 3.16], dtype="float32")
 
         # for communicating with the vision system
         self.redis_server = None
