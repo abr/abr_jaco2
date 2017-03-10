@@ -2,7 +2,6 @@
 Demo script, adaptive hold position.
 """
 import numpy as np
-import redis
 import timeit
 import traceback
 
@@ -10,14 +9,15 @@ import abr_control
 import abr_jaco2
 from demo_class import Demo
 
+
 class Demo22(Demo):
-    def __init__(self, weights_file):
+    def __init__(self, weights_file, track_data=False):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural_1_3(
             use_cython=True, hand_attached=True)
 
-        super(Demo22, self).__init__()
+        super(Demo22, self).__init__(track_data)
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
@@ -48,12 +48,10 @@ class Demo22(Demo):
         self.adapt.generate(zeros, zeros, zeros)
 
         # track data
-        self.tracked_data = {'q': [], 'dq': []}
+        if self.track_data is True:
+            self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
+                                 'target': [], 'EE': []}
 
-        # create a server for the vision system to connect to
-        # self.redis_server = redis.StrictRedis(host='localhost')
-        # self.redis_server.set("controller_name", "Adaptive")
-        self.camera_xyz = '0, 0, 0'
         self.target_xyz = self.robot_config.Tx(
             'EE', self.interface.get_feedback()['q'])
 
@@ -64,21 +62,17 @@ class Demo22(Demo):
         # switch to torque control mode
         self.interface.init_force_mode()
     previous = None
+
     def start_loop(self):
         # get position feedback from robot
         now = timeit.default_timer()
-        if self.previous is not None and self.count%1000 == 0:
-            print("dt:",now-self.previous)
-            #Determine how many neurons are active then delete the data
-            # if self.adapt.ens_activity is not None:
-            #     if len(self.adapt.sim._probe_outputs[self.adapt.ens_activity]) != 0:
-            #         tmp = self.adapt.sim._probe_outputs[self.adapt.ens_activity][-1]
-            #         print("percent neurons active:", np.count_nonzero(tmp)/self.n_neurons)
-            #         del self.adapt.sim._probe_outputs[self.adapt.ens_activity][:]
+        if self.previous is not None and self.count % 1000 == 0:
+            print("dt:", now-self.previous)
 
         self.previous = now
         self.get_qdq()
-        self.filtered_target += .005 * (self.demo_pos_xyz - self.filtered_target)
+        self.filtered_target += .005 * (
+            self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
 
         # generate osc signal
@@ -98,15 +92,20 @@ class Demo22(Demo):
             self.print_error(xyz, self.demo_pos_xyz)
 
         # track data
-        self.tracked_data['q'].append(np.copy(self.q))
-        self.tracked_data['dq'].append(np.copy(self.dq))
+        if self.track_data is True:
+            self.tracked_data['q'].append(np.copy(self.q))
+            self.tracked_data['dq'].append(np.copy(self.dq))
+            self.tracked_data['training_signal'].append(
+                np.copy(self.ctrlr.training_signal))
+            self.tracked_data['target'].append(np.copy(self.filtered_target))
+            self.tracked_data['EE'].append(np.copy(xyz))
 
 try:
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
     trial = 0
     if trial > 0:
-        weights_file = ['data/weights_trial%i.npz' % (trial - 1)]
+        weights_file = ['data/demo13_weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:
         weights_file = None
 
@@ -114,7 +113,7 @@ try:
     demo.run()
 
 except Exception as e:
-     print(traceback.format_exc())
+    print(traceback.format_exc())
 
 finally:
     demo.stop()
@@ -122,5 +121,5 @@ finally:
     # write weights from dynamics adaptation to file
     if demo.adapt.probe_weights is not None:
         np.savez_compressed(
-            'data/weights_trial%i' % trial,
+            'data/demo13_weights_trial%i' % trial,
             weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])

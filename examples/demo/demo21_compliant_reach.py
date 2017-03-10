@@ -10,8 +10,11 @@ import abr_control
 import abr_jaco2
 from demo_class import Demo
 
+
 class Demo21(Demo):
-    def __init__(self):
+    def __init__(self, track_data=False):
+
+        self.track_data = track_data
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config(
@@ -29,11 +32,12 @@ class Demo21(Demo):
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3),
-            offset=self.robot_config.offset)
+                           offset=self.robot_config.offset)
 
         # track data
-        self.tracked_data = {'q': [], 'dq': [], 'filtered_target': [],
-            'wrist': [], 'offset': [], 'target': []}
+        if self.track_data is True:
+            self.tracked_data = {'filtered_target': [], 'wrist': [],
+                                 'offset': [], 'target': []}
         self.redis_server = redis.StrictRedis(host='localhost')
         self.redis_server.set("controller_name", "Compliant")
 
@@ -62,10 +66,8 @@ class Demo21(Demo):
         # read from vision, update target if new
         # which also does the offset and normalization
         target_xyz = self.get_target_from_camera()
-        camera_target = np.copy(target_xyz)
         target_xyz = self.normalize_target(target_xyz)
         # filter the target so that it doesn't jump, but moves smoothly
-        # self.filtered_target += .005 * (target_xyz - self.filtered_target)
         self.filtered_target += .01 * (target_xyz - self.filtered_target)
 
         # generate osc signal
@@ -79,24 +81,20 @@ class Demo21(Demo):
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error(xyz, target_xyz)
-            print('target without normalization: ', camera_target)
-            #print('q: ', self.q)
 
         # track data
-        # self.tracked_data['q'].append(np.copy(self.q))
-        # self.tracked_data['dq'].append(np.copy(self.dq))
-        self.tracked_data['filtered_target'].append(np.copy(self.filtered_target))
-        self.tracked_data['wrist'].append(np.copy(
-          self.robot_config.Tx('EE', self.q)))
-        self.tracked_data['offset'].append(np.copy(xyz))
-        self.tracked_data['target'].append(np.copy(self.filtered_target))
+        if self.track_data is True:
+            self.tracked_data['filtered_target'].append(
+                np.copy(self.filtered_target))
+            self.tracked_data['target'].append(np.copy(target_xyz))
+            self.tracked_data['EE'].append(np.copy(xyz))
 
 try:
     demo = Demo21()
     demo.run()
 
 except:
-     print(traceback.format_exc())
+    print(traceback.format_exc())
 
 finally:
     demo.stop()

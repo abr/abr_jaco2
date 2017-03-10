@@ -1,10 +1,12 @@
 """
 Demo script, non-compliant hold position.
 """
+import traceback
 import time
 
 import abr_jaco2
 from demo_class import Demo
+
 
 class Demo11(Demo):
     def __init__(self):
@@ -33,7 +35,7 @@ try:
     demo.run()
 
 except Exception as e:
-     print(e)
+    print(traceback.format_exc())
 
 finally:
     demo.stop()

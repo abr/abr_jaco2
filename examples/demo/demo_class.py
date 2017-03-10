@@ -13,7 +13,10 @@ import abr_jaco2
 
 class Demo(object):
 
-    def __init__(self):
+    def __init__(self, track_data=False):
+
+        self.track_data = track_data
+
         self.count = 0
         self.move_home = False
         self.start_movement = False
@@ -87,6 +90,8 @@ class Demo(object):
         self.interface.disconnect()
         # set the terminal back to its initial state
         self.kb.set_normal_term()
+        if self.redis_server is not None:
+            self.redis_server.set("get_target", "False")
 
     def get_input(self):
         if self.kb.kbhit():
@@ -132,6 +137,8 @@ class Demo(object):
 
             if ord(c) == 113:  # letter q, quits and goes to finally
                print('Returning to home position')
+               if self.redis_server is not None:
+                  self.redis_server.set("get_target", "False")
                self.mode = 'quit'
 
 

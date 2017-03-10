@@ -8,14 +8,15 @@ import abr_control
 import abr_jaco2
 from demo_class import Demo
 
+
 class Demo12(Demo):
-    def __init__(self):
+    def __init__(self, track_data=False):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config(
             use_cython=True, hand_attached=True)
 
-        super(Demo12, self).__init__()
+        super(Demo12, self).__init__(track_data)
 
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
@@ -27,10 +28,11 @@ class Demo12(Demo):
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3))
-        xyz = self.robot_config.Tx('EE', q=zeros, x=self.robot_config.offset)
+        self.robot_config.Tx('EE', q=zeros, x=self.robot_config.offset)
 
         # track data
-        self.tracked_data = {'target': [], 'wrist': []}
+        if self.track_data is True:
+            self.tracked_data = {'target': [], 'EE': []}
 
     def start_setup(self):
         self.get_qdq()
@@ -42,7 +44,8 @@ class Demo12(Demo):
     def start_loop(self):
         # get position feedback from robot
         self.get_qdq()
-        self.filtered_target += .005 * (self.demo_pos_xyz - self.filtered_target)
+        self.filtered_target += .005 * (
+            self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
 
         # generate osc signal
@@ -55,16 +58,17 @@ class Demo12(Demo):
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error(xyz, self.demo_pos_xyz)
-        # track data
-        # self.tracked_data['target'].append(self.demo_pos_xyz)
-        # self.tracked_data['wrist'].append(self.robot_config.Tx('EE', self.q))
+
+        if self.track_data is True:
+            self.tracked_data['target'].append(self.filtered_target)
+            self.tracked_data['EE'].append(xyz)
 
 try:
     demo = Demo12()
     demo.run()
 
 except Exception as e:
-     print(traceback.format_exc())
+    print(traceback.format_exc())
 
 finally:
     demo.stop()
