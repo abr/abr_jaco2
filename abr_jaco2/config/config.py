@@ -16,6 +16,12 @@ class robot_config(robot_config):
         num_links = 7 if hand_attached is True else 6
         super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
+        # Move from hand COM to fingers
+        if self.hand_attached is True:
+            self.offset = np.array([0.06, 0.0, 0.12])
+        else:
+            self.offset = np.array([0.0, 0.0, 0.0])
+
         self._T = {}  # dictionary for storing calculated transforms
 
         # set up saved functions folder to be in the abr_jaco repo
