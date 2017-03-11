@@ -66,7 +66,7 @@ Jaco2::Jaco2() {
     feed_current_voltage_conversion = 125.0;
     feed_velocity_under_gain = 0.8;
 
-    switch_threshold = 3.0;
+    switch_threshold = 4.0;
     pos_lim_distance = 5.0;
     error_deadband = 1.0;
     torque_brake = 0.0;
