@@ -46,6 +46,10 @@ class Demo(object):
 
         # for communicating with the vision system
         self.redis_server = redis.StrictRedis(host='localhost')
+
+        # redis variable to allow outside scripts to stop arm
+        # set to false in case it is not reset at start of script
+        self.redis_server.set("stop_arm", "False")
         # read the target_xyz from redis or not
         self.get_target_from_vision = False
 
@@ -60,6 +64,11 @@ class Demo(object):
         self.mode = ''
         self.count = 0
         while 1:
+
+            if (self.redis_server.get(
+                "stop_arm").decode('ascii')
+                == "True"):
+                break
 
             if self.mode == 'start':
                 self.start_loop()
@@ -197,6 +206,7 @@ class Demo(object):
         self.redis_server.set(
             'training_signal', self.ctrlr.training_signal)
         print('error: ', error)
+        return error
 
     def write_data(self):
         """ Write the data stored in the data dictionary to file """

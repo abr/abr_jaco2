@@ -12,8 +12,8 @@ from demo_class import Demo
 
 
 class Demo22(Demo):
-    def __init__(self, weights_file, track_data=False,
-                 learning_rate=3e-5, use_probes=True):
+    def __init__(self, weights_file, track_data=True,
+                 learning_rate=1e-5, use_probes=True):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural(
@@ -57,8 +57,10 @@ class Demo22(Demo):
 
         # track data
         if self.track_data is True:
-            self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
-                                 'filtered_target': [], 'target': [], 'EE': []}
+            #self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
+            #                     'filtered_target': [], 'target': [], 'EE': []}
+            self.tracked_data = {'filtered_target': [], 'target': [], 'EE': [],
+                'error': []}
 
         self.get_qdq()
 
@@ -75,7 +77,7 @@ class Demo22(Demo):
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
         self.filtered_target = xyz
 
-    def start_loop(self, magnitude=.9, filter_const=0.01):
+    def start_loop(self, magnitude=.9, filter_const=0.005):
         # get position feedback from robot
         now = timeit.default_timer()
         if self.previous is not None and self.count % 1000 == 0:
@@ -107,23 +109,25 @@ class Demo22(Demo):
 
         # print out the error every so often
         if self.count % 100 == 0:
-            self.print_error(xyz, target_xyz)
+            error = self.print_error(xyz, target_xyz)
 
         # track data
         if self.track_data is True:
-            self.tracked_data['q'].append(np.copy(self.q))
-            self.tracked_data['dq'].append(np.copy(self.dq))
-            self.tracked_data['training_signal'].append(
-                np.copy(self.ctrlr.training_signal))
+            #self.tracked_data['q'].append(np.copy(self.q))
+            #self.tracked_data['dq'].append(np.copy(self.dq))
+            #self.tracked_data['training_signal'].append(
+            #    np.copy(self.ctrlr.training_signal))
             self.tracked_data['filtered_target'].append(
                 np.copy(self.filtered_target))
             self.tracked_data['target'].append(np.copy(target_xyz))
             self.tracked_data['EE'].append(np.copy(xyz))
+            if self.count % 100 == 0:
+                self.tracked_data['error'].append(np.copy(error))
 try:
 
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
-    trial = 0
+    trial = 46
     if trial > 0:
         weights_file = ['data/demo22_weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:

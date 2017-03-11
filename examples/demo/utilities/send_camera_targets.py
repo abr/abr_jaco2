@@ -17,13 +17,23 @@ redis_server.set("controller_name", "Adaptive")
 single_pass = True
 
 # in camera coordinate system
-target_positions = np.array([[0.195,-0.070,0.510],
-                            [0.028,0.094,0.753],
-                            [-0.198,-0.076,0.592]])
+target_positions = np.array([[0.109, -0.038, 0.588],
+                            [-0.118, -0.039, 0.667],
+                            [0.212, -0.069, 0.510],
+                            [0.108, -0.134, 0.463],
+                            [0.099, -0.141, 0.463],
+                            [0.095, -0.135, 0.455],
+                            [-0.097, 0.138, 0.682],
+                            [0.154, 0.064, 0.612],
+                            [-0.351, -0.147, 0.824],
+                            [-0.359, -0.136, 0.824],
+                            [-0.020, -0.031, 0.463],
+                            [-0.191, -0.032, 0.541]])
 # first pass allows script to wait for control system to load
 # and wait for user to start
 first_pass = True
 get_target = redis_server.get("get_target").decode('ascii')
+num_targets = 3
 
 try:
     print('waiting for control to initialize...')
@@ -39,7 +49,7 @@ try:
             redis_server.set("network_running", "True")
 
             # loop through target positions
-            for ii in range(0,len(target_positions)):
+            for ii in range(0,num_targets):
                 # check get target to see if control side quit script
                 get_target = redis_server.get("get_target").decode('ascii')
                 if get_target == 'True':
@@ -63,3 +73,4 @@ except Exception as e:
 finally:
     print('Setting \'network running\' to False')
     redis_server.set("network_running", "False")
+    redis_server.set("stop_arm", "True")
