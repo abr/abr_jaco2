@@ -51,6 +51,7 @@ class Jaco2 {
 
         // main functions
         void ApplyQ(float q_target[6]);
+        void ApplyQStep(float q_target[6]);
         void ApplyQHand(bool open);
         void ApplyU(float u[6]);
         void Connect();

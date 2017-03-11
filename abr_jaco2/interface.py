@@ -45,6 +45,16 @@ class interface(interface.interface):
         feedback['dq'] = np.array(feedback['dq']) * np.pi / 180.0
         return feedback
 
+    def get_feedback_in_degrees(self):
+        """ Returns a dictionary of relevant feedback to the
+        controller. At very least this contains q, dq.
+        """
+        # convert from degrees from the Jaco into radians
+        feedback = self.jaco2.GetFeedback()
+        feedback['q'] = np.array(feedback['q'])
+        return feedback
+
+
     # TODO: change this send_target_postition here and in C++
     def apply_q(self, q):
         """ Moves the arm to the specified joint angles using
@@ -57,6 +67,18 @@ class interface(interface.interface):
         # convert from radians into degrees the Jaco expects
         q = np.array(q) * 180.0 / np.pi
         self.jaco2.ApplyQ(q)
+
+    def apply_q_step(self, JointIncrement):
+        """ Moves the arm to the specified joint angles using
+        the on-board PD controller.
+
+        q np.array: the target joint angles (radians)
+
+        """
+        # TODO: clip this into the 0 to 2*pi range
+        # convert from radians into degrees the Jaco expects
+        # increment joint command by 1 degree until target reached
+        self.jaco2.ApplyQStep(JointIncrement)
 
     def open_hand(self, open):
         """ Send true to open hand, false to close, moves in

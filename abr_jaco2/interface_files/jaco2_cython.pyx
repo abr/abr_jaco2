@@ -40,6 +40,9 @@ cdef class pyJaco2:
     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):
         self.thisptr.ApplyQ(&target_q[0])
 
+    def ApplyQStep(self, np.ndarray[float, mode="c"] target_q):
+        self.thisptr.ApplyQ(&target_q[0])
+
     def ApplyQHand(self, bool open):
         self.thisptr.ApplyQHand(open)
 
