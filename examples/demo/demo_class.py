@@ -30,6 +30,8 @@ class Demo(object):
         self.demo_init_torque_position = np.array(
             [0.0, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
 
+        self.demo_init_torque_xyz = np.array([0.0,0.0,1.13])
+
         # move to the home position
         self.interface.apply_q(self.demo_init_torque_position)
 
@@ -74,6 +76,8 @@ class Demo(object):
                 self.start_loop()
 
             elif self.mode == 'move_home':
+                #self.apply_q_step(q_target=self.demo_init_torque_position,
+                #                            target_xyz=self.demo_init_torque_xyz)
                 self.interface.apply_q(self.demo_init_torque_position)
                 print('Reached home position')
                 self.mode = ''
@@ -184,10 +188,46 @@ class Demo(object):
             target = ((target - joint1_offset) / norm) * magnitude + joint1_offset
         # format used in nengo display, not sure if needs %g format
         #self.redis_server.set('normalized', '%g,%g,%g' % tuple(target))
-        self.redis_server.set(
-            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' % (target[0],
-            target[1], target[2]))
+        #self.redis_server.set(
+        #    'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' % (target[0],
+        #    target[1], target[2]))
         return target
+
+    def apply_q_step(self, q_target, target_xyz):
+        #joint_increment = np.array([0.0,0.0,0.0,0.0,0.0,0.0],
+        #                           dtype='float32')
+        TargetReached = 0
+        feedback = self.interface.get_feedback_in_degrees()
+        joint_increment = np.array(feedback['q'], dtype='float32')
+        print('joint increment start: ', joint_increment)
+
+        self.redis_server.set(
+            'target_xyz_robot_coords', '%.3f %.3f %.3f' % tuple(target_xyz))
+        while(TargetReached < 6):
+            TargetReached = 0
+            feedback = self.interface.get_feedback_in_degrees()
+            q_current = np.array(feedback['q'])
+            q = self.interface.get_feedback()
+            q = np.array(q['q'])
+            self.redis_server.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
+                                 (q[0],q[1],q[2],
+                                  q[3],q[4],q[5]))
+            for ii in range(0,6):
+                mod_pos = ((q_current[ii]) % 360 + 360) % 360
+                q_diff = q_target[ii] - mod_pos
+                # compare target to current angle to see if should add or subtract
+                if abs(mod_pos - q_target[ii]) < 2.0:
+                    TargetReached += 1
+                    joint_increment[ii] += 0.0
+                    print(' joint %i at target', ii)
+                elif(q_diff < (q_diff/abs(q_diff) * 180)):
+                    joint_increment[ii] += 0.05
+                    print(' joint %i increment', ii)
+                elif (q_diff >= (q_diff/abs(q_diff) * 180)):
+                    joint_increment[ii] -= 0.05
+                    print(' joint %i decrement', ii)
+            self.interface.apply_q_step(joint_increment)
+
 
     def start_setup(self):
         raise Exception('start setup method not implemented')

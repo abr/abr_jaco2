@@ -18,12 +18,19 @@ class Demo12(Demo):
 
         super(Demo12, self).__init__(track_data)
 
+        # ------ CONTROL PARAMETERS --------
+        kp = 20
+        kv = 6
+        vmax = 1
+        null = True
+        # ----------------------------------
+
         # account for wrist to fingers offset
         self.R_func = self.robot_config._calc_R('EE')
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=6, vmax=1, null_control=False)
+            self.robot_config, kp=kp, kv=kv, vmax=vmax, null_control=null)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
@@ -38,6 +45,7 @@ class Demo12(Demo):
         self.redis_server.set(
             'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' %
             tuple(self.demo_pos_xyz))
+        self.redis_server.set("controller_name", "Compliant")
 
     def start_setup(self):
         self.get_qdq()
@@ -46,10 +54,10 @@ class Demo12(Demo):
         # switch to torque control mode
         self.interface.init_force_mode()
 
-    def start_loop(self):
+    def start_loop(self, filter_const=0.005):
         # get position feedback from robot
         self.get_qdq()
-        self.filtered_target += .01 * (
+        self.filtered_target += filter_const * (
             self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
 

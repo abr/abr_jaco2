@@ -12,7 +12,7 @@ from demo_class import Demo
 
 
 class Demo22(Demo):
-    def __init__(self, weights_file, track_data=True,
+    def __init__(self, weights_file, track_data=False,
                  learning_rate=1e-5, use_probes=True):
 
         # initialize our robot config for neural controllers
@@ -21,16 +21,23 @@ class Demo22(Demo):
 
         super(Demo22, self).__init__(track_data)
 
+        # ------ CONTROL PARAMETERS --------
+        kp = 20
+        kv = 6
+        vmax = 1
+        null = True
+        # ----------------------------------
+
         # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
-        self.redis_server.set("controller_name", "Adaptive")
+        self.redis_server.set("controller_name", "Adaptive Trained")
 
         # account for wrist to fingers offset
         self.offset = np.array([0, 0, 0.12])
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=6, vmax=1, null_control=True)
+            self.robot_config, kp=kp, kv=kv, vmax=vmax, null_control=null)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
@@ -38,6 +45,7 @@ class Demo22(Demo):
         self.robot_config.Tx('EE', q=zeros, x=self.robot_config.offset)
         # self.robot_config.Tx('camera', x=np.ones(3), q=np.zeros(6))
 
+        # ------ ADAPTIVE PARAMETERS --------
         # instantiate the adaptive controller
         self.n_neurons = 10000
         self.adapt = abr_control.controllers.signals.dynamics_adaptation(
@@ -51,16 +59,15 @@ class Demo22(Demo):
             spiking=False,
             extra_dimension=False,
             use_probes=use_probes)
+        # -----------------------------------
 
         # run once to generate the functions we need
         self.adapt.generate(zeros, zeros, zeros)
 
         # track data
         if self.track_data is True:
-            #self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
-            #                     'filtered_target': [], 'target': [], 'EE': []}
-            self.tracked_data = {'filtered_target': [], 'target': [], 'EE': [],
-                'error': []}
+            self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
+                                 'filtered_target': [], 'target': [], 'EE': []}
 
         self.get_qdq()
 
@@ -94,11 +101,17 @@ class Demo22(Demo):
         # filter the target so that it doesn't jump, but moves smoothly
         self.filtered_target += filter_const * (
             target_xyz - self.filtered_target)
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
+            % (self.filtered_target[0],
+            self.filtered_target[1],
+            self.filtered_target[2]))
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
                                target_pos=self.filtered_target,
                                offset=self.offset)
+        u[0] *= 2.0
         # generate adaptive signal
         adaptive = self.adapt.generate(
             q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
@@ -109,25 +122,23 @@ class Demo22(Demo):
 
         # print out the error every so often
         if self.count % 100 == 0:
-            error = self.print_error(xyz, target_xyz)
+            self.print_error(xyz, target_xyz)
 
         # track data
         if self.track_data is True:
-            #self.tracked_data['q'].append(np.copy(self.q))
-            #self.tracked_data['dq'].append(np.copy(self.dq))
-            #self.tracked_data['training_signal'].append(
-            #    np.copy(self.ctrlr.training_signal))
+            self.tracked_data['q'].append(np.copy(self.q))
+            self.tracked_data['dq'].append(np.copy(self.dq))
+            self.tracked_data['training_signal'].append(
+                np.copy(self.ctrlr.training_signal))
             self.tracked_data['filtered_target'].append(
                 np.copy(self.filtered_target))
             self.tracked_data['target'].append(np.copy(target_xyz))
             self.tracked_data['EE'].append(np.copy(xyz))
-            if self.count % 100 == 0:
-                self.tracked_data['error'].append(np.copy(error))
 try:
 
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
-    trial = 46
+    trial = 51
     if trial > 0:
         weights_file = ['data/demo22_weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:

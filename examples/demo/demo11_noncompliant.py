@@ -18,6 +18,8 @@ class Demo11(Demo):
 
         self.moved = False
 
+        self.redis_server.set("controller_name", "Non-compliant")
+
     def start_setup(self):
         # switch to position control mode
         self.interface.init_position_mode()
@@ -26,6 +28,8 @@ class Demo11(Demo):
         # TODO: possibly update this so it can move to target
         # position more than once per run
         if self.moved is False:
+            #self.apply_q_step(q_target=self.demo_pos_q,
+            #                  target_xyz=self.demo_pos_xyz)
             self.interface.apply_q(self.demo_pos_q)
             self.moved = True
         time.sleep(1)

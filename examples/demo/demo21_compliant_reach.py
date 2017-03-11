@@ -22,9 +22,16 @@ class Demo21(Demo):
 
         super(Demo21, self).__init__()
 
+        # ------ CONTROL PARAMETERS --------
+        kp = 20
+        kv = 6
+        vmax = 1
+        null = True
+        # ----------------------------------
+
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=6, vmax=1.0, null_control=False)
+            self.robot_config, kp=kp, kv=kv, vmax=vmax, null_control=null)
 
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
@@ -55,7 +62,7 @@ class Demo21(Demo):
         self.filtered_target = self.robot_config.Tx(
             'EE', q=self.q, x=self.robot_config.offset)
 
-    def start_loop(self):
+    def start_loop(self, magnitude=0.9, filter_const=0.005):
         now = timeit.default_timer()
         if self.previous is not None and self.count % 1000 == 0:
             print("dt:", now - self.previous)
@@ -68,9 +75,15 @@ class Demo21(Demo):
         # read from vision, update target if new
         # which also does the offset and normalization
         target_xyz = self.get_target_from_camera()
-        target_xyz = self.normalize_target(target_xyz)
+        target_xyz = self.normalize_target(target_xyz, magnitude=magnitude)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .01 * (target_xyz - self.filtered_target)
+        self.filtered_target += filter_const * (
+            target_xyz - self.filtered_target)
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
+            % (self.filtered_target[0],
+            self.filtered_target[1],
+            self.filtered_target[2]))
 
         # generate osc signal
         u = self.ctrlr.control(

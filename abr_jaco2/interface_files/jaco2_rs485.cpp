@@ -3,8 +3,19 @@ AUTHORS: Pawel Jaworski, Travis DeWolf, Martine Blouin
 */
 
 #include "jaco2_rs485.h"
+//#include "hiredis.h"
+//#include <string>
 
 Jaco2::Jaco2() {
+   /* redisContext *c = redisConnect("localhost", 6379);
+    if (c != NULL && c->err) {
+        printf("Error: %s\n", c->errstr);
+        // handle error
+    } else {
+        printf("Connected to Redis\n");
+    }
+
+    redisReply *reply;*/
 
     //set common variables
     delay = 1250;
@@ -338,6 +349,8 @@ void Jaco2::Connect() {
 
 void Jaco2::Disconnect() {
     fptrCloseCommunication();
+    //freeReplyObject(reply);
+    //redisFree(c);
     cout << "Connection closed" << endl;
 }
 
@@ -408,6 +421,7 @@ void Jaco2::ApplyQ(float q_target[6]) {
     int TargetReached = 0;
     int ctr = 0;
     float Joint6Command[6];
+    float pos_rad[6];
     for (int ii = 0; ii<6; ii++) {
         Joint6Command[ii] = pos[ii];
         ApplyQMessage[ii].DataFloat[0] = Joint6Command[ii];
@@ -419,6 +433,7 @@ void Jaco2::ApplyQ(float q_target[6]) {
         // increment joint command by 1 degree until target reached
         for (int ii = 0; ii<6; ii++) {
             float mod_pos = (int(pos[ii]) % 360 + 360) % 360 ;
+            pos_rad[ii] = mod_pos * 3.14159 / 180.0;
             float q_diff = q_target[ii] - mod_pos;
             // compare target to current angle to see if should add or subtract
             if (abs(mod_pos - q_target[ii]) < 2.0 ) {
@@ -444,10 +459,24 @@ void Jaco2::ApplyQ(float q_target[6]) {
             ApplyQMessage[ii].DataFloat[1] = Joint6Command[ii];
         }
         ctr += 1;
+        //string qString = to_string(pos_rad);
+       // reply = redisCommand(c,"SET %s %s","q",qString);
 
         SendAndReceive(ApplyQMessage, true);
     }
 }
+
+void Jaco2::ApplyQStep(float JointIncrement[6]) {
+    // Same as ApplyQ, but allows user to loop on python side in case
+    // feedback is desired during movement
+    for (int ii = 0; ii<6; ii++) {
+        ApplyQMessage[ii].DataFloat[0] = JointIncrement[ii];
+        ApplyQMessage[ii].DataFloat[1] = JointIncrement[ii];
+    }
+
+    SendAndReceive(ApplyQMessage, true);
+}
+
 //
 //
 // void Jaco2::ApplyQ(float q_target[6]) {
@@ -585,7 +614,7 @@ int Jaco2::SendAndReceiveHand(RS485_Message message[3], bool loop) {
         MyRS485_Write(message, packets_sent, WriteCount);
         usleep(delay);
         MyRS485_Read(MessageListIn, packets_read, ReadCount);
-        
+
         // reset variables for this time through
         memset(updatedHand, 0, (size_t)sizeof(int)*3);
         // cycle through all of the received messages and
@@ -593,10 +622,10 @@ int Jaco2::SendAndReceiveHand(RS485_Message message[3], bool loop) {
         //currentMotor = 0;
         for(int ii = 0; ii < ReadCount; ii++) {
             // actuator 0 is 16
-            //currentMotor = MessageListIn[ii].SourceAddress - 22;            
+            //currentMotor = MessageListIn[ii].SourceAddress - 22;
             if (MessageListIn[ii].Command == 0x02 ||
                 MessageListIn[ii].Command == 0x11){
-                
+
                 currentMotor = MessageListIn[ii].SourceAddress - 22;
                 //pos_finger[currentMotor] = MessageListIn[ii].DataFloat[1];
                 updatedHand[currentMotor] = 1;
