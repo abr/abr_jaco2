@@ -13,7 +13,7 @@ from demo_class import Demo
 
 
 class Demo32(Demo):
-    def __init__(self, weights_file, learning_rate=3e-5,
+    def __init__(self, weights_file, learning_rate=1e-5,
                  use_probes=False):
 
         # initialize our robot config for neural controllers
@@ -31,7 +31,7 @@ class Demo32(Demo):
 
         # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
-        self.redis_server.set("controller_name", "Adaptive Trained")
+        self.redis_server.set("controller_name", "Adaptive")
 
         # account for wrist to fingers offset
         self.offset = self.redis_server.get("offset")
@@ -198,7 +198,7 @@ try:
 
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
-    trial = 0
+    trial = 26
     if trial > 0:
         weights_file = ['data/demo32_weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:

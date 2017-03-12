@@ -13,7 +13,7 @@ from demo_class import Demo
 
 
 class Demo32(Demo):
-    def __init__(self, weights_file, learning_rate=3e-5,
+    def __init__(self, weights_file, learning_rate=1e-5,
                  use_probes=False):
 
         # initialize our robot config for neural controllers

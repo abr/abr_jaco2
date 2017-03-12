@@ -13,13 +13,13 @@ from demo_class import Demo
 
 
 class Demo32(Demo):
-    def __init__(self, weights_file, learning_rate=1e-5,
-                 use_probes=False):
+    def __init__(self, weights_file, track_data=True,
+                 learning_rate=1e-5, use_probes=True):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural(
             use_cython=True, hand_attached=True)
-
+        self.track_data = track_data
         super(Demo32, self).__init__()
 
         # ------ CONTROL PARAMETERS --------
@@ -71,7 +71,7 @@ class Demo32(Demo):
 
         # track data
         self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
-            'wrist': [], 'offset': [], 'target': []}
+                'wrist': [], 'offset': [], 'target': [], 'error' : []}
 
         self.get_qdq()
 
@@ -125,9 +125,7 @@ class Demo32(Demo):
 
         # print out the error every so often
         if self.count % 100 == 0:
-            self.print_error(xyz, target_xyz)
-            print('current xyz: ', xyz)
-            print('target_xyz: ', target_xyz)
+            error = self.print_error(xyz, target_xyz)
 
         # track data
         if self.track_data is True:
@@ -139,6 +137,9 @@ class Demo32(Demo):
                 np.copy(self.filtered_target))
             self.tracked_data['target'].append(np.copy(target_xyz))
             self.tracked_data['EE'].append(np.copy(xyz))
+            if self.count % 100 == 0:
+                self.tracked_data['error'].append(np.copy(error))
+
 
     def get_tooltip_loop(self):
         num_positions = len(self.demo_tooltip_read_positions)
@@ -198,7 +199,7 @@ try:
 
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
-    trial = 0
+    trial = 25
     if trial > 0:
         weights_file = ['data/demo32_weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:
