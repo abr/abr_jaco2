@@ -73,7 +73,6 @@ class Demo12(Demo):
         # print out the error every so often
         if self.count % 100 == 0:
             self.print_error(xyz, self.demo_pos_xyz)
-            print('q: ', self.q)
 
         if self.track_data is True:
             self.tracked_data['target'].append(self.filtered_target)

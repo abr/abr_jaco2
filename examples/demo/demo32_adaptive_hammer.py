@@ -61,7 +61,7 @@ class Demo32(Demo):
             pes_learning_rate=learning_rate,
             intercepts=(-0.1, 1.0),
             use_area_intercepts=True,
-            spiking=False,
+            spiking=True,
             extra_dimension=False,
             use_probes=use_probes)
         # -----------------------------------

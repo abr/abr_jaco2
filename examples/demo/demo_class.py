@@ -44,11 +44,11 @@ class Demo(object):
             [6.1248166, 1.35746381, 1.28933629,
               1.01879334, 6.26423963, 2.91255281]], dtype='float32')
 
-        self.demo_pos_xyz = np.array([.70, -.18, .75])
+        self.demo_pos_xyz = np.array([.57, 0.03, .87])
 
         self.demo_pos_q = np.array(
-            [0.27881559, 1.68257918, 2.46612312,
-             4.72497828, 0.02300661, 3.15828721], dtype="float32")
+            [6.10003809, 1.75889646, 2.18678349,
+             4.72202057, 0.02348013, 3.15828481], dtype="float32")
 
         # for communicating with the vision system
         self.redis_server = redis.StrictRedis(host='localhost')
