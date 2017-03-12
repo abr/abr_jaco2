@@ -50,8 +50,8 @@ class Jaco2 {
         vector<string> errorMessage;
 
         // main functions
-        void ApplyQ(float q_target[6]);
-        void ApplyQStep(float q_target[6]);
+        void ApplyQSetup();
+        int ApplyQ(float q_target[6]);
         void ApplyQHand(bool open);
         void ApplyU(float u[6]);
         void Connect();
@@ -68,6 +68,7 @@ class Jaco2 {
         float pos_finger[3];
         float vel[6];
         float torque_load[6];
+        float pos_rad[6];
         bool read_input;
         int packets_sent;
         int packets_read;
@@ -92,6 +93,9 @@ class Jaco2 {
         float control_effort_filter;
 
         float maxT[6];
+
+        int ctr;
+        float Joint6Command[6];
 
         // variables used during the communication process.
         int WriteCount;

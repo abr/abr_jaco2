@@ -1,6 +1,9 @@
 import numpy as np
 cimport numpy as np
 from libcpp cimport bool
+import redis
+
+r = redis.StrictRedis(host='127.0.0.1')
 
 cdef extern from "jaco2_rs485.h":
     cdef cppclass Jaco2:
@@ -9,7 +12,8 @@ cdef extern from "jaco2_rs485.h":
         void Connect()
         void InitForceMode()
         void InitPositionMode()
-        void ApplyQ(float target_q[6])
+        void ApplyQSetup()
+        int ApplyQ(float target_q[6])
         void ApplyQHand(bool open)
         void ApplyU(float u[6])
         void Disconnect()
@@ -18,7 +22,7 @@ cdef extern from "jaco2_rs485.h":
         float posHand[3]
         float vel[6]
         float torque_load[6]
-
+        float pos_rad[6]
 
 cdef class pyJaco2:
     cdef Jaco2* thisptr # hold a C++ instance
@@ -38,10 +42,13 @@ cdef class pyJaco2:
         self.thisptr.InitPositionMode()
 
     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):
-        self.thisptr.ApplyQ(&target_q[0])
-
-    def ApplyQStep(self, np.ndarray[float, mode="c"] target_q):
-        self.thisptr.ApplyQ(&target_q[0])
+        TargetReached = 0
+        self.thisptr.ApplyQSetup()
+        while TargetReached < 6:
+            TargetReached = self.thisptr.ApplyQ(&target_q[0])
+            # print('pos_rad: ', self.thisptr.pos_rad)
+            r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
+                  tuple(self.thisptr.pos_rad))
 
     def ApplyQHand(self, bool open):
         self.thisptr.ApplyQHand(open)
