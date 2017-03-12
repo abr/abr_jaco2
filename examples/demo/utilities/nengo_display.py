@@ -45,6 +45,13 @@ def read_xyz(t):
     read_xyz._nengo_html_ = '<h1>%s</h1>' % ','.join(['%1.3f'%v for v in xyz])
     return xyz
 
+def receive_spikes(t):
+        msg = r.get('spikes')
+        v = np.zeros(10)
+        if len(msg) > 0:
+            ii = struct.unpack('%dI' % (len(msg)/4), msg)
+            v[[ii]] = 1000.0
+        return v
 
 def read_error(t):
     error = r.get('error')
@@ -66,3 +73,6 @@ with model:
     name = nengo.Node(read_controller)
 
     xyz = nengo.Node(read_xyz)
+
+    sink_node = nengo.Node(receive_spikes, size_in=0)
+
