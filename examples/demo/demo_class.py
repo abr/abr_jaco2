@@ -31,7 +31,7 @@ class Demo(object):
         self.demo_init_torque_position = np.array(
             [0.0, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
 
-        self.demo_init_torque_xyz = np.array([0.0,0.0,1.13])
+        self.demo_init_torque_xyz = np.array([0.0,0.0,1.20])
 
         # move to the home position
         self.interface.apply_q(self.demo_init_torque_position)

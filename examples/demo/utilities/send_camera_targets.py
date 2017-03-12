@@ -14,7 +14,7 @@ redis_server = redis.StrictRedis(host='localhost')
 redis_server.set("controller_name", "Adaptive")
 
 # set true if only want to loop through targets once
-single_pass = True
+single_pass = False
 
 # in camera coordinate system
 target_positions = np.array([[0.109, -0.038, 0.588],
