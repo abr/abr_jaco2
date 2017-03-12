@@ -6,6 +6,7 @@ from the home directory
 """
 import numpy as np
 import redis
+import struct
 import time
 
 import abr_jaco2
@@ -46,7 +47,8 @@ class Demo(object):
         self.demo_pos_xyz = np.array([.70, -.18, .75])
 
         self.demo_pos_q = np.array(
-            [0.212, 1.884, 2.65, 4.69, 0.016, 3.16], dtype="float32")
+            [0.27881559, 1.68257918, 2.46612312,
+             4.72497828, 0.02300661, 3.15828721], dtype="float32")
 
         # for communicating with the vision system
         self.redis_server = redis.StrictRedis(host='localhost')
@@ -54,6 +56,8 @@ class Demo(object):
         # redis variable to allow outside scripts to stop arm
         # set to false in case it is not reset at start of script
         self.redis_server.set("stop_arm", "False")
+        # set neural activites to zero in redis
+        self.redis_server.set("spikes", struct.pack('%dI' % 25, *[0]*25))
         # read the target_xyz from redis or not
         self.get_target_from_vision = False
 
@@ -78,8 +82,9 @@ class Demo(object):
                 self.start_loop()
 
             elif self.mode == 'move_home':
-                #self.apply_q_step(q_target=self.demo_init_torque_position,
-                #                            target_xyz=self.demo_init_torque_xyz)
+                self.redis_server.set(
+                    'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
+                    % tuple(self.demo_init_torque_xyz))
                 self.interface.apply_q(self.demo_init_torque_position)
                 print('Reached home position')
                 self.mode = ''
@@ -102,6 +107,9 @@ class Demo(object):
 
     def stop(self):
         # return back to home position
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
+            % tuple(self.demo_init_torque_xyz))
         self.interface.init_position_mode()
         self.interface.apply_q(self.demo_init_torque_position)
         # close the connection to the arm
@@ -194,42 +202,6 @@ class Demo(object):
         #    'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' % (target[0],
         #    target[1], target[2]))
         return target
-
-    def apply_q_step(self, q_target, target_xyz):
-        #joint_increment = np.array([0.0,0.0,0.0,0.0,0.0,0.0],
-        #                           dtype='float32')
-        TargetReached = 0
-        feedback = self.interface.get_feedback_in_degrees()
-        joint_increment = np.array(feedback['q'], dtype='float32')
-        print('joint increment start: ', joint_increment)
-
-        self.redis_server.set(
-            'target_xyz_robot_coords', '%.3f %.3f %.3f' % tuple(target_xyz))
-        while(TargetReached < 6):
-            TargetReached = 0
-            feedback = self.interface.get_feedback_in_degrees()
-            q_current = np.array(feedback['q'])
-            q = self.interface.get_feedback()
-            q = np.array(q['q'])
-            self.redis_server.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
-                                 (q[0],q[1],q[2],
-                                  q[3],q[4],q[5]))
-            for ii in range(0,6):
-                mod_pos = ((q_current[ii]) % 360 + 360) % 360
-                q_diff = q_target[ii] - mod_pos
-                # compare target to current angle to see if should add or subtract
-                if abs(mod_pos - q_target[ii]) < 2.0:
-                    TargetReached += 1
-                    joint_increment[ii] += 0.0
-                    print(' joint %i at target', ii)
-                elif(q_diff < (q_diff/abs(q_diff) * 180)):
-                    joint_increment[ii] += 0.05
-                    print(' joint %i increment', ii)
-                elif (q_diff >= (q_diff/abs(q_diff) * 180)):
-                    joint_increment[ii] -= 0.05
-                    print(' joint %i decrement', ii)
-            self.interface.apply_q_step(joint_increment)
-
 
     def start_setup(self):
         raise Exception('start setup method not implemented')

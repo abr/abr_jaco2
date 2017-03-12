@@ -27,6 +27,9 @@ class Demo11(Demo):
     def start_loop(self):
         # TODO: possibly update this so it can move to target
         # position more than once per run
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' %
+            tuple(self.demo_pos_xyz))
         if self.moved is False:
             #self.apply_q_step(q_target=self.demo_pos_q,
             #                  target_xyz=self.demo_pos_xyz)
