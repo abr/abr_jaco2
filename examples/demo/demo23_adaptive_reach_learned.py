@@ -30,7 +30,7 @@ class Demo22(Demo):
 
         # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
-        self.redis_server.set("controller_name", "Adaptive Trained")
+        self.redis_server.set("controller_name", "Adaptive")
 
         # account for wrist to fingers offset
         self.offset = np.array([0, 0, 0.12])

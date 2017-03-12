@@ -13,13 +13,21 @@ from demo_class import Demo
 
 
 class Demo32(Demo):
-    def __init__(self, weights_file):
+    def __init__(self, weights_file, learning_rate=1e-5,
+                 use_probes=False):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural(
             use_cython=True, hand_attached=True)
 
         super(Demo32, self).__init__()
+
+        # ------ CONTROL PARAMETERS --------
+        kp = 20
+        kv = 6
+        vmax = 1
+        null = True
+        # ----------------------------------
 
         # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
@@ -36,25 +44,27 @@ class Demo32(Demo):
 
         # instantiate operation space controller
         self.ctrlr = abr_control.controllers.osc(
-            self.robot_config, kp=20, kv=4, vmax=1, null_control=True)
+            self.robot_config, kp=kp, kv=kv, vmax=vmax, null_control=null)
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         zeros = np.zeros(self.robot_config.num_joints)
         self.ctrlr.control(zeros, zeros, np.zeros(3), offset=self.offset)
 
         # instantiate the adaptive controller
+        # ------ ADAPTIVE PARAMETERS --------
         self.n_neurons = 10000
         self.adapt = abr_control.controllers.signals.dynamics_adaptation(
             self.robot_config, backend='nengo',
             n_neurons=self.n_neurons,
             n_adapt_pop=1,
             weights_file=weights_file,
-            pes_learning_rate=3e-5,
+            pes_learning_rate=learning_rate,
             intercepts=(-0.1, 1.0),
             use_area_intercepts=True,
             spiking=False,
             extra_dimension=False,
-            use_probes=False)
+            use_probes=use_probes)
+        # -----------------------------------
 
         # run once to generate the functions we need
         self.adapt.generate(zeros, zeros, zeros)
@@ -78,7 +88,7 @@ class Demo32(Demo):
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
         self.filtered_target = xyz
 
-    def start_loop(self):
+    def start_loop(self, magnitude=0.9, filter_const=0.005):
         # get position feedback from robot
         now = timeit.default_timer()
         if self.previous is not None and self.count%1000 == 0:
@@ -91,14 +101,20 @@ class Demo32(Demo):
         # read from vision, update target if new
         # which also does the offset and normalization
         target_xyz = self.get_target_from_camera()
-        target_xyz = self.normalize_target(target_xyz, magnitude=0.9)
+        target_xyz = self.normalize_target(target_xyz, magnitude=magnitude)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += .005 * (target_xyz - self.filtered_target)
+        self.filtered_target += filter_const * (target_xyz - self.filtered_target)
+        self.redis_server.set(
+            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
+            % (self.filtered_target[0],
+            self.filtered_target[1],
+            self.filtered_target[2]))
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
                                target_pos=self.filtered_target,
                                offset=self.offset)
+        u[0] *= 2.0
         # generate adaptive signal
         adaptive = self.adapt.generate(
             q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)

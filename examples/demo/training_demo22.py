@@ -140,7 +140,7 @@ try:
 
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
-    trial = 0
+    trial = 51
     if trial > 0:
         weights_file = ['data/demo22_weights_trial%i.npz' % (trial - 1)]
     elif trial == 0:

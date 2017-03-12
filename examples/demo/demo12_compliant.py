@@ -57,6 +57,8 @@ class Demo12(Demo):
     def start_loop(self, filter_const=0.005):
         # get position feedback from robot
         self.get_qdq()
+        #self.demo_pos_xyz = self.normalize_target(self.demo_pos_xyz,
+        #                                          magnitude=0.9)
         self.filtered_target += filter_const * (
             self.demo_pos_xyz - self.filtered_target)
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.robot_config.offset)
