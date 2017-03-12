@@ -1,11 +1,10 @@
 import nengo
 import redis
 import numpy as np
-
+import struct
 r = redis.StrictRedis(host='192.168.0.3')
-
 def read_target_info(t):
-    t_xyz = r.get('target_xyz_robot_coords')
+    t_xyz = r.get('transformed')
     n_xyz = r.get('normalized')
     if t_xyz is None:
         t_xyz = np.zeros(3)
@@ -16,10 +15,7 @@ def read_target_info(t):
     else:
         n_xyz = np.array([float(v) for v in n_xyz.decode('ascii').split(',')])
 
-    try:
-        scaling = np.linalg.norm(t_xyz) / np.linalg.norm(n_xyz)
-    except:
-        scaling = 0
+    scaling = np.linalg.norm(t_xyz) / np.linalg.norm(n_xyz)
 
     if scaling > 1.0:
         read_target_info._nengo_html_ = '<center><h1>OUTSIDE</h1>%1.3f</center>' % scaling
@@ -32,27 +28,22 @@ def read_controller(t):
     name = r.get('controller_name')
     if name is not None:
         name = name.decode('ascii')
-    read_controller._nengo_html_ = '<center><h1>%s</h1></center>' % name
-
-def read_xyz(t):
-    xyz = r.get('xyz')
-    if xyz is None:
-        xyz = np.zeros(3)
-    else:
-        xyz = xyz.decode('ascii') 
-        xyz = [float(val) for val in xyz[1:-1].split()]
-
-    read_xyz._nengo_html_ = '<h1>%s</h1>' % ','.join(['%1.3f'%v for v in xyz])
-    return xyz
-
+    if name == "Non-compliant": #red
+        read_controller._nengo_html_ = '<center><p style="font-size:100px; ' \
+            'font-weight:bold; color:red; border:3px; border-style:solid; border-color:black; padding: .5em">%s</p></center>' % name
+    elif name == "Adaptive": #green
+        read_controller._nengo_html_ = '<center><p style="font-size:100px; ' \
+            'font-weight:bold; color:green; border:3px; border-style:solid; border-color:black; padding: .5em">%s</p></center>' % name
+    elif name == "Compliant": #black
+        read_controller._nengo_html_ = '<center><p style="font-size:100px; ' \
+            'font-weight:bold; color:black; border:3px; border-style:solid; border-color:black; padding: .5em">%s</p></center>' % name
 def receive_spikes(t):
         msg = r.get('spikes')
-        v = np.zeros(10)
+        v = np.zeros(25)
         if len(msg) > 0:
             ii = struct.unpack('%dI' % (len(msg)/4), msg)
             v[[ii]] = 1000.0
         return v
-
 def read_error(t):
     error = r.get('error')
     if error is None:
@@ -62,17 +53,10 @@ def read_error(t):
 
     read_error._nengo_html_ = '<h1>%1.3gm</h1>' % error
     return error
-
-
 model = nengo.Network()
 with model:
     target_info = nengo.Node(read_target_info, size_in=0)
-
     error = nengo.Node(read_error)
 
     name = nengo.Node(read_controller)
-
-    xyz = nengo.Node(read_xyz)
-
-    sink_node = nengo.Node(receive_spikes, size_in=0)
-
+    neuron_spikes = nengo.Node(receive_spikes, size_in=0)
