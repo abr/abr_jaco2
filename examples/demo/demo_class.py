@@ -40,7 +40,7 @@ class Demo(object):
             #[[4.83645727, 2.1057941, 1.95758253,
             #  2.74116295, 4.61607869, 3.46826159],
             [[5.52770083, 1.92617041, 1.85878244,
-              4.29060418, 1.9736527, 5.65000764],
+              4.29060418, 1.9736527, 5.55000764],
             [6.1248166, 1.35746381, 1.28933629,
               1.01879334, 6.26423963, 2.91255281]], dtype='float32')
 
@@ -202,6 +202,11 @@ class Demo(object):
         #    'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' % (target[0],
         #    target[1], target[2]))
         return target
+
+    def filter_target(self, filter_const, filtered_target_in, target):
+        filtered_target_out = filtered_target_in + filter_const * (
+            target - filtered_target_in)
+        return filtered_target_out
 
     def start_setup(self):
         raise Exception('start setup method not implemented')

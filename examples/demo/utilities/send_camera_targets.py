@@ -8,7 +8,7 @@ import numpy as np
 import redis
 import time
 import traceback
-
+#def main():
 # create a server for the vision system to connect to
 redis_server = redis.StrictRedis(host='localhost')
 redis_server.set("controller_name", "Adaptive")

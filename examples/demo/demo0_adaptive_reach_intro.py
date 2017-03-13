@@ -103,9 +103,9 @@ class Demo22(Demo):
             target_xyz - self.filtered_target)
         self.redis_server.set(
             'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
-            % (self.filtered_target[0],
-            self.filtered_target[1],
-            self.filtered_target[2]))
+            %(target_xyz[0],
+            target_xyz[1],
+            target_xyz[2]))
 
         # generate osc signal
         u = self.ctrlr.control(q=self.q, dq=self.dq,
