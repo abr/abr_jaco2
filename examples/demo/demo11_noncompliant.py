@@ -34,12 +34,13 @@ class Demo11(Demo):
             self.moved = True
         time.sleep(1)
 
-try:
-    demo = Demo11()
-    demo.run()
-
-except Exception as e:
-    print(traceback.format_exc())
-
-finally:
-    demo.stop()
+def main():
+    try:
+        demo = Demo11()
+        demo.run()
+    
+    except Exception as e:
+        print(traceback.format_exc())
+    
+    finally:
+        demo.stop()

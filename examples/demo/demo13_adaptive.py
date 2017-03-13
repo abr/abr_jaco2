@@ -116,25 +116,27 @@ class Demo22(Demo):
             self.tracked_data['target'].append(np.copy(self.filtered_target))
             self.tracked_data['EE'].append(np.copy(xyz))
 
-try:
-    # if trial = 0 it creates a new set of decoders = 0
-    # otherwise it loads the weights from trial - 1
-    trial = 0
-    if trial > 0:
-        weights_file = ['data/demo13_weights_trial%i.npz' % (trial - 1)]
-    elif trial == 0:
-        weights_file = None
+def main():
 
-    demo = Demo22(weights_file)
-    demo.run()
-
-except Exception as e:
-    print(traceback.format_exc())
-
-finally:
-    demo.stop()
-    # write weights from dynamics adaptation to file
-    if demo.adapt.probe_weights is not None:
-        np.savez_compressed(
-            'data/demo13_weights_trial%i' % trial,
-            weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])
+    try:
+        # if trial = 0 it creates a new set of decoders = 0
+        # otherwise it loads the weights from trial - 1
+        trial = 0
+        if trial > 0:
+            weights_file = ['data/demo13_weights_trial%i.npz' % (trial - 1)]
+        elif trial == 0:
+            weights_file = None
+    
+        demo = Demo22(weights_file)
+        demo.run()
+    
+    except Exception as e:
+        print(traceback.format_exc())
+    
+    finally:
+        demo.stop()
+        # write weights from dynamics adaptation to file
+        if demo.adapt.probe_weights is not None:
+            np.savez_compressed(
+                'data/demo13_weights_trial%i' % trial,
+                weights=[demo.adapt.sim.data[demo.adapt.probe_weights[0]]])

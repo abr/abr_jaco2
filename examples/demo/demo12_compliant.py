@@ -78,12 +78,13 @@ class Demo12(Demo):
             self.tracked_data['target'].append(self.filtered_target)
             self.tracked_data['EE'].append(xyz)
 
-try:
-    demo = Demo12()
-    demo.run()
-
-except Exception as e:
-    print(traceback.format_exc())
-
-finally:
-    demo.stop()
+def main():
+    try:
+        demo = Demo12()
+        demo.run()
+    
+    except Exception as e:
+        print(traceback.format_exc())
+    
+    finally:
+        demo.stop()

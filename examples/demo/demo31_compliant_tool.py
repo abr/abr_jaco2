@@ -177,27 +177,28 @@ class Demo31(Demo):
         # return to home position
         self.mode = 'move_home'
 
-try:
-
-    # if trial = 0 it creates a new set of decoders = 0
-    # otherwise it loads the weights from trial - 1
-    trial = 0
-    if trial > 0:
-        weights_file = ['data/demo31_weights_trial%i.npz' % (trial - 1)]
-    elif trial == 0:
-        weights_file = None
-
-    demo31 = Demo31(weights_file)
-    demo31.trial = trial
-    demo31.run()
-
-except Exception as e:
-     print(traceback.format_exc())
-
-finally:
-    demo31.stop()
-    # write weights from dynamics adaptation to file
-    if demo31.adapt.probe_weights is not None:
-        np.savez_compressed(
-            'data/demo31_weights_trial%i' % trial,
-            weights=[demo31.adapt.sim.data[demo31.adapt.probe_weights[0]]])
+def main():
+    try:
+    
+        # if trial = 0 it creates a new set of decoders = 0
+        # otherwise it loads the weights from trial - 1
+        trial = 0
+        if trial > 0:
+            weights_file = ['data/demo31_weights_trial%i.npz' % (trial - 1)]
+        elif trial == 0:
+            weights_file = None
+    
+        demo31 = Demo31(weights_file)
+        demo31.trial = trial
+        demo31.run()
+    
+    except Exception as e:
+         print(traceback.format_exc())
+    
+    finally:
+        demo31.stop()
+        # write weights from dynamics adaptation to file
+        if demo31.adapt.probe_weights is not None:
+            np.savez_compressed(
+                'data/demo31_weights_trial%i' % trial,
+                weights=[demo31.adapt.sim.data[demo31.adapt.probe_weights[0]]])

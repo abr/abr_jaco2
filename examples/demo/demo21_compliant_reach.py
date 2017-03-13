@@ -103,13 +103,14 @@ class Demo21(Demo):
                 np.copy(self.filtered_target))
             self.tracked_data['target'].append(np.copy(target_xyz))
             self.tracked_data['EE'].append(np.copy(xyz))
-
-try:
-    demo = Demo21()
-    demo.run()
-
-except:
-    print(traceback.format_exc())
-
-finally:
-    demo.stop()
+def main():
+    
+    try:
+        demo = Demo21()
+        demo.run()
+    
+    except:
+        print(traceback.format_exc())
+    
+    finally:
+        demo.stop()

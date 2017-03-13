@@ -194,28 +194,29 @@ class Demo32(Demo):
         # return to home position
         self.mode = 'move_home'
 
-try:
-
-    # if trial = 0 it creates a new set of decoders = 0
-    # otherwise it loads the weights from trial - 1
-    trial = 26
-    if trial > 0:
-        weights_file = ['data/demo32_weights_trial%i.npz' % (trial - 1)]
-    elif trial == 0:
-        weights_file = None
-
-    demo32 = Demo32(weights_file)
-    demo32.trial = trial
-    demo32.run()
-
-except Exception as e:
-     print(traceback.format_exc())
-
-finally:
-    demo32.stop()
-    demo32.write_data()
-    # write weights from dynamics adaptation to file
-    if demo32.adapt.probe_weights is not None:
-        np.savez_compressed(
-            'data/demo32_weights_trial%i' % trial,
-            weights=[demo32.adapt.sim.data[demo32.adapt.probe_weights[0]]])
+def main():
+    try:
+    
+        # if trial = 0 it creates a new set of decoders = 0
+        # otherwise it loads the weights from trial - 1
+        trial = 26
+        if trial > 0:
+            weights_file = ['data/demo32_weights_trial%i.npz' % (trial - 1)]
+        elif trial == 0:
+            weights_file = None
+    
+        demo32 = Demo32(weights_file)
+        demo32.trial = trial
+        demo32.run()
+    
+    except Exception as e:
+         print(traceback.format_exc())
+    
+    finally:
+        demo32.stop()
+        demo32.write_data()
+        # write weights from dynamics adaptation to file
+        if demo32.adapt.probe_weights is not None:
+            np.savez_compressed(
+                'data/demo32_weights_trial%i' % trial,
+                weights=[demo32.adapt.sim.data[demo32.adapt.probe_weights[0]]])
