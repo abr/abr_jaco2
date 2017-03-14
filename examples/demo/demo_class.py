@@ -90,7 +90,11 @@ class Demo(object):
                 self.mode = ''
 
             elif self.mode == 'get_tooltip':
+                last_controller = (
+                    self.redis_server.get("controller_name").decode('ascii'))
+                self.redis_server.set("controller_name", "Non-compliant")
                 self.get_tooltip_loop()
+                self.redis_server.set("controller_name", last_controller)
 
             # elif self.mode == 'float':
             #     self.interface.init_position_mode()

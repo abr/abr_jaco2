@@ -142,7 +142,6 @@ class Demo32(Demo):
 
     def get_tooltip_loop(self):
         num_positions = len(self.demo_tooltip_read_positions)
-        self.redis_server.set("controller_name", "Non-compliant")
         tooltip_offsets = np.zeros((num_positions, 3))
         # Move to read positions
         for ii in range(num_positions):

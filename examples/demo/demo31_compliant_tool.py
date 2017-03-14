@@ -124,7 +124,6 @@ class Demo31(Demo):
             self.tracked_data['EE'].append(np.copy(xyz))
 
     def get_tooltip_loop(self):
-        self.redis_server.set("controller_name", "Non-compliant")
         num_positions = len(self.demo_tooltip_read_positions)
         tooltip_offsets = np.zeros((num_positions, 3))
         # Move to read positions
