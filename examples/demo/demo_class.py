@@ -110,6 +110,7 @@ class Demo(object):
 
     def stop(self):
         # return back to home position
+        self.redis_server.set("get_target", "False")
         self.redis_server.set(
             'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
             % tuple(self.demo_init_torque_xyz))
@@ -119,7 +120,6 @@ class Demo(object):
         self.interface.disconnect()
         # set the terminal back to its initial state
         self.kb.set_normal_term()
-        self.redis_server.set("get_target", "False")
         # write data to file if it was tracked
         self.write_data()
 

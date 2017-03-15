@@ -14,7 +14,7 @@ from demo_class import Demo
 
 class Demo32(Demo):
     def __init__(self, weights_file, track_data=True,
-                 learning_rate=2.5e-5, use_probes=True):
+                 learning_rate=1e-5, use_probes=True):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural(
@@ -22,10 +22,10 @@ class Demo32(Demo):
         super(Demo32, self).__init__(track_data=track_data)
 
         # ------ CONTROL PARAMETERS --------
-        kp = 110
-        kv = 12
+        kp = 20
+        kv = 6
         vmax = 1
-        null = False
+        null = True
         # ----------------------------------
 
         # create a server for the vision system to connect to
@@ -70,8 +70,7 @@ class Demo32(Demo):
 
         # track data
         self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
-            'EE': [], 'target': [], 'filtered_target': [], 'error' : [],
-            'time': []}
+            'EE': [], 'target': [], 'filtered_target': [], 'error' : []}
 
         self.get_qdq()
 
@@ -90,7 +89,7 @@ class Demo32(Demo):
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
         self.filtered_target = xyz
 
-    def start_loop(self, magnitude=0.9, filter_const=0.003):
+    def start_loop(self, magnitude=0.9, filter_const=0.005):
         # get position feedback from robot
         now = timeit.default_timer()
         if self.previous is not None and self.count%1000 == 0:
@@ -118,9 +117,9 @@ class Demo32(Demo):
                                offset=self.offset)
         u[0] *= 2.0
         # generate adaptive signal
-        #adaptive = self.adapt.generate(
-        #    q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
-        #u += adaptive
+        adaptive = self.adapt.generate(
+            q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
+        u += adaptive
 
         # send control signal to Jaco 2
         self.interface.send_forces(np.array(u, dtype='float32'))
@@ -143,9 +142,6 @@ class Demo32(Demo):
             self.tracked_data['EE'].append(np.copy(xyz))
             self.tracked_data['error'].append(
                 np.sqrt(np.sum((xyz - target_xyz)**2)))
-            self.tracked_data['time'].append(
-                timeit.default_timer() - now)
-
 
         if error < .01:
             # if we're at the target, start count
@@ -211,34 +207,35 @@ class Demo32(Demo):
         # return to home position
         self.mode = 'move_home'
 
-try:
+def main(trial=0, auto_start=False,
+        data_folder='data/no_name'):
+    try:
 
-    # if trial = 0 it creates a new set of decoders = 0
-    # otherwise it loads the weights from trial - 1
-    # learning rate 5e-6 for hammer
-    # learning rate 1e-6 for wrench
-    trial = 0
-    print('S T A R T I N G  T R I A L ', trial)
-    data_folder = 'data/deliverable5/wrench/compliant'
-    abr_control.utils.os_utils.makedir(data_folder + '/trial%i/' % trial)
-    if trial > 0:
-        weights_file = ['%s/trial%i/weights.npz' % (data_folder, trial - 1)]
-    elif trial == 0:
-        weights_file = None
+        # if trial = 0 it creates a new set of decoders = 0
+        # otherwise it loads the weights from trial - 1
+        # learning rate 5e-6 for hammer
+        # learning rate 1e-6 for wrench
+        abr_control.utils.os_utils.makedir(data_folder + '/trial%i/' % trial)
+        if trial > 0:
+            weights_file = ['%s/trial%i/weights.npz' % (data_folder, trial - 1)]
+        elif trial == 0:
+            weights_file = None
 
-    demo32 = Demo32(weights_file)
-    demo32.data_folder = data_folder
-    demo32.trial = trial
-    print('offset: ', demo32.offset)
-    demo32.run()
+        demo32 = Demo32(weights_file)
+        demo32.data_folder = data_folder
+        demo32.trial = trial
+        print('offset: ', demo32.offset)
+        #if auto_start is True:
+        #    self.mode = 'start'
+        demo32.run()
 
-except Exception as e:
-     print(traceback.format_exc())
+    except Exception as e:
+         print(traceback.format_exc())
 
-finally:
-    demo32.stop()
-    # write weights from dynamics adaptation to file
-    if demo32.adapt.probe_weights is not None:
-        np.savez_compressed(
-            '%s/trial%i/weights' % (demo32.data_folder, demo32.trial),
-            weights=[demo32.adapt.sim.data[demo32.adapt.probe_weights[0]]])
+    finally:
+        demo32.stop()
+        # write weights from dynamics adaptation to file
+        if demo32.adapt.probe_weights is not None:
+            np.savez_compressed(
+                '%s/trial%i/weights' % (demo32.data_folder, demo32.trial),
+                weights=[demo32.adapt.sim.data[demo32.adapt.probe_weights[0]]])

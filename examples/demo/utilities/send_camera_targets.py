@@ -14,7 +14,7 @@ redis_server = redis.StrictRedis(host='localhost')
 redis_server.set("controller_name", "Adaptive")
 
 # set true if only want to loop through targets once
-single_pass = False
+single_pass = True
 
 # in camera coordinate system
 target_positions = np.array([
@@ -37,7 +37,7 @@ target_positions = np.array([
 first_pass = True
 get_target = redis_server.get("get_target").decode('ascii')
 num_targets = 1
-
+counter = 0
 while 1:
     try:
         print('waiting for control to initialize...')
@@ -61,12 +61,20 @@ while 1:
                         redis_server.set('target_xyz', '%.3f %.3f %.3f'
                             % (target_positions[ii,0], target_positions[ii,1],
                                target_positions[ii,2]))
-                        time.sleep(5)
+                        print('Count ', counter)
+                        print('Waiting for arm to adapt...')
+                        counter += 1
+                        for sec in range(0,60):
+                            get_target = redis_server.get("get_target").decode('ascii')
+                            if get_target == 'True':
+                                time.sleep(1)
+                        print('Time limit up')
                     else:
                         print('User quit, exiting script...')
                         break
 
                 if single_pass is True:
+                    print('Exiting script')
                     break
             else:
                 pass
@@ -77,7 +85,11 @@ while 1:
     finally:
         print('Setting \'network running\' to False')
         redis_server.set("network_running", "False")
+        print('Stopping arm')
         redis_server.set("stop_arm", "True")
 
     # get set up to loop again
     first_pass = True
+    # wait a few seconds to allow all redis parameters to be reset
+    # by other scripts
+    time.sleep(2)
