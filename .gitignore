@@ -98,3 +98,4 @@ ENV/
 saved_functions*
 
 *.swo
+*data*
