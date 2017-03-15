@@ -82,9 +82,9 @@ def main():
     try:
         demo = Demo12()
         demo.run()
-    
+
     except Exception as e:
         print(traceback.format_exc())
-    
+
     finally:
         demo.stop()

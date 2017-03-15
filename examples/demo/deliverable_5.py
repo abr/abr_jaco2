@@ -78,6 +78,8 @@ class Demo32(Demo):
 
         self.get_target_from_vision = True
 
+        self.at_target_count = 0
+
     def start_setup(self):
         # switch to torque control mode
         self.interface.init_force_mode()
@@ -124,7 +126,9 @@ class Demo32(Demo):
 
         # print out the error every so often
         if self.count % 100 == 0:
-            error = self.print_error(xyz, target_xyz)
+            error = self.print_error(xyz, target_xyz, display_error=True)
+        else:
+            error = self.print_error(xyz, target_xyz, display_error=False)
 
         # track data
         if self.track_data is True:
@@ -139,6 +143,15 @@ class Demo32(Demo):
             self.tracked_data['error'].append(
                 np.sqrt(np.sum((xyz - target_xyz)**2)))
 
+        if error < .01:
+            # if we're at the target, start count
+            # down to moving to the next target
+            self.at_target_count += 1
+            if self.at_target_count >= 200:
+                print('Target Reached')
+                self.mode = 'quit'
+        else:
+            self.at_target_count = 0
 
     def get_tooltip_loop(self):
         num_positions = len(self.demo_tooltip_read_positions)
@@ -200,8 +213,8 @@ try:
     # otherwise it loads the weights from trial - 1
     # learning rate 5e-6 for hammer
     # learning rate 1e-6 for wrench
-    trial = 10
-    data_folder = 'data/demo32/wrench'
+    trial = 3
+    data_folder = 'data/deliverable5/wrench'
     abr_control.utils.os_utils.makedir(data_folder + '/trial%i/' % trial)
     if trial > 0:
         weights_file = ['%s/trial%i/weights.npz' % (data_folder, trial - 1)]

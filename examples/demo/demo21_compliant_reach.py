@@ -14,13 +14,11 @@ from demo_class import Demo
 class Demo21(Demo):
     def __init__(self, track_data=False):
 
-        self.track_data = track_data
-
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config(
             use_cython=True, hand_attached=True)
 
-        super(Demo21, self).__init__()
+        super(Demo21, self).__init__(track_data=track_data)
 
         # ------ CONTROL PARAMETERS --------
         kp = 20
@@ -104,13 +102,14 @@ class Demo21(Demo):
             self.tracked_data['target'].append(np.copy(target_xyz))
             self.tracked_data['EE'].append(np.copy(xyz))
 def main():
-    
+
     try:
-        demo = Demo21()
+        demo = Demo21(track_data=True)
         demo.run()
-    
+
     except:
         print(traceback.format_exc())
-    
+
     finally:
+        data_folder = 'data/demo32/wrench/nonadaptive'
         demo.stop()

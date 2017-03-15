@@ -142,7 +142,6 @@ class Demo32(Demo):
 
     def get_tooltip_loop(self):
         num_positions = len(self.demo_tooltip_read_positions)
-        self.redis_server.set("controller_name", "Non-compliant")
         tooltip_offsets = np.zeros((num_positions, 3))
         # Move to read positions
         for ii in range(num_positions):
@@ -197,7 +196,7 @@ class Demo32(Demo):
 
 def main():
     try:
-    
+
         # if trial = 0 it creates a new set of decoders = 0
         # otherwise it loads the weights from trial - 1
         trial = 0
@@ -205,19 +204,14 @@ def main():
             weights_file = ['data/demo32_weights_trial%i.npz' % (trial - 1)]
         elif trial == 0:
             weights_file = None
-    
+
         demo32 = Demo32(weights_file)
         demo32.trial = trial
         demo32.run()
-    
+
     except Exception as e:
          print(traceback.format_exc())
-    
+
     finally:
         demo32.stop()
         demo32.write_data()
-        # write weights from dynamics adaptation to file
-        if demo32.adapt.probe_weights is not None:
-            np.savez_compressed(
-                'data/demo32_weights_trial%i' % trial,
-                weights=[demo32.adapt.sim.data[demo32.adapt.probe_weights[0]]])

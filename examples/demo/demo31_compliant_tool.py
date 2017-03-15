@@ -29,7 +29,6 @@ class Demo31(Demo):
         # ----------------------------------
 
         # create a server for the vision system to connect to
-        # create a server for the vision system to connect to
         self.redis_server = redis.StrictRedis(host='localhost')
         self.redis_server.set("controller_name", "Compliant")
 
@@ -75,11 +74,6 @@ class Demo31(Demo):
         now = timeit.default_timer()
         if self.previous is not None and self.count%1000 == 0:
             print("dt:",now-self.previous)
-            #Determine how many neurons are active then delete the data
-            #if len(self.adapt.sim._probe_outputs[self.adapt.ens_activity]) != 0:
-            #    tmp = self.adapt.sim._probe_outputs[self.adapt.ens_activity][-1]
-            #    print("percent neurons active:", np.count_nonzero(tmp)/self.n_neurons)
-            #    del self.adapt.sim._probe_outputs[self.adapt.ens_activity][:]
 
         self.previous = now
         self.get_qdq()
@@ -177,23 +171,23 @@ class Demo31(Demo):
         # return to home position
         self.mode = 'move_home'
 
-try:
+def main():
+    try:
 
-    # if trial = 0 it creates a new set of decoders = 0
-    # otherwise it loads the weights from trial - 1
-    trial = 0
-    if trial > 0:
-        weights_file = ['data/demo31_weights_trial%i.npz' % (trial - 1)]
-    elif trial == 0:
-        weights_file = None
+        # if trial = 0 it creates a new set of decoders = 0
+        # otherwise it loads the weights from trial - 1
+        trial = 0
+        if trial > 0:
+            weights_file = ['data/demo31_weights_trial%i.npz' % (trial - 1)]
+        elif trial == 0:
+            weights_file = None
 
-    demo31 = Demo31(weights_file)
-    demo31.trial = trial
-    demo31.run()
+        demo31 = Demo31(weights_file)
+        demo31.trial = trial
+        demo31.run()
 
-except Exception as e:
-     print(traceback.format_exc())
+    except Exception as e:
+         print(traceback.format_exc())
 
-finally:
-    demo31.stop()
-    # write weights from dynamics adaptation to file
+    finally:
+        demo31.stop()

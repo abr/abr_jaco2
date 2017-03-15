@@ -37,8 +37,6 @@ class Demo(object):
         self.interface.apply_q(self.demo_init_torque_position)
 
         self.demo_tooltip_read_positions = np.array(
-            #[[4.83645727, 2.1057941, 1.95758253,
-            #  2.74116295, 4.61607869, 3.46826159],
             [[5.52770083, 1.92617041, 1.85878244,
               4.29060418, 1.9736527, 5.55000764],
             [6.1248166, 1.35746381, 1.28933629,
@@ -62,6 +60,7 @@ class Demo(object):
         self.get_target_from_vision = False
 
         self.offset = None
+        self.data_folder = 'data'
 
     def run(self):
         print('Arm Ready')
@@ -200,11 +199,6 @@ class Demo(object):
         norm = np.linalg.norm(target - joint1_offset)
         if norm > magnitude:
             target = ((target - joint1_offset) / norm) * magnitude + joint1_offset
-        # format used in nengo display, not sure if needs %g format
-        #self.redis_server.set('normalized', '%g,%g,%g' % tuple(target))
-        #self.redis_server.set(
-        #    'norm_target_xyz_robot_coords', '%.3f %.3f %.3f' % (target[0],
-        #    target[1], target[2]))
         return target
 
     def filter_target(self, filter_const, filtered_target_in, target):
@@ -221,19 +215,22 @@ class Demo(object):
     def get_tooltip_loop(self):
         raise Exception('get tooltip loop method not implemented')
 
-    def print_error(self, xyz, target):
+    def print_error(self, xyz, target, display_error=False):
         """ Print out the distance from the end-effector to xyz target """
         error = np.sqrt(np.sum((xyz - target)**2))
         self.redis_server.set('error', error)  # Send to redis
         self.redis_server.set('xyz', xyz)
-        self.redis_server.set(
-            'training_signal', self.ctrlr.training_signal)
-        print('error: ', error)
+        # self.redis_server.set(
+        #     'training_signal', self.ctrlr.training_signal)
+        # print('error: ', error)
+        if display_error == True:
+            print('error: ', error)
         return error
 
     def write_data(self):
         """ Write the data stored in the data dictionary to file """
         if self.track_data is True:
             for key in self.tracked_data:
-                np.savez_compressed('data/%s%i' % (key, self.trial),
+                np.savez_compressed('%s/trial%i/%s' % (self.data_folder,
+                                                       self.trial, key),
                                     self.tracked_data[key])
