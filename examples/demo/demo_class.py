@@ -37,7 +37,7 @@ class Demo(object):
         self.interface.apply_q(self.demo_init_torque_position)
 
         self.demo_tooltip_read_positions = np.array(
-            [[5.52770083, 1.92617041, 1.85878244,
+            [[5.32770083, 1.92617041, 1.85878244,
               4.29060418, 1.9736527, 5.55000764],
             [6.1248166, 1.35746381, 1.28933629,
               1.01879334, 6.26423963, 2.91255281]], dtype='float32')

@@ -14,7 +14,7 @@ from demo_class import Demo
 
 class Demo32(Demo):
     def __init__(self, weights_file, track_data=True,
-                 learning_rate=2.5e-5, use_probes=True):
+                 learning_rate=5e-5, use_probes=True):
 
         # initialize our robot config for neural controllers
         self.robot_config = abr_jaco2.robot_config_neural(
@@ -22,10 +22,10 @@ class Demo32(Demo):
         super(Demo32, self).__init__(track_data=track_data)
 
         # ------ CONTROL PARAMETERS --------
-        kp = 110
-        kv = 12
+        kp = 20
+        kv = 6
         vmax = 1
-        null = False
+        null = True
         # ----------------------------------
 
         # create a server for the vision system to connect to
@@ -69,7 +69,7 @@ class Demo32(Demo):
         self.adapt.generate(zeros, zeros, zeros)
 
         # track data
-        self.tracked_data = {'q': [], 'dq': [], 'training_signal': [],
+        self.tracked_data = {'q': [], 'dq': [], 'control_signal': [],
             'EE': [], 'target': [], 'filtered_target': [], 'error' : [],
             'time': []}
 
@@ -105,7 +105,10 @@ class Demo32(Demo):
         target_xyz = self.get_target_from_camera()
         target_xyz = self.normalize_target(target_xyz, magnitude=magnitude)
         # filter the target so that it doesn't jump, but moves smoothly
-        self.filtered_target += filter_const * (target_xyz - self.filtered_target)
+        if np.linalg.norm(target_xyz - self.filtered_target) < 0.002:
+            self.filtered_target = target_xyz
+        else:
+            self.filtered_target += filter_const * (target_xyz - self.filtered_target)
         self.redis_server.set(
             'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
             % (self.filtered_target[0],
@@ -118,9 +121,9 @@ class Demo32(Demo):
                                offset=self.offset)
         u[0] *= 2.0
         # generate adaptive signal
-        #adaptive = self.adapt.generate(
-        #    q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
-        #u += adaptive
+        adaptive = self.adapt.generate(
+            q=self.q, dq=self.dq, training_signal=self.ctrlr.training_signal)
+        u += adaptive
 
         # send control signal to Jaco 2
         self.interface.send_forces(np.array(u, dtype='float32'))
@@ -135,8 +138,8 @@ class Demo32(Demo):
         if self.track_data is True:
             # self.tracked_data['q'].append(np.copy(self.q))
             # self.tracked_data['dq'].append(np.copy(self.dq))
-            # self.tracked_data['training_signal'].append(
-            #     np.copy(self.ctrlr.training_signal))
+            self.tracked_data['control_signal'].append(
+                np.copy(u))
             # self.tracked_data['filtered_target'].append(
             #     np.copy(self.filtered_target))
             self.tracked_data['target'].append(np.copy(target_xyz))
@@ -151,7 +154,7 @@ class Demo32(Demo):
             # if we're at the target, start count
             # down to moving to the next target
             self.at_target_count += 1
-            if self.at_target_count >= 200:
+            if self.at_target_count >= 50:
                 print('Target Reached')
                 self.mode = 'quit'
         else:
@@ -217,9 +220,10 @@ try:
     # otherwise it loads the weights from trial - 1
     # learning rate 5e-6 for hammer
     # learning rate 1e-6 for wrench
-    trial = 0
+    trial = 9
     print('S T A R T I N G  T R I A L ', trial)
-    data_folder = 'data/deliverable5/wrench/compliant'
+    data_folder = ('data/deliverable5/tool_data/heatgun/' +
+                   'filter_0.003/null_off/adaptive/5e-5')
     abr_control.utils.os_utils.makedir(data_folder + '/trial%i/' % trial)
     if trial > 0:
         weights_file = ['%s/trial%i/weights.npz' % (data_folder, trial - 1)]
