@@ -36,8 +36,9 @@ target_positions = np.array([
 # and wait for user to start
 first_pass = True
 get_target = redis_server.get("get_target").decode('ascii')
-num_targets = 1
+num_targets = 3
 counter = 0
+reach_t_limit = 20  # in seconds
 while 1:
     try:
         print('waiting for control to initialize...')
@@ -64,7 +65,7 @@ while 1:
                         print('Count ', counter)
                         print('Waiting for arm to adapt...')
                         counter += 1
-                        for sec in range(0,60):
+                        for sec in range(0,reach_t_limit):
                             get_target = redis_server.get("get_target").decode('ascii')
                             if get_target == 'True':
                                 time.sleep(1)
