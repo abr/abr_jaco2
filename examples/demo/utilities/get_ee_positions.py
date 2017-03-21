@@ -11,17 +11,20 @@ import abr_control
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.robot_config(
     use_cython=True, hand_attached=True)
-zeros = np.zeros(robot_config.num_joints)
-robot_config.Tx('EE', q=zeros, x=robot_config.offset)
+
 # instantiate operation space controller
 ctrlr = abr_control.controllers.floating(robot_config)
+
+# make sure all the functions we need are generated
+zeros = np.zeros(robot_config.num_joints)
 ctrlr.control(zeros, zeros)
+robot_config.Tx('EE', q=zeros, x=robot_config.offset)
+
 # create our interface for the jaco2
 interface = abr_jaco2.interface(robot_config)
 # connect to the jaco
 interface.connect()
 interface.init_position_mode()
-
 # move to the home position
 interface.apply_q(robot_config.init_torque_position)
 
@@ -34,6 +37,7 @@ mode = ''
 count = 0
 ee_xyz = []
 try:
+    interface.init_force_mode()
     print('Press \'w\' to record current ee position')
     print('Press \'q\' to quit and print recorded targets')
     while 1:
