@@ -36,6 +36,7 @@ kb = abr_jaco2.KBHit()
 mode = ''
 count = 0
 ee_xyz = []
+camera_xyz = []
 try:
     interface.init_force_mode()
     print('Press \'w\' to record current ee position')
@@ -57,10 +58,13 @@ try:
         interface.send_forces(np.array(u, dtype='float32'))
 
         if mode == 'get_ee_xyz':
+            # get current position of end-effector
             xyz = robot_config.Tx('EE', q=q, x=robot_config.offset)
             ee_xyz.append(np.copy(xyz))
-            #ee_num = len(ee_xyz)
-            #print('target %i: ' % ee_num, ee_xyz[ee_num])
+            # convert to camera coordinates
+            T_inv = robot_config.T_inv('camera', q=np.zeros)
+            camera_xyz.append(np.dot(T_inv, np.hstack([xyz, 1]))[:-1])
+
             mode = ''
 
         elif mode == 'quit':
@@ -75,4 +79,6 @@ finally:
     interface.disconnect()
     print('T A R G E T  P O S I T I O N S')
     print(ee_xyz)
+    print('T A R G E T  P O S I T I O N S  C A M E R A')
+    print(camera_xyz)
     print('Disconnected')
