@@ -7,7 +7,7 @@ import abr_jaco2
 
 rc = abr_jaco2.robot_config()
 
-folder = '/home/tdewolf/src/parameter_testing/adaptive/baseline/trial0'
+folder = '../data/parameter_testing/adaptive/hold_arm_down/trial0'
 
 # load in data
 EE = np.load('%s/EE.npz' % folder)['arr_0']
@@ -22,7 +22,7 @@ fig.add_subplot(1, 1, 1, projection='3d')
 
 plt.plot(EE[:, 0], EE[:, 1], EE[:, 2], 'r--')
 plt.plot(target[:, 0], target[:, 1], target[:, 2], 'rx', mew=10)
-for ii in range(0, q.shape[0], 20):
+for ii in range(0, q.shape[0], 50):
     # calculate the Jacobian
     J = rc.J('EE', q=q[ii])
     # transform from 6D space to 3D

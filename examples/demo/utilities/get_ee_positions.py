@@ -59,8 +59,8 @@ try:
         if mode == 'get_ee_xyz':
             xyz = robot_config.Tx('EE', q=q, x=robot_config.offset)
             ee_xyz.append(np.copy(xyz))
-            ee_num = len(ee_xyz)
-            print('target %i: ' % ee_num, ee_xyz(ee_num))
+            #ee_num = len(ee_xyz)
+            #print('target %i: ' % ee_num, ee_xyz[ee_num])
             mode = ''
 
         elif mode == 'quit':
@@ -73,4 +73,6 @@ finally:
     interface.init_position_mode()
     interface.apply_q(robot_config.init_torque_position)
     interface.disconnect()
+    print('T A R G E T  P O S I T I O N S')
+    print(ee_xyz)
     print('Disconnected')

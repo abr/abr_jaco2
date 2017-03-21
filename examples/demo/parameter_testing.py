@@ -28,7 +28,7 @@ class Demo22(Demo):
         self.kv = 6
         self.vmax = 1
         self.null = False
-        self.notes = 'Three targets @ 20sec, baseline used in demo, no C or dJ'
+        self.notes = 'One target, holding arm to build up force, no C or dJ'
         self.control = 'adaptive'
 
         self.learning_rate = learning_rate
@@ -89,7 +89,7 @@ class Demo22(Demo):
         xyz = self.robot_config.Tx('EE', q=self.q, x=self.offset)
         self.filtered_target = xyz
 
-    def start_loop(self, magnitude=.9, filter_const=0.005):
+    def start_loop(self, magnitude=.9, filter_const=0.005, white_noise=True):
         # get position feedback from robot
         now = timeit.default_timer()
         if self.previous is not None and self.count % 1000 == 0:
@@ -106,6 +106,16 @@ class Demo22(Demo):
         # filter the target so that it doesn't jump, but moves smoothly
         self.filtered_target += filter_const * (
             target_xyz - self.filtered_target)
+
+        if white_noise is True:
+            center = 0
+            #scale = 0.025
+            scale = 0.001
+            num_samples = 3
+            noise = np.random.normal(center, scale, size=num_samples)
+
+            self.filtered_target += noise
+
         self.redis_server.set(
             'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
             % (self.filtered_target[0],
@@ -143,12 +153,16 @@ class Demo22(Demo):
             self.tracked_data['u'].append(np.copy(u))
             if self.control == 'adaptive':
                 self.tracked_data['u_adapt'].append(np.copy(adaptive))
+
+        self.redis_server.set('u_adapt', '%.3f %.3f %.3f %.3f %.3f %.3f'
+            % (adaptive[0], adaptive[1], adaptive[2],
+               adaptive[3], adaptive[4], adaptive[5]))
 try:
 
     # if trial = 0 it creates a new set of decoders = 0
     # otherwise it loads the weights from trial - 1
     trial = 0
-    test_name = '/adaptive/baseline_no_null'
+    test_name = '/adaptive/training/noise_1e-3'
     data_folder = 'data/parameter_testing' + test_name
     abr_control.utils.os_utils.makedir(data_folder + '/trial%i/' % trial)
     if trial > 0:
