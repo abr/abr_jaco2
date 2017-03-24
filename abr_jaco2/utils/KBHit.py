@@ -1,7 +1,8 @@
-import termios #Imports for keyboard handling
+import termios
 import atexit
 from select import select
 import sys
+
 
 class KBHit:
     '''Class for dealing with keyboard inputs'''
@@ -33,5 +34,5 @@ class KBHit:
     def kbhit(self):
         ''' Returns True if keyboard character was hit, False otherwise.
         '''
-        dr,dw,de = select([sys.stdin], [], [], 0)
+        dr, dw, de = select([sys.stdin], [], [], 0)
         return dr != []
