@@ -20,7 +20,7 @@ class robot_config(config.robot_config):
             }
 
         self.scales = {
-            'q' : np.ones(self.num_joints) * np.pi,
+            'q': np.ones(self.num_joints) * np.pi,
             'dq': np.array([1.22826, 2.0, 1.42348,
                             2.58221, 2.50768, 1.27004])
             }
