@@ -25,7 +25,7 @@ class robot_config(robot_config):
         self._T = {}  # dictionary for storing calculated transforms
 
         # set up saved functions folder to be in the abr_jaco repo
-        self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
+        self.config_folder = (os.path.dirname(__file__) +
                               '/saved_functions_')
         self.config_folder += ('with_hand' if self.hand_attached is True
                                else 'no_hand')

@@ -3,3 +3,4 @@ from .config.config_neural import robot_config as config_neural
 from .interface.interface import interface
 from .interface import jaco2_rs485
 from . import utils
+from .utils.KBHit import KBHit as KBHit

@@ -1,6 +1,6 @@
 import numpy as np
 
-from .interface_files import jaco2_rs485
+from . import jaco2_rs485
 from abr_control.interfaces import interface
 
 
@@ -65,9 +65,8 @@ class interface(interface.interface):
         """ Send true to open hand, false to close, moves in
         increments for each function call
         """
-        self.jaco2.ApplyQHand(open)
+        self.jaco2.SendTargetAnglesHand(open)
 
-    # TODO: change name to send_forces in C++ code
     def send_forces(self, u):
         """ Applies the set of torques u to the arm.
 
@@ -75,9 +74,8 @@ class interface(interface.interface):
         the arm reverts back to position control and the
         InitForceMode function must be called again.
         """
-        self.jaco2.ApplyU(u)
+        self.jaco2.SendForces(u)
 
-    # TODO: change name to send_target_angles in C++
     def send_target_angles(self, q):
         """ Moves the arm to the specified joint angles using
         the on-board PD controller.
@@ -86,4 +84,4 @@ class interface(interface.interface):
         """
         # convert from radians into degrees the Jaco expects
         q = np.array(q) * 180.0 / np.pi
-        self.jaco2.ApplyQ(q)
+        self.jaco2.SendTargetAngles(q)
