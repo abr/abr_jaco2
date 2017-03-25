@@ -561,6 +561,25 @@ void Jaco2::ProcessFeedback() {
 
         switch (feedback_message[ii].Command) {
 
+            case RS485_MSG_SEND_ALL_VALUES_1:
+
+                pos[current_motor] = feedback_message[ii].DataFloat[1];
+                vel[current_motor] = feedback_message[ii].DataFloat[2];
+                torque_load[current_motor] = feedback_message[ii].DataFloat[3];
+                updated[current_motor] = 1;
+
+                break;
+
+            case POSITION_AND_CURRENT :
+
+            case SEND_ACTUAL_POSITION :
+
+                pos[current_motor] = feedback_message[ii].DataFloat[1];
+                torque_load[current_motor] = feedback_message[ii].DataFloat[3];
+                updated[current_motor] = 1;
+
+                break;
+
             case REPORT_ERROR :
                 PrintError(ii, current_motor);
                 // in case of an error, go on to the next packet
@@ -576,25 +595,6 @@ void Jaco2::ProcessFeedback() {
             // case ACK_MESSAGE :
             //     // a clear error acknowledgement was received
             //     break;
-
-            case POSITION_AND_CURRENT :
-
-            case SEND_ACTUAL_POSITION :
-
-                pos[current_motor] = feedback_message[ii].DataFloat[1];
-                torque_load[current_motor] = feedback_message[ii].DataFloat[3];
-                updated[current_motor] = 1;
-
-                break;
-
-            case RS485_MSG_SEND_ALL_VALUES_1:
-
-                pos[current_motor] = feedback_message[ii].DataFloat[1];
-                vel[current_motor] = feedback_message[ii].DataFloat[2];
-                torque_load[current_motor] = feedback_message[ii].DataFloat[3];
-                updated[current_motor] = 1;
-
-                break;
 
             case SEND_TORQUE_VALIDATION :
 
