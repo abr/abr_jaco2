@@ -570,9 +570,9 @@ void Jaco2::ProcessFeedback() {
 
                 break;
 
-            case POSITION_AND_CURRENT :
+            case POSITION_AND_CURRENT:
 
-            case SEND_ACTUAL_POSITION :
+            case SEND_ACTUAL_POSITION:
 
                 pos[current_motor] = feedback_message[ii].DataFloat[1];
                 torque_load[current_motor] = feedback_message[ii].DataFloat[3];
@@ -580,7 +580,7 @@ void Jaco2::ProcessFeedback() {
 
                 break;
 
-            case REPORT_ERROR :
+            case REPORT_ERROR:
                 PrintError(ii, current_motor);
                 // in case of an error, go on to the next packet
 
@@ -592,68 +592,78 @@ void Jaco2::ProcessFeedback() {
                 updated[current_motor] = 0;
                 break;
 
-            // case ACK_MESSAGE :
+            // case ACK_MESSAGE:
             //     // a clear error acknowledgement was received
             //     break;
 
-            case SEND_TORQUE_VALIDATION :
+            case SEND_TORQUE_VALIDATION:
 
                 // safety measure checks
-                if (feedback_message[ii].DataLong[0] == 1) {
-                    cout << "Torque Validation True for Servo "
-                        << current_motor << " , Response: "
-                        << feedback_message[ii].DataLong[0] << endl;
-                    updated[current_motor] = 1;
-                }
-                else if (feedback_message[ii].DataLong[0] == 0) {
-                    cout << "Torque Validation False for Servo "
-                        << current_motor << " , Response: "
-                        << feedback_message[ii].DataLong[0] << endl;
-                }
-                else {
-                    cout << "ERROR READING TORQUE VALIDATION REPLY FOR SERVO: "
-                        << current_motor << " , RESPONSE: "
-                        << feedback_message[ii].DataLong[0] << endl;
+                switch (feedback_message[ii].DataLong[0]) {
+
+                    case 0:
+                        cout << "Torque Validation False for Servo "
+                            << current_motor << " , Response: "
+                            << feedback_message[ii].DataLong[0] << endl;
+                        break;
+
+                    case 1:
+                        cout << "Torque Validation True for Servo "
+                            << current_motor << " , Response: "
+                            << feedback_message[ii].DataLong[0] << endl;
+                        updated[current_motor] = 1;
+                        break;
+
+                    default:
+                        cout << "ERROR READING TORQUE VALIDATION REPLY FOR SERVO: "
+                            << current_motor << " , RESPONSE: "
+                            << feedback_message[ii].DataLong[0] << endl;
                 }
 
                 break;
 
-            case SWITCH_CONTROL_MODE_REPLY :
+            case SWITCH_CONTROL_MODE_REPLY:
 
-                if (feedback_message[ii].DataLong[0] == 257) {
-                    cout << "Switch Control Mode TORQUE True for Servo "
+                switch (feedback_message[ii].DataLong[0]) {
+
+                    case 0:
+                        cout << "Switch Control Mode False for Servo "
                             << current_motor << " , Response: "
                             << feedback_message[ii].DataLong[0] << endl;
-                    updated[current_motor] = 1;
-                }
-                else if (feedback_message[ii].DataLong[0] == 1) {
-                    cout << "Switch Control Mode POSITION True for Servo "
-                            << current_motor << " , Response: "
+                        break;
+
+                    case 1:
+                        cout << "Switch Control Mode POSITION True for Servo "
+                                << current_motor << " , Response: "
+                                << feedback_message[ii].DataLong[0] << endl;
+                        updated[current_motor] = 1;
+                        break;
+
+                    case 257:
+                        cout << "Switch Control Mode TORQUE True for Servo "
+                                << current_motor << " , Response: "
+                                << feedback_message[ii].DataLong[0] << endl;
+                        updated[current_motor] = 1;
+                        break;
+
+                    default:
+
+                        cout << "ERROR READING SWITCH CONTROL MODE REPLY FOR SERVO "
+                            << current_motor << " , RESPONSE: "
                             << feedback_message[ii].DataLong[0] << endl;
-                    updated[current_motor] = 1;
-                }
-                else if (feedback_message[ii].DataLong[0] == 0) {
-                    cout << "Switch Control Mode False for Servo "
-                        << current_motor << " , Response: "
-                        << feedback_message[ii].DataLong[0] << endl;
-                }
-                else {
-                    cout << "ERROR READING SWITCH CONTROL MODE REPLY FOR SERVO "
-                        << current_motor << " , RESPONSE: "
-                        << feedback_message[ii].DataLong[0] << endl;
                 }
                 break;
 
-            case GET_TORQUE_CONFIG_SAFETY :
+            case GET_TORQUE_CONFIG_SAFETY:
 
                 updated[current_motor] = 1;
                 cout << "Safety passed for servo " << current_motor << endl;
 
                 break;
 
-            //default :
+            //default:
 
-                //cout << "Unknown command : " << feedback_message[ii].Command
+                //cout << "Unknown command: " << feedback_message[ii].Command
                 //     << endl;
         }
     }
