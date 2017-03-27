@@ -1,1 +1,1 @@
-from . import KBHit
+from .KBHit import KBHit
