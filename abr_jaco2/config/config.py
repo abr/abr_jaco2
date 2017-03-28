@@ -41,7 +41,7 @@ class robot_config(robot_config):
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
         self.rest_angles = np.array(
-            [None, 2.42, 2.42, 0.3, 0.3, 0.3], dtype='float32')
+            [None, 2.42, 2.42, 4.67, 0.02, 3.05], dtype='float32')
 
         # a gain to help the robot compensate for gravity
         self.mass_multiplier_wrist = 1.2
