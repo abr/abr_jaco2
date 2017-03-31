@@ -13,7 +13,8 @@ import abr_jaco2
 robot_config = abr_jaco2.config(
     use_cython=True, hand_attached=True)
 
-record_q = True
+record_q = False # record q on keyboard hit
+record_all_q = True # record all q
 q_list = []
 ctrlr = abr_control.controllers.floating(robot_config)
 ctrlr.control(np.zeros(6), np.zeros(6))
@@ -28,7 +29,7 @@ init_torque_position = np.array(
 # ---------- MAIN BODY ----------
 # Move to home position
 interface.send_target_angles(init_torque_position)
-
+kb = abr_jaco2.utils.KBHit()
 try:
     interface.init_force_mode()
 
@@ -43,6 +44,13 @@ try:
         interface.send_forces(np.array(u, dtype='float32'))
 
         if record_q is True:
+            if kb.kbhit():
+                c = kb.getch()
+                if ord(c) == 114: #r to record joint angle
+                    q_list.append(np.copy(q))
+                    print('recording joint angle')
+                    print(q)
+        elif record_all_q is True:
             q_list.append(np.copy(q))
 
 except Exception as e:
@@ -52,7 +60,7 @@ finally:
     interface.init_position_mode()
     interface.send_target_angles(init_torque_position)
     interface.disconnect()
-    if record_q is True:
+    if record_q is True or record_all_q is True:
         q_list = np.array(q_list)
         np.savez_compressed('q',q=q_list)
         # parameter_file = open('float_recorded_q', 'w')
