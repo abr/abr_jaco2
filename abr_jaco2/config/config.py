@@ -17,7 +17,7 @@ class robot_config(robot_config):
                                            robot_name='jaco2', **kwargs)
         # Move from hand COM to fingers
         if self.hand_attached is True:
-            self.offset = np.array([0.06, 0.0, 0.12])
+            self.offset = np.array([0.0, 0.0, 0.12])
         else:
             self.offset = np.array([0.0, 0.0, 0.0])
 
