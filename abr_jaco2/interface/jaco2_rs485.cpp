@@ -442,7 +442,7 @@ void Jaco2::SendForces(float u[6]) {
     }
 
     MyRS485_Write(force_message, packets_sent, write_count);
-    usleep(1000); // TODO: EXPERIMENT WITH DIFFERENT DELAY
+    usleep(1250); // TODO: EXPERIMENT WITH DIFFERENT DELAY
     MyRS485_Read(feedback_message, packets_read, read_count);
 
     // The response for a SEND_POSITION_AND_TORQUE (0x0014) command is 3
