@@ -1,25 +1,29 @@
-import numpy as np
 import os
+import numpy as np
 import sympy as sp
 
-import abr_control
-from abr_control.arms.robot_config import robot_config
+try:
+    import abr_control
+    from abr_control.arms.robot_config import robot_config as RobotConfig
+except ImportError:
+    print("abr_control is not installed, for the most recent jaco2 config"
+          + "please install the abr_control repo")
+    from .skeleton_config import RobotConfig
 
-
-class robot_config(robot_config):
-    """ Robot config file for the Kinova Jaco^2 V2"""
+class Jaco2Config(RobotConfig):
+    """ Robot config file for the Kinova Jaco^2 V2 with force sensors"""
 
     def __init__(self, hand_attached=True, **kwargs):
-
+        """ Initialize robot class with constant values"""
         self.hand_attached = hand_attached
-        num_links = 7 if hand_attached is True else 6
-        super(robot_config, self).__init__(num_joints=6, num_links=num_links,
-                                           robot_name='jaco2', **kwargs)
+        NUM_LINKS = 7 if hand_attached is True else 6
+        super(RobotConfig, self).__init__(NUM_JOINTS=6, NUM_LINKS=NUM_LINKS,
+                                           ROBOT_NAME='jaco2', **kwargs)
         # Move from hand COM to fingers
         if self.hand_attached is True:
-            self.offset = np.array([0.0, 0.0, 0.12])
+            self.OFFSET = np.array([0.0, 0.0, 0.12])
         else:
-            self.offset = np.array([0.0, 0.0, 0.0])
+            self.OFFSET = np.array([0.0, 0.0, 0.0])
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -32,19 +36,17 @@ class robot_config(robot_config):
         # make folder if it doesn't exist
         abr_control.utils.os_utils.makedir(self.config_folder)
 
-        self.F_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
-
         # position to move to before switching to torque mode
-        self.init_torque_position = np.array(
+        self.INIT_TORQUE_POSITION = np.array(
             [1.22, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array(
+        self.REST_ANGLES = np.array(
             [None, 2.42, 2.42, 4.67, 0.02, 3.05], dtype='float32')
 
-        # a gain to help the robot compensate for gravity
-        self.mass_multiplier_wrist = 1.2
+        # a gain to help the robot compensate for gravity in upper arm
+        self.MASS_MULTIPLIER = 1.2
 
         # create the inertia matrices for each link of the kinova jaco2
         self._M_links = [
@@ -122,23 +124,23 @@ class robot_config(robot_config):
                 [0.0, 0.0, 0.0, 2.44e-6, 2.2e-5, 2.77e-4],
                 [0.0, 0.0, 0.0, 2.44e-4, 0.0, -2.76e-6]]),
             sp.Matrix([  # motor3
-                [0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0],
+                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]]),
             sp.Matrix([  # motor4
-                [0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0],
+                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]]),
             sp.Matrix([  # motor5
-                [0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0],
+                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]])]
@@ -163,7 +165,7 @@ class robot_config(robot_config):
         self.L = np.array(self.L)
 
         if self.hand_attached is True:  # add in hand offset
-            self.L_handcom = np.array([0.0, 0.0, -0.08])  # com of the hand
+            self.L_HAND_COM = np.array([0.0, 0.0, -0.08])  # com of the hand
 
         # ---- Transform Matrices ----
 
@@ -262,7 +264,7 @@ class robot_config(robot_config):
         # account for axes and rotation and offsets
         self.Tj3l4b = sp.Matrix([
             [0.85536427, -0.51802699, 0, self.L[8, 0]],
-            [-0.45991232, -0.75940555,  0.46019982, self.L[8, 1]],
+            [-0.45991232, -0.75940555, 0.46019982, self.L[8, 1]],
             [-0.23839593, -0.39363848, -0.88781537, self.L[8, 2]],
             [0, 0, 0, 1]])
         self.Tj3l4 = self.Tj3l4a * self.Tj3l4b
@@ -309,9 +311,9 @@ class robot_config(robot_config):
                 [0, 0, 0, 1]])
             # account for axes changes and offsets
             self.Tj5handcomb = sp.Matrix([
-                [-1, 0, 0, self.L_handcom[0]],
-                [0, 1, 0, self.L_handcom[1]],
-                [0, 0, -1, self.L_handcom[2]],
+                [-1, 0, 0, self.L_HAND_COM[0]],
+                [0, 1, 0, self.L_HAND_COM[1]],
+                [0, 0, -1, self.L_HAND_COM[2]],
                 [0, 0, 0, 1]])
             self.Tj5handcom = self.Tj5handcoma * self.Tj5handcomb
 
@@ -338,14 +340,14 @@ class robot_config(robot_config):
         self.Torgcam = self.Torgcama * self.Torgcamb
 
         # orientation part of the Jacobian (compensating for angular velocity)
-        kz = sp.Matrix([0, 0, 1])
+        KZ = sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 orientation
-            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 orientation
-            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 orientation
-            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 orientation
-            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
-            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
+            self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 orientation
+            self._calc_T('joint2')[:3, :3] * KZ,  # joint 2 orientation
+            self._calc_T('joint3')[:3, :3] * KZ,  # joint 3 orientation
+            self._calc_T('joint4')[:3, :3] * KZ,  # joint 4 orientation
+            self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
 
         # dictionaries used for scaling input into neural systems.
         # Calculate by recording data from movement of interest

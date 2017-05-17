@@ -1,10 +1,16 @@
 import numpy as np
 
+try:
+    import abr_control
+    from abr_control.interfaces import interface as Interface
+except ImportError:
+    print("abr_control is not installed, for the most recent interface code"
+          + "please install the abr_control repo")
+    from .skeleton_interface import Interface
 from . import jaco2_rs485
-from abr_control.interfaces import interface
 
 
-class interface(interface.interface):
+class Jaco2Interface(Interface):
     """ Interface class for the Jaco2 Kinova arm.
     Handles the overhead of interacting with the cython code,
     conforms the functions to the abr_control interface system.
@@ -61,11 +67,11 @@ class interface(interface.interface):
         """
         self.jaco2.InitPositionMode()
 
-    def open_hand(self, open):
+    def open_hand(self, hand_open):
         """ Send true to open hand, false to close, moves in
         increments for each function call
         """
-        self.jaco2.SendTargetAnglesHand(open)
+        self.jaco2.SendTargetAnglesHand(hand_open)
 
     def send_forces(self, u):
         """ Applies the set of torques u to the arm.
