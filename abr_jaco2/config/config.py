@@ -1,25 +1,60 @@
-import numpy as np
 import os
+import numpy as np
 import sympy as sp
 
 import abr_control
-from abr_control.arms.robot_config import robot_config
+from abr_control.arms.base_config import BaseConfig
 
 
-class robot_config(robot_config):
-    """ Robot config file for the Kinova Jaco^2 V2"""
+class Config(BaseConfig):
+    """ Robot config file for the Kinova Jaco^2 V2 with force sensors
+
+    Parameters
+    ----------
+    hand_attached : boolean, optional (Default: True)
+        if false will set the last wrist joint as the end effector
+        if true will set the palm of the hand as the end effector
+    N_JOINTS : int, optional (Default: 6)
+        the number of joint in the jaco arm
+    N_LINKS : int, optional (Default: 6 or 7 depending on hand_attached)
+        the number of links in the jaco2, 6 without hand, 7 with
+    ROBOT_NAME : string, optional (Default: jaco2)
+        name of robot
+
+    Attributes
+    ----------
+    REST_ANGLES : numpy.array
+        the joint angles the arm tries to push towards with the
+        null controller
+    _M_LINKS : sympy.diag
+        inertia matrix of the links
+    _M_JOINTS : sympy.diag
+        inertia matrix of the joints
+    L : numpy.array
+        segment lengths of arm [meters]
+    L_HANDCOM : numpy.array
+        offset to the center of mass of the hand [meters]
+    KZ : sympy.Matrix
+        z isolation vector in orientational part of Jacobian
+
+    Transform Naming Convention: Tpoint1point2
+    ex: Tj1l1 tranforms from joint 1 reference frame to link 1
+    some transforms are broken up into two matrices for simplification
+    ex: Tj0l1a and Tj0l1b where the former transform accounts for
+    rotations and the latter accounts for translations and axes flips
+    """
 
     def __init__(self, hand_attached=True, **kwargs):
-
+        """ Initialize robot class with constant values"""
         self.hand_attached = hand_attached
-        num_links = 7 if hand_attached is True else 6
-        super(robot_config, self).__init__(num_joints=6, num_links=num_links,
-                                           robot_name='jaco2', **kwargs)
+        N_LINKS = 7 if hand_attached is True else 6
+        super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
+                                     ROBOT_NAME='jaco2', **kwargs)
         # Move from hand COM to fingers
         if self.hand_attached is True:
-            self.offset = np.array([0.0, 0.0, 0.12])
+            self.OFFSET = np.array([0.0, 0.0, 0.12])
         else:
-            self.offset = np.array([0.0, 0.0, 0.0])
+            self.OFFSET = np.array([0.0, 0.0, 0.0])
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -30,24 +65,23 @@ class robot_config(robot_config):
                                else 'no_hand')
         self.config_folder += '_' + self.config_hash
         # make folder if it doesn't exist
-        abr_control.utils.os_utils.makedir(self.config_folder)
-
-        self.F_brk = np.array([1.40, 0.85, 0.84, 0.80, 0.75, 0.74])
+        abr_control.utils.os_utils.makedirs(self.config_folder)
 
         # position to move to before switching to torque mode
-        self.init_torque_position = np.array(
+        self.INIT_TORQUE_POSITION = np.array(
             [1.22, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array(
+        self.REST_ANGLES = np.array(
             [None, 2.42, 2.42, 4.67, 0.02, 3.05], dtype='float32')
 
-        # a gain to help the robot compensate for gravity
-        self.mass_multiplier_wrist = 1.2
+        # a gain to help the robot compensate for gravity due to imperfect
+        # model
+        self.MASS_MULTIPLIER = 1.2
 
         # create the inertia matrices for each link of the kinova jaco2
-        self._M_links = [
+        self._M_LINKS = [
             sp.Matrix([  # link0
                 [0.640, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.640, 0.0, 0.0, 0.0, 0.0],
@@ -91,7 +125,7 @@ class robot_config(robot_config):
                 [0.0, 0.0, 0.0, 0.0, 0.0, -3.89e-5],
                 [0.0, 0.0, 0.0, -9.87e-6, 3.16e-5, 0.0]])]
         if self.hand_attached is True:
-            self._M_links.append(sp.Matrix([  # hand
+            self._M_LINKS.append(sp.Matrix([  # hand
                 [0.727, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.727, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.727, 0.0, 0.0, 0.0],
@@ -99,7 +133,7 @@ class robot_config(robot_config):
                 [0.0, 0.0, 0.0, -2.51e-5, 9e-6, 1.04e-6],
                 [0.0, 0.0, 0.0, 5.13e-7, 0.0, 5.25e-5]]))
 
-        self._M_joints = [  # mass of rings added
+        self._M_JOINTS = [  # mass of rings added
             sp.Matrix([  # motor 0
                 [0.586, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.586, 0.0, 0.0, 0.0, 0.0],
@@ -122,23 +156,23 @@ class robot_config(robot_config):
                 [0.0, 0.0, 0.0, 2.44e-6, 2.2e-5, 2.77e-4],
                 [0.0, 0.0, 0.0, 2.44e-4, 0.0, -2.76e-6]]),
             sp.Matrix([  # motor3
-                [0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0],
+                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]]),
             sp.Matrix([  # motor4
-                [0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0],
+                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]]),
             sp.Matrix([  # motor5
-                [0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.mass_multiplier_wrist, 0.0, 0.0, 0.0],
+                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
                 [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
                 [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]])]
@@ -163,7 +197,7 @@ class robot_config(robot_config):
         self.L = np.array(self.L)
 
         if self.hand_attached is True:  # add in hand offset
-            self.L_handcom = np.array([0.0, 0.0, -0.08])  # com of the hand
+            self.L_HAND_COM = np.array([0.0, 0.0, -0.08])  # com of the hand
 
         # ---- Transform Matrices ----
 
@@ -262,7 +296,7 @@ class robot_config(robot_config):
         # account for axes and rotation and offsets
         self.Tj3l4b = sp.Matrix([
             [0.85536427, -0.51802699, 0, self.L[8, 0]],
-            [-0.45991232, -0.75940555,  0.46019982, self.L[8, 1]],
+            [-0.45991232, -0.75940555, 0.46019982, self.L[8, 1]],
             [-0.23839593, -0.39363848, -0.88781537, self.L[8, 2]],
             [0, 0, 0, 1]])
         self.Tj3l4 = self.Tj3l4a * self.Tj3l4b
@@ -309,9 +343,9 @@ class robot_config(robot_config):
                 [0, 0, 0, 1]])
             # account for axes changes and offsets
             self.Tj5handcomb = sp.Matrix([
-                [-1, 0, 0, self.L_handcom[0]],
-                [0, 1, 0, self.L_handcom[1]],
-                [0, 0, -1, self.L_handcom[2]],
+                [-1, 0, 0, self.L_HAND_COM[0]],
+                [0, 1, 0, self.L_HAND_COM[1]],
+                [0, 0, -1, self.L_HAND_COM[2]],
                 [0, 0, 0, 1]])
             self.Tj5handcom = self.Tj5handcoma * self.Tj5handcomb
 
@@ -338,36 +372,35 @@ class robot_config(robot_config):
         self.Torgcam = self.Torgcama * self.Torgcamb
 
         # orientation part of the Jacobian (compensating for angular velocity)
-        kz = sp.Matrix([0, 0, 1])
+        KZ = sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 orientation
-            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 orientation
-            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 orientation
-            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 orientation
-            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
-            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
+            self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 orientation
+            self._calc_T('joint2')[:3, :3] * KZ,  # joint 2 orientation
+            self._calc_T('joint3')[:3, :3] * KZ,  # joint 3 orientation
+            self._calc_T('joint4')[:3, :3] * KZ,  # joint 4 orientation
+            self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
 
         # dictionaries used for scaling input into neural systems.
         # Calculate by recording data from movement of interest
-        self.MEANS= {
-            'q': np.ones(self.num_joints) * np.pi,
+        self.MEANS = {  # expected mean of joint angles / velocities
+            'q': np.ones(self.N_JOINTS) * np.pi,
             'dq': np.array([-0.01337, 0.00192, 0.00324,
                             0.02502, -0.02226, -0.01342])
             }
 
-        # normalize the signal from -1 to 1 by dividing by the expected
-        # range of values, then normalize to account for the 12D vector
-        self.SCALES = {
-            'q': np.ones(self.num_joints) * np.pi * np.sqrt(self.num_joints),
+        self.SCALES = {  # expected variance of joint angles / velocities
+            'q': np.ones(self.N_JOINTS) * np.pi * np.sqrt(self.N_JOINTS),
             'dq': (np.array([1.22826, 2.0, 1.42348,
                             2.58221, 2.50768, 1.27004])
-                   * np.sqrt(self.num_joints))
+                   * np.sqrt(self.N_JOINTS))
             }
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
-        name string: name of the joint or link, or end-effector
+        name : string
+            name of the joint, link, or end-effector
         """
 
         if self._T.get(name, None) is None:

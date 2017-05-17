@@ -1,10 +1,6 @@
 import numpy as np
 cimport numpy as np
 from libcpp cimport bool
-import redis
-
-# TODO: clean this up
-r = redis.StrictRedis(host='127.0.0.1')
 
 cdef extern from "jaco2_rs485.h":
     cdef cppclass Jaco2:
@@ -26,9 +22,22 @@ cdef extern from "jaco2_rs485.h":
         float vel[6]
 
 cdef class pyJaco2:
+    cdef bool use_redis
     cdef Jaco2* thisptr # hold a C++ instance
-    def __cinit__(self):
+    # cdef class self.r
+    def __cinit__(self, bool use_redis):
         self.thisptr = new Jaco2()
+        self.use_redis = use_redis
+
+        # if self.use_redis is True:
+        #     try:
+        #         import redis
+        #         self.r = redis.StrictRedis(host='127.0.0.1')
+        #     except ImportError:
+        #         print('Please install redis to use vrep visualizations')
+        #         self.r = None
+
+
 
     def __dealloc__(self):
         del self.thisptr
@@ -61,9 +70,9 @@ cdef class pyJaco2:
         self.thisptr.SendTargetAnglesSetup()
         while target_reached < 6:
             target_reached = self.thisptr.SendTargetAngles(&q_target[0])
-            # TODO: make this optional
-            r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
-                  tuple(self.thisptr.pos_rad))
+            # if self.r is not None:
+            #     self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
+            #           tuple(self.thisptr.pos_rad))
 
     def SendTargetAnglesHand(self, bool open):
         self.thisptr.SendTargetAnglesHand(open)
