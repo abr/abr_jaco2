@@ -1,5 +1,5 @@
-from .config.config import robot_config as config
-from .config.config_neural import robot_config as config_neural
-from .interface.interface import interface
+from .config.config import Jaco2Config as Config
+from .config.config_neural import Jaco2ConfigNeural as ConfigNeural
+from .interface.interface import Jaco2Interface as Interface
 from .interface import jaco2_rs485
 from . import utils

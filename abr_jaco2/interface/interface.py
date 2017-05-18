@@ -2,7 +2,7 @@ import numpy as np
 
 try:
     import abr_control
-    from abr_control.interfaces import interface as Interface
+    from abr_control.interfaces.interface import interface as Interface 
 except ImportError:
     print("abr_control is not installed, for the most recent interface code"
           + "please install the abr_control repo")
@@ -17,7 +17,7 @@ class Jaco2Interface(Interface):
     """
 
     def __init__(self, robot_config):
-        super(interface, self).__init__(robot_config)
+        super(Jaco2Interface, self).__init__(robot_config)
         self.jaco2 = jaco2_rs485.pyJaco2()
 
     def connect(self):
@@ -88,6 +88,7 @@ class Jaco2Interface(Interface):
 
         q np.array: the target joint angles (radians)
         """
+        # TODO: need to account for negative degrees
         # convert from radians into degrees the Jaco expects
         q = np.array(q) * 180.0 / np.pi
         self.jaco2.SendTargetAngles(q)

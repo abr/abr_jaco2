@@ -17,8 +17,8 @@ class Jaco2Config(RobotConfig):
         """ Initialize robot class with constant values"""
         self.hand_attached = hand_attached
         NUM_LINKS = 7 if hand_attached is True else 6
-        super(RobotConfig, self).__init__(NUM_JOINTS=6, NUM_LINKS=NUM_LINKS,
-                                           ROBOT_NAME='jaco2', **kwargs)
+        super(Jaco2Config, self).__init__(NUM_JOINTS=6, NUM_LINKS=NUM_LINKS,
+                                          ROBOT_NAME='jaco2', **kwargs)
         # Move from hand COM to fingers
         if self.hand_attached is True:
             self.OFFSET = np.array([0.0, 0.0, 0.12])
