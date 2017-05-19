@@ -2,9 +2,9 @@ import numpy as np
 
 try:
     import abr_control
-    from abr_control.interfaces.interface import interface as Interface 
+    from abr_control.interfaces.interface import interface as Interface
 except ImportError:
-    print("abr_control is not installed, for the most recent interface code"
+    print("abr_control is not installed, for the most recent interface code "
           + "please install the abr_control repo")
     from .skeleton_interface import Interface
 from . import jaco2_rs485

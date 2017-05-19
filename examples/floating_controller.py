@@ -3,14 +3,8 @@ arm will hold its position while maintaining compliance"""
 import numpy as np
 import traceback
 
-try:
-    import abr_control.controllers.floating as Floating
-except ImportError:
-    print("abr_control is not installed, for the most recent controllers"
-          + "please install the abr_control repo")
-    from .skeleton_floating import Floating
 import abr_jaco2
-
+import abr_control.controllers.floating as Floating
 # initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)

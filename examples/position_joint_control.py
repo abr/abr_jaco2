@@ -49,8 +49,6 @@ finally:
     q_track = np.array(q_track)
     #TODO: fix plotting, y axis missing
     import matplotlib.pyplot as plt
-    print(np.arange(0,len(TARGET_POS)))
-    print(q_track[:,1])
     plt.figure()
     for ii in range (0, 5):
         plt.subplot(6,1,ii+1)

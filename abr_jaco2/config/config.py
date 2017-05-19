@@ -2,13 +2,8 @@ import os
 import numpy as np
 import sympy as sp
 
-try:
-    import abr_control
-    from abr_control.arms.robot_config import robot_config as RobotConfig
-except ImportError:
-    print("abr_control is not installed, for the most recent jaco2 config"
-          + "please install the abr_control repo")
-    from .skeleton_config import RobotConfig
+import abr_control
+from abr_control.arms.robot_config import robot_config as RobotConfig
 
 class Jaco2Config(RobotConfig):
     """ Robot config file for the Kinova Jaco^2 V2 with force sensors"""
