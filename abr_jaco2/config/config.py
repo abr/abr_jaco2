@@ -3,7 +3,7 @@ import numpy as np
 import sympy as sp
 
 import abr_control
-from abr_control.arms.robot_config import robot_config as RobotConfig
+from abr_control.arms.robot_config import RobotConfig
 
 class Jaco2Config(RobotConfig):
     """ Robot config file for the Kinova Jaco^2 V2 with force sensors"""

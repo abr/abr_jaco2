@@ -4,12 +4,12 @@ import numpy as np
 import traceback
 
 import abr_jaco2
-import abr_control.controllers.floating as Floating
+import abr_control
 # initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
-ctrlr = Floating(robot_config)
-ctrlr.control(np.zeros(6), np.zeros(6))
+ctrlr = abr_control.controllers.Floating(robot_config)
+ctrlr.generate(np.zeros(6), np.zeros(6))
 
 interface = abr_jaco2.Interface(robot_config)
 
@@ -27,7 +27,7 @@ try:
         q = np.array(feedback['q'])
         dq = np.array(feedback['dq'])
 
-        u = ctrlr.control(q=q, dq=dq)
+        u = ctrlr.generate(q=q, dq=dq)
 
         interface.send_forces(np.array(u, dtype='float32'))
 
