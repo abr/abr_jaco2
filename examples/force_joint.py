@@ -13,11 +13,12 @@ The gains can be dropped (kp=4, kv=2) and the arm will move more slowly
 and be more compliant. However, due to the high stiction of the Jaco2
 it will not reach with the same accuracy
 """
+
 import sys
 import numpy as np
 import traceback
 
-import abr_control.controllers.joint as Joint
+from abr_control.controllers import Joint
 import abr_jaco2
 
 # initialize our robot config
@@ -25,8 +26,8 @@ robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
 ctrlr = Joint(robot_config, kp=20, kv=6)
 
-zeros = np.zeros(robot_config.NUM_JOINTS)
-ctrlr.control(zeros, zeros, zeros)
+zeros = np.zeros(robot_config.N_JOINTS)
+ctrlr.generate(zeros, zeros, zeros)
 
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
@@ -45,6 +46,9 @@ interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 # set up arrays for tracking end-effector and target position
 q_track = []
 
+# threshold for a successful reach [ radians ] preset to 2degrees
+thres = 0.035
+
 try:
     interface.init_force_mode()
     ii = 0
@@ -53,27 +57,29 @@ try:
         feedback = interface.get_feedback()
         q = feedback['q']
         target_reached = 0
-        for jj in range(0, robot_config.NUM_JOINTS):
+        for jj in range(0, robot_config.N_JOINTS):
             """If current joint angle is < 2degrees from the target it adds to
             the counter, once all joints are within tolerance the arm moves
             to the next target.
             """
-            if abs(((TARGET_POS[ii,jj] % 6.28 + 6.28) % 6.28) - q[jj]) < 0.035:
+            if abs(((TARGET_POS[ii, jj] % 6.28 + 6.28)
+                    % 6.28)
+                   - q[jj]) < thres:
                 target_reached += 1
-            elif print_counter%1000 ==0:
+            elif print_counter % 1000 == 0:
                 print('Joint %i not at target angle' % jj)
         print_counter += 1
 
-        if target_reached == robot_config.NUM_JOINTS - 1:
+        if target_reached == robot_config.N_JOINTS - 1:
             ii += 1
 
         u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],
-                target_pos=TARGET_POS[ii], target_vel=TARGET_VEL)
+                          target_pos=TARGET_POS[ii], target_vel=TARGET_VEL)
         interface.send_forces(np.array(u, dtype='float32'))
 
         q_track.append(np.copy(feedback['q']))
 
-        if print_counter%1000 == 0:
+        if print_counter % 1000 == 0:
             print('------------------------')
 
 
@@ -93,7 +99,7 @@ finally:
     plt.plot(q_track)
     plt.gca().set_color_cycle(None)
     plt.plot(np.ones(q_track.shape) *
-             ((target_pos + np.pi) % (np.pi * 2) - np.pi), '--')
+             ((TARGET_POS + np.pi) % (np.pi * 2) - np.pi), '--')
     plt.legend(range(6))
     plt.tight_layout()
     plt.show()

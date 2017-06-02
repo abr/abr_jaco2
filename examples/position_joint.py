@@ -32,7 +32,7 @@ interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 q_track = []
 
 try:
-    for ii in range(0,len(TARGET_POS)):
+    for ii in range(0, len(TARGET_POS)):
         interface.send_target_angles(TARGET_POS[ii])
         feedback = interface.get_feedback()
         q_track.append(np.copy(feedback['q']))
@@ -50,14 +50,14 @@ finally:
     #TODO: fix plotting, y axis missing
     import matplotlib.pyplot as plt
     plt.figure()
-    for ii in range (0, 5):
-        plt.subplot(6,1,ii+1)
+    for ii in range(0, 5):
+        plt.subplot(6, 1, ii + 1)
         plt.title('Target vs. Actual Joint Angles')
         plt.xlabel('Target Position')
         plt.ylabel('Joint Position (rad)')
-        plt.plot(np.arange(0,len(TARGET_POS)), q_track[:, ii])
+        plt.plot(np.arange(0, len(TARGET_POS)), q_track[:, ii])
         #plt.gca().set_color_cycle(None)
-        plt.plot(np.arange(0,len(TARGET_POS)), TARGET_POS[:, ii], '--')
+        plt.plot(np.arange(0, len(TARGET_POS)), TARGET_POS[:, ii], '--')
     plt.tight_layout()
     plt.show()
     sys.exit()

@@ -1,14 +1,17 @@
 """Uses force control to compensate for gravity
+
 arm will hold its position while maintaining compliance"""
+
 import numpy as np
 import traceback
 
 import abr_jaco2
-import abr_control
+from abr_control.controllers import Floating
+
 # initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
-ctrlr = abr_control.controllers.Floating(robot_config)
+ctrlr = Floating(robot_config)
 ctrlr.generate(np.zeros(6), np.zeros(6))
 
 interface = abr_jaco2.Interface(robot_config)
