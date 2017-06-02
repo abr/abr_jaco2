@@ -3,17 +3,53 @@ import numpy as np
 import sympy as sp
 
 import abr_control
-from abr_control.arms.robot_config import RobotConfig
+from abr_control.arms.base_config import BaseConfig
 
-class Jaco2Config(RobotConfig):
-    """ Robot config file for the Kinova Jaco^2 V2 with force sensors"""
+
+class Config(BaseConfig):
+    """ Robot config file for the Kinova Jaco^2 V2 with force sensors
+
+    Parameters
+    ----------
+    hand_attached : boolean, optional (Default: True)
+        if false will set the last wrist joint as the end effector
+        if true will set the palm of the hand as the end effector
+    N_JOINTS : int, optional (Default: 6)
+        the number of joint in the jaco arm
+    N_LINKS : int, optional (Default: 6 or 7 depending on hand_attached)
+        the number of links in the jaco2, 6 without hand, 7 with
+    ROBOT_NAME : string, optional (Default: jaco2)
+        name of robot
+
+    Attributes
+    ----------
+    REST_ANGLES : numpy.array
+        the joint angles the arm tries to push towards with the
+        null controller
+    _M_LINKS : sympy.diag
+        inertia matrix of the links
+    _M_JOINTS : sympy.diag
+        inertia matrix of the joints
+    L : numpy.array
+        segment lengths of arm [meters]
+    L_HANDCOM : numpy.array
+        offset to the center of mass of the hand [meters]
+    KZ : sympy.Matrix
+        z isolation vector in orientational part of Jacobian
+
+    Transform Naming Convention: Tpoint1point2
+    ex: Tj1l1 tranforms from joint 1 reference frame to link 1
+    some transforms are broken up into two matrices for simplification
+    ex: Tj0l1a and Tj0l1b where the former transform accounts for
+    rotations and the latter accounts for translations and axes flips
+    """
 
     def __init__(self, hand_attached=True, **kwargs):
         """ Initialize robot class with constant values"""
         self.hand_attached = hand_attached
-        NUM_LINKS = 7 if hand_attached is True else 6
-        super(Jaco2Config, self).__init__(NUM_JOINTS=6, NUM_LINKS=NUM_LINKS,
-                                          ROBOT_NAME='jaco2', **kwargs)
+        N_LINKS = 7 if hand_attached is True else 6
+        super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
+                                     ROBOT_NAME='jaco2', **kwargs)
         # Move from hand COM to fingers
         if self.hand_attached is True:
             self.OFFSET = np.array([0.0, 0.0, 0.12])
@@ -40,7 +76,8 @@ class Jaco2Config(RobotConfig):
         self.REST_ANGLES = np.array(
             [None, 2.42, 2.42, 4.67, 0.02, 3.05], dtype='float32')
 
-        # a gain to help the robot compensate for gravity in upper arm
+        # a gain to help the robot compensate for gravity due to imperfect
+        # model
         self.MASS_MULTIPLIER = 1.2
 
         # create the inertia matrices for each link of the kinova jaco2
@@ -346,25 +383,24 @@ class Jaco2Config(RobotConfig):
 
         # dictionaries used for scaling input into neural systems.
         # Calculate by recording data from movement of interest
-        self.MEANS= {
-            'q': np.ones(self.num_joints) * np.pi,
+        self.MEANS = {  # expected mean of joint angles / velocities
+            'q': np.ones(self.N_JOINTS) * np.pi,
             'dq': np.array([-0.01337, 0.00192, 0.00324,
                             0.02502, -0.02226, -0.01342])
             }
 
-        # normalize the signal from -1 to 1 by dividing by the expected
-        # range of values, then normalize to account for the 12D vector
-        self.SCALES = {
-            'q': np.ones(self.num_joints) * np.pi * np.sqrt(self.num_joints),
+        self.SCALES = {  # expected variance of joint angles / velocities
+            'q': np.ones(self.N_JOINTS) * np.pi * np.sqrt(self.N_JOINTS),
             'dq': (np.array([1.22826, 2.0, 1.42348,
                             2.58221, 2.50768, 1.27004])
-                   * np.sqrt(self.num_joints))
+                   * np.sqrt(self.N_JOINTS))
             }
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
-        name string: name of the joint or link, or end-effector
+        name : string
+            name of the joint, link, or end-effector
         """
 
         if self._T.get(name, None) is None:
