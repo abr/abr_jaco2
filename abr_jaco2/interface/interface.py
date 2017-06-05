@@ -1,10 +1,10 @@
 import numpy as np
 
-from abr_control.interfaces import Interface
+from abr_control.interfaces.interface import Interface as BaseInterface
 from . import jaco2_rs485
 
 
-class Interface(Interface):
+class Interface(BaseInterface):
     """ Interface class for the Jaco2 Kinova arm.
 
     Handles the overhead of interacting with the cython code,
@@ -16,11 +16,14 @@ class Interface(Interface):
         passes in all relevant information about the arm
         from its config, such as: number of joints, number
         of links, mass information etc.
+    use_redis : boolean, optional (Default: False)
+        if true will pass joint angle information to redis for
+        display purposes in VREP
     """
 
-    def __init__(self, robot_config):
+    def __init__(self, robot_config, use_redis=False):
         super(Interface, self).__init__(robot_config)
-        self.jaco2 = jaco2_rs485.pyJaco2()
+        self.jaco2 = jaco2_rs485.pyJaco2(use_redis=use_redis)
 
     def connect(self):
         """ All initial setup, establish RS485 connection

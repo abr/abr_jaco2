@@ -14,7 +14,7 @@ robot_config = abr_jaco2.Config(
 ctrlr = Floating(robot_config)
 ctrlr.generate(np.zeros(6), np.zeros(6))
 
-interface = abr_jaco2.Interface(robot_config)
+interface = abr_jaco2.Interface(robot_config, use_redis=True)
 
 interface.connect()
 interface.init_position_mode()

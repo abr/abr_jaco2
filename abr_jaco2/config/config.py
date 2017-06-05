@@ -65,7 +65,7 @@ class Config(BaseConfig):
                                else 'no_hand')
         self.config_folder += '_' + self.config_hash
         # make folder if it doesn't exist
-        abr_control.utils.os_utils.makedir(self.config_folder)
+        abr_control.utils.os_utils.makedirs(self.config_folder)
 
         # position to move to before switching to torque mode
         self.INIT_TORQUE_POSITION = np.array(
@@ -81,7 +81,7 @@ class Config(BaseConfig):
         self.MASS_MULTIPLIER = 1.2
 
         # create the inertia matrices for each link of the kinova jaco2
-        self._M_links = [
+        self._M_LINKS = [
             sp.Matrix([  # link0
                 [0.640, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.640, 0.0, 0.0, 0.0, 0.0],
@@ -125,7 +125,7 @@ class Config(BaseConfig):
                 [0.0, 0.0, 0.0, 0.0, 0.0, -3.89e-5],
                 [0.0, 0.0, 0.0, -9.87e-6, 3.16e-5, 0.0]])]
         if self.hand_attached is True:
-            self._M_links.append(sp.Matrix([  # hand
+            self._M_LINKS.append(sp.Matrix([  # hand
                 [0.727, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.727, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.727, 0.0, 0.0, 0.0],
@@ -133,7 +133,7 @@ class Config(BaseConfig):
                 [0.0, 0.0, 0.0, -2.51e-5, 9e-6, 1.04e-6],
                 [0.0, 0.0, 0.0, 5.13e-7, 0.0, 5.25e-5]]))
 
-        self._M_joints = [  # mass of rings added
+        self._M_JOINTS = [  # mass of rings added
             sp.Matrix([  # motor 0
                 [0.586, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.586, 0.0, 0.0, 0.0, 0.0],
