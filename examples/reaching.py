@@ -13,18 +13,25 @@ import abr_jaco2
 # initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
-ctrlr = OSC(robot_config, kp=20, kv=10, vmax=1, null=True)
 
+# account for wrist to fingers offset
+R_func = robot_config._calc_R('EE')
+
+# instantiate operation space controller
+ctrlr = OSC(robot_config, kp=25, kv=5, vmax=1, null_control=False)
+# run controller once to generate functions / take care of overhead
+# outside of the main loop, because force mode auto-exits after 200ms
 zeros = np.zeros(robot_config.N_JOINTS)
-ctrlr.generate(zeros, zeros, zeros)
+ctrlr.generate(zeros, zeros, np.zeros(3))
+
+robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
 
-TARGET_POS = np.array([[1.98, 1.86, 2.11, 4.71, 0.0, 3.0],
-                       [1.57, 2.56, 1.65, 3.42, 0.75, 1.85],
-                       [0.29, 3.75, 4.78, 4.78, 0.10, 0.0],
-                       [0.0, 2.42, 2.28, 6.22, 1.3, 1.75]], dtype='float32')
+TARGET_XYZ = np.array([[.57, .03, .87],
+                       [.4, -.4, .78],
+                       [.467, -.22, .78]], dtype='float32')
 TARGET_VEL = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01], dtype='float32')
 
 # connect to the jaco
@@ -33,44 +40,49 @@ interface.init_position_mode()
 interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 
 # set up arrays for tracking end-effector and target position
-q_track = []
-
-# threshold for a successful reach [ radians ] preset to 2degrees
-thres = 0.035
+ee_track = []
+target_track = []
 
 try:
     interface.init_force_mode()
     ii = 0
-    print_counter = 0
-    while ii < len(TARGET_POS):
+    count = 0
+    at_target_count = 0 #  must stay at target for 200 loop cycles for success
+
+    while ii < len(TARGET_XYZ):
         feedback = interface.get_feedback()
         q = feedback['q']
-        target_reached = 0
-        for jj in range(0, robot_config.N_JOINTS):
-            """If current joint angle is < 2degrees from the target it adds to
-            the counter, once all joints are within tolerance the arm moves
-            to the next target.
-            """
-            if abs(((TARGET_POS[ii, jj] % 6.28 + 6.28)
-                    % 6.28)
-                   - q[jj]) < thres:
-                target_reached += 1
-            elif print_counter % 1000 == 0:
-                print('Joint %i not at target angle' % jj)
-        print_counter += 1
+        dq = feedback['dq']
 
-        if target_reached == robot_config.N_JOINTS - 1:
-            ii += 1
+        xyz = robot_config.Tx('EE', q=q, x=robot_config.OFFSET)
 
-        u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],
-                          target_pos=TARGET_POS[ii], target_vel=TARGET_VEL)
+        # generate the control signal
+        u = ctrlr.generate(q=q, dq=dq, target_pos=TARGET_XYZ[ii],
+                                offset=robot_config.OFFSET)
+
+        # additional gain term due to high stiction of jaco base joint
+        if u[0] > 0:
+            u[0] *= 3.0
+        else:
+            u[0] *= 2.0
+
         interface.send_forces(np.array(u, dtype='float32'))
+        error = np.sqrt(np.sum((xyz - TARGET_XYZ[ii])**2))
 
-        q_track.append(np.copy(feedback['q']))
+        # print out the error every so often
+        if count % 100 == 0:
+            print('error: ', error)
 
-        if print_counter % 1000 == 0:
-            print('------------------------')
+        # track data
+        ee_track.append(np.copy(xyz))
+        target_track.append(np.copy(TARGET_XYZ[ii]))
 
+        if error < .05:
+            at_target_count += 1
+            if at_target_count >= 200:
+                at_target_count = 0
+                ii += 1
+        count+=1
 
 except:
     print(traceback.format_exc())
@@ -81,15 +93,22 @@ finally:
     interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
     interface.disconnect()
 
-    q_track = np.array(q_track)
+    ee_track = np.array(ee_track)
+    target_track = np.array(target_track)
 
-    import matplotlib.pyplot as plt
+    if ee_track.shape[0] > 0:
+        # plot distance from target and 3D trajectory
+        import matplotlib
+        matplotlib.use("TKAgg")
+        import matplotlib.pyplot as plt
+        from abr_control.utils.plotting import plot_3D
 
-    plt.plot(q_track)
-    plt.gca().set_color_cycle(None)
-    plt.plot(np.ones(q_track.shape) *
-             ((TARGET_POS + np.pi) % (np.pi * 2) - np.pi), '--')
-    plt.legend(range(6))
-    plt.tight_layout()
-    plt.show()
-    sys.exit()
+        plt.figure()
+        plt.plot(np.sqrt(np.sum((np.array(target_track)
+                                 - np.array(ee_track))**2, axis=1)))
+        plt.ylabel('Distance (m)')
+        plt.xlabel('Time (ms)')
+        plt.title('Distance to target')
+
+        plot_3D(ee_track, target_track)
+        plt.show()

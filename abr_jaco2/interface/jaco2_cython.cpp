@@ -902,78 +902,6 @@ static int __Pyx_ParseOptionalKeywords(PyObject *kwds, PyObject **argnames[],\
 static void __Pyx_RaiseArgtupleInvalid(const char* func_name, int exact,
     Py_ssize_t num_min, Py_ssize_t num_max, Py_ssize_t num_found);
 
-/* PyObjectGetAttrStr.proto */
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStr(PyObject* obj, PyObject* attr_name) {
-    PyTypeObject* tp = Py_TYPE(obj);
-    if (likely(tp->tp_getattro))
-        return tp->tp_getattro(obj, attr_name);
-#if PY_MAJOR_VERSION < 3
-    if (likely(tp->tp_getattr))
-        return tp->tp_getattr(obj, PyString_AS_STRING(attr_name));
-#endif
-    return PyObject_GetAttr(obj, attr_name);
-}
-#else
-#define __Pyx_PyObject_GetAttrStr(o,n) PyObject_GetAttr(o,n)
-#endif
-
-/* Import.proto */
-static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level);
-
-/* PyObjectCall.proto */
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw);
-#else
-#define __Pyx_PyObject_Call(func, arg, kw) PyObject_Call(func, arg, kw)
-#endif
-
-/* PyObjectSetAttrStr.proto */
-#if CYTHON_COMPILING_IN_CPYTHON
-#define __Pyx_PyObject_DelAttrStr(o,n) __Pyx_PyObject_SetAttrStr(o,n,NULL)
-static CYTHON_INLINE int __Pyx_PyObject_SetAttrStr(PyObject* obj, PyObject* attr_name, PyObject* value) {
-    PyTypeObject* tp = Py_TYPE(obj);
-    if (likely(tp->tp_setattro))
-        return tp->tp_setattro(obj, attr_name, value);
-#if PY_MAJOR_VERSION < 3
-    if (likely(tp->tp_setattr))
-        return tp->tp_setattr(obj, PyString_AS_STRING(attr_name), value);
-#endif
-    return PyObject_SetAttr(obj, attr_name, value);
-}
-#else
-#define __Pyx_PyObject_DelAttrStr(o,n)   PyObject_DelAttr(o,n)
-#define __Pyx_PyObject_SetAttrStr(o,n,v) PyObject_SetAttr(o,n,v)
-#endif
-
-/* PyThreadStateGet.proto */
-#if CYTHON_COMPILING_IN_CPYTHON
-#define __Pyx_PyThreadState_declare  PyThreadState *__pyx_tstate;
-#define __Pyx_PyThreadState_assign  __pyx_tstate = PyThreadState_GET();
-#else
-#define __Pyx_PyThreadState_declare
-#define __Pyx_PyThreadState_assign
-#endif
-
-/* SaveResetException.proto */
-#if CYTHON_COMPILING_IN_CPYTHON
-#define __Pyx_ExceptionSave(type, value, tb)  __Pyx__ExceptionSave(__pyx_tstate, type, value, tb)
-static CYTHON_INLINE void __Pyx__ExceptionSave(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb);
-#define __Pyx_ExceptionReset(type, value, tb)  __Pyx__ExceptionReset(__pyx_tstate, type, value, tb)
-static CYTHON_INLINE void __Pyx__ExceptionReset(PyThreadState *tstate, PyObject *type, PyObject *value, PyObject *tb);
-#else
-#define __Pyx_ExceptionSave(type, value, tb)   PyErr_GetExcInfo(type, value, tb)
-#define __Pyx_ExceptionReset(type, value, tb)  PyErr_SetExcInfo(type, value, tb)
-#endif
-
-/* GetException.proto */
-#if CYTHON_COMPILING_IN_CPYTHON
-#define __Pyx_GetException(type, value, tb)  __Pyx__GetException(__pyx_tstate, type, value, tb)
-static int __Pyx__GetException(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb);
-#else
-static int __Pyx_GetException(PyObject **type, PyObject **value, PyObject **tb);
-#endif
-
 /* ArgTypeTest.proto */
 static CYTHON_INLINE int __Pyx_ArgTypeTest(PyObject *obj, PyTypeObject *type, int none_allowed,
     const char *name, int exact);
@@ -991,6 +919,15 @@ static void __Pyx_BufFmt_Init(__Pyx_BufFmt_Context* ctx,
 static void __Pyx_RaiseBufferIndexError(int axis);
 
 #define __Pyx_BufPtrCContig1d(type, buf, i0, s0) ((type)buf + i0)
+/* PyThreadStateGet.proto */
+#if CYTHON_COMPILING_IN_CPYTHON
+#define __Pyx_PyThreadState_declare  PyThreadState *__pyx_tstate;
+#define __Pyx_PyThreadState_assign  __pyx_tstate = PyThreadState_GET();
+#else
+#define __Pyx_PyThreadState_declare
+#define __Pyx_PyThreadState_assign
+#endif
+
 /* PyErrFetchRestore.proto */
 #if CYTHON_COMPILING_IN_CPYTHON
 #define __Pyx_ErrRestoreWithState(type, value, tb)  __Pyx_ErrRestoreInState(PyThreadState_GET(), type, value, tb)
@@ -1006,8 +943,31 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
 #define __Pyx_ErrFetch(type, value, tb)  PyErr_Fetch(type, value, tb)
 #endif
 
+/* PyObjectGetAttrStr.proto */
+#if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStr(PyObject* obj, PyObject* attr_name) {
+    PyTypeObject* tp = Py_TYPE(obj);
+    if (likely(tp->tp_getattro))
+        return tp->tp_getattro(obj, attr_name);
+#if PY_MAJOR_VERSION < 3
+    if (likely(tp->tp_getattr))
+        return tp->tp_getattr(obj, PyString_AS_STRING(attr_name));
+#endif
+    return PyObject_GetAttr(obj, attr_name);
+}
+#else
+#define __Pyx_PyObject_GetAttrStr(o,n) PyObject_GetAttr(o,n)
+#endif
+
 /* GetBuiltinName.proto */
 static PyObject *__Pyx_GetBuiltinName(PyObject *name);
+
+/* PyObjectCall.proto */
+#if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw);
+#else
+#define __Pyx_PyObject_Call(func, arg, kw) PyObject_Call(func, arg, kw)
+#endif
 
 /* RaiseException.proto */
 static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject *cause);
@@ -1044,6 +1004,9 @@ static CYTHON_INLINE void __Pyx_RaiseNoneNotIterableError(void);
 
 /* ExtTypeTest.proto */
 static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type);
+
+/* Import.proto */
+static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level);
 
 /* CodeObjectCache.proto */
 typedef struct {
@@ -1090,13 +1053,6 @@ typedef struct {
 /* None.proto */
 static Py_ssize_t __Pyx_zeros[] = {0, 0, 0, 0, 0, 0, 0, 0};
 static Py_ssize_t __Pyx_minusones[] = {-1, -1, -1, -1, -1, -1, -1, -1};
-
-/* Print.proto */
-static int __Pyx_Print(PyObject*, PyObject *, int);
-#if CYTHON_COMPILING_IN_PYPY || PY_MAJOR_VERSION >= 3
-static PyObject* __pyx_print = 0;
-static PyObject* __pyx_print_kwargs = 0;
-#endif
 
 /* None.proto */
 #if CYTHON_CCOMPLEX
@@ -1207,9 +1163,6 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_enum__NPY_TYPES(enum NPY_TYPES value);
 
-/* PrintOne.proto */
-static int __Pyx_PrintOne(PyObject* stream, PyObject *o);
-
 /* CIntFromPy.proto */
 static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
 
@@ -1288,61 +1241,37 @@ static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_RuntimeError;
 static const char __pyx_k_q[] = "q";
-static const char __pyx_k_r[] = "r";
 static const char __pyx_k_dq[] = "dq";
 static const char __pyx_k_np[] = "np";
-static const char __pyx_k_end[] = "end";
-static const char __pyx_k_set[] = "set";
-static const char __pyx_k_file[] = "file";
-static const char __pyx_k_host[] = "host";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_numpy[] = "numpy";
-static const char __pyx_k_print[] = "print";
 static const char __pyx_k_range[] = "range";
-static const char __pyx_k_redis[] = "redis";
 static const char __pyx_k_import[] = "__import__";
-static const char __pyx_k_q_target[] = "q_target";
-static const char __pyx_k_127_0_0_1[] = "127.0.0.1";
 static const char __pyx_k_use_redis[] = "use_redis";
 static const char __pyx_k_ValueError[] = "ValueError";
-static const char __pyx_k_StrictRedis[] = "StrictRedis";
 static const char __pyx_k_torque_load[] = "torque_load";
 static const char __pyx_k_RuntimeError[] = "RuntimeError";
-static const char __pyx_k_3f_3f_3f_3f_3f_3f[] = "%.3f %.3f %.3f %.3f %.3f %.3f";
 static const char __pyx_k_ndarray_is_not_C_contiguous[] = "ndarray is not C contiguous";
 static const char __pyx_k_unknown_dtype_code_in_numpy_pxd[] = "unknown dtype code in numpy.pxd (%d)";
 static const char __pyx_k_Format_string_allocated_too_shor[] = "Format string allocated too short, see comment in numpy.pxd";
 static const char __pyx_k_Non_native_byte_order_not_suppor[] = "Non-native byte order not supported";
-static const char __pyx_k_Please_install_redis_to_use_vrep[] = "Please install redis to use vrep visualizations";
 static const char __pyx_k_ndarray_is_not_Fortran_contiguou[] = "ndarray is not Fortran contiguous";
 static const char __pyx_k_Format_string_allocated_too_shor_2[] = "Format string allocated too short.";
-static PyObject *__pyx_kp_s_127_0_0_1;
-static PyObject *__pyx_kp_s_3f_3f_3f_3f_3f_3f;
 static PyObject *__pyx_kp_u_Format_string_allocated_too_shor;
 static PyObject *__pyx_kp_u_Format_string_allocated_too_shor_2;
 static PyObject *__pyx_kp_u_Non_native_byte_order_not_suppor;
-static PyObject *__pyx_kp_s_Please_install_redis_to_use_vrep;
 static PyObject *__pyx_n_s_RuntimeError;
-static PyObject *__pyx_n_s_StrictRedis;
 static PyObject *__pyx_n_s_ValueError;
 static PyObject *__pyx_n_s_dq;
-static PyObject *__pyx_n_s_end;
-static PyObject *__pyx_n_s_file;
-static PyObject *__pyx_n_s_host;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_kp_u_ndarray_is_not_C_contiguous;
 static PyObject *__pyx_kp_u_ndarray_is_not_Fortran_contiguou;
 static PyObject *__pyx_n_s_np;
 static PyObject *__pyx_n_s_numpy;
-static PyObject *__pyx_n_s_print;
 static PyObject *__pyx_n_s_q;
-static PyObject *__pyx_n_s_q_target;
-static PyObject *__pyx_n_s_r;
 static PyObject *__pyx_n_s_range;
-static PyObject *__pyx_n_s_redis;
-static PyObject *__pyx_n_s_set;
 static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_n_s_torque_load;
 static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
@@ -1356,7 +1285,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10GetTorqueLoad(struct __pyx_ob
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12InitForceMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14InitPositionMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_16SendForces(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_u); /* proto */
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_q_target, CYTHON_UNUSED bool __pyx_v_use_redis); /* proto */
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_q_target); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_20SendTargetAnglesHand(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, bool __pyx_v_open); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
@@ -1368,9 +1297,9 @@ static PyObject *__pyx_tuple__4;
 static PyObject *__pyx_tuple__5;
 static PyObject *__pyx_tuple__6;
 
-/* "jaco2_cython.pyx":27
- *     cdef bool use_redis
+/* "jaco2_cython.pyx":28
  *     cdef Jaco2* thisptr # hold a C++ instance
+ *     # cdef class self.r
  *     def __cinit__(self, bool use_redis):             # <<<<<<<<<<<<<<
  *         self.thisptr = new Jaco2()
  *         self.use_redis = use_redis
@@ -1401,18 +1330,18 @@ static int __pyx_pw_11jaco2_rs485_7pyJaco2_1__cinit__(PyObject *__pyx_v_self, Py
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 27, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(0, 28, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
     }
-    __pyx_v_use_redis = __Pyx_PyObject_IsTrue(values[0]); if (unlikely((__pyx_v_use_redis == (bool)-1) && PyErr_Occurred())) __PYX_ERR(0, 27, __pyx_L3_error)
+    __pyx_v_use_redis = __Pyx_PyObject_IsTrue(values[0]); if (unlikely((__pyx_v_use_redis == (bool)-1) && PyErr_Occurred())) __PYX_ERR(0, 28, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 27, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 28, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("jaco2_rs485.pyJaco2.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -1426,20 +1355,12 @@ static int __pyx_pw_11jaco2_rs485_7pyJaco2_1__cinit__(PyObject *__pyx_v_self, Py
 }
 
 static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, bool __pyx_v_use_redis) {
-  PyObject *__pyx_v_redis = NULL;
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  int __pyx_t_1;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  PyObject *__pyx_t_5 = NULL;
-  PyObject *__pyx_t_6 = NULL;
-  PyObject *__pyx_t_7 = NULL;
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "jaco2_cython.pyx":28
- *     cdef Jaco2* thisptr # hold a C++ instance
+  /* "jaco2_cython.pyx":29
+ *     # cdef class self.r
  *     def __cinit__(self, bool use_redis):
  *         self.thisptr = new Jaco2()             # <<<<<<<<<<<<<<
  *         self.use_redis = use_redis
@@ -1447,153 +1368,18 @@ static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs
  */
   __pyx_v_self->thisptr = new Jaco2();
 
-  /* "jaco2_cython.pyx":29
+  /* "jaco2_cython.pyx":30
  *     def __cinit__(self, bool use_redis):
  *         self.thisptr = new Jaco2()
  *         self.use_redis = use_redis             # <<<<<<<<<<<<<<
  * 
- *         if self.use_redis is True:
+ *         # if self.use_redis is True:
  */
   __pyx_v_self->use_redis = __pyx_v_use_redis;
 
-  /* "jaco2_cython.pyx":31
- *         self.use_redis = use_redis
- * 
- *         if self.use_redis is True:             # <<<<<<<<<<<<<<
- *             try:
- *                 import redis
- */
-  __pyx_t_1 = ((__pyx_v_self->use_redis == 1) != 0);
-  if (__pyx_t_1) {
-
-    /* "jaco2_cython.pyx":32
- * 
- *         if self.use_redis is True:
- *             try:             # <<<<<<<<<<<<<<
- *                 import redis
- *                 self.r = redis.StrictRedis(host='127.0.0.1')
- */
-    {
-      __Pyx_PyThreadState_declare
-      __Pyx_PyThreadState_assign
-      __Pyx_ExceptionSave(&__pyx_t_2, &__pyx_t_3, &__pyx_t_4);
-      __Pyx_XGOTREF(__pyx_t_2);
-      __Pyx_XGOTREF(__pyx_t_3);
-      __Pyx_XGOTREF(__pyx_t_4);
-      /*try:*/ {
-
-        /* "jaco2_cython.pyx":33
- *         if self.use_redis is True:
- *             try:
- *                 import redis             # <<<<<<<<<<<<<<
- *                 self.r = redis.StrictRedis(host='127.0.0.1')
- *             except:
- */
-        __pyx_t_5 = __Pyx_Import(__pyx_n_s_redis, 0, -1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 33, __pyx_L4_error)
-        __Pyx_GOTREF(__pyx_t_5);
-        __pyx_v_redis = __pyx_t_5;
-        __pyx_t_5 = 0;
-
-        /* "jaco2_cython.pyx":34
- *             try:
- *                 import redis
- *                 self.r = redis.StrictRedis(host='127.0.0.1')             # <<<<<<<<<<<<<<
- *             except:
- *                 print('Please install redis to use vrep visualizations')
- */
-        __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_redis, __pyx_n_s_StrictRedis); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 34, __pyx_L4_error)
-        __Pyx_GOTREF(__pyx_t_5);
-        __pyx_t_6 = PyDict_New(); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 34, __pyx_L4_error)
-        __Pyx_GOTREF(__pyx_t_6);
-        if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_host, __pyx_kp_s_127_0_0_1) < 0) __PYX_ERR(0, 34, __pyx_L4_error)
-        __pyx_t_7 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_empty_tuple, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 34, __pyx_L4_error)
-        __Pyx_GOTREF(__pyx_t_7);
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        if (__Pyx_PyObject_SetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_r, __pyx_t_7) < 0) __PYX_ERR(0, 34, __pyx_L4_error)
-        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-
-        /* "jaco2_cython.pyx":32
- * 
- *         if self.use_redis is True:
- *             try:             # <<<<<<<<<<<<<<
- *                 import redis
- *                 self.r = redis.StrictRedis(host='127.0.0.1')
- */
-      }
-      __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-      __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-      goto __pyx_L11_try_end;
-      __pyx_L4_error:;
-      __Pyx_PyThreadState_assign
-      __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
-
-      /* "jaco2_cython.pyx":35
- *                 import redis
- *                 self.r = redis.StrictRedis(host='127.0.0.1')
- *             except:             # <<<<<<<<<<<<<<
- *                 print('Please install redis to use vrep visualizations')
- * 
- */
-      /*except:*/ {
-        __Pyx_AddTraceback("jaco2_rs485.pyJaco2.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-        if (__Pyx_GetException(&__pyx_t_7, &__pyx_t_6, &__pyx_t_5) < 0) __PYX_ERR(0, 35, __pyx_L6_except_error)
-        __Pyx_GOTREF(__pyx_t_7);
-        __Pyx_GOTREF(__pyx_t_6);
-        __Pyx_GOTREF(__pyx_t_5);
-
-        /* "jaco2_cython.pyx":36
- *                 self.r = redis.StrictRedis(host='127.0.0.1')
- *             except:
- *                 print('Please install redis to use vrep visualizations')             # <<<<<<<<<<<<<<
- * 
- * 
- */
-        if (__Pyx_PrintOne(0, __pyx_kp_s_Please_install_redis_to_use_vrep) < 0) __PYX_ERR(0, 36, __pyx_L6_except_error)
-        __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-        goto __pyx_L5_exception_handled;
-      }
-      __pyx_L6_except_error:;
-
-      /* "jaco2_cython.pyx":32
- * 
- *         if self.use_redis is True:
- *             try:             # <<<<<<<<<<<<<<
- *                 import redis
- *                 self.r = redis.StrictRedis(host='127.0.0.1')
- */
-      __Pyx_PyThreadState_assign
-      __Pyx_XGIVEREF(__pyx_t_2);
-      __Pyx_XGIVEREF(__pyx_t_3);
-      __Pyx_XGIVEREF(__pyx_t_4);
-      __Pyx_ExceptionReset(__pyx_t_2, __pyx_t_3, __pyx_t_4);
-      goto __pyx_L1_error;
-      __pyx_L5_exception_handled:;
-      __Pyx_PyThreadState_assign
-      __Pyx_XGIVEREF(__pyx_t_2);
-      __Pyx_XGIVEREF(__pyx_t_3);
-      __Pyx_XGIVEREF(__pyx_t_4);
-      __Pyx_ExceptionReset(__pyx_t_2, __pyx_t_3, __pyx_t_4);
-      __pyx_L11_try_end:;
-    }
-
-    /* "jaco2_cython.pyx":31
- *         self.use_redis = use_redis
- * 
- *         if self.use_redis is True:             # <<<<<<<<<<<<<<
- *             try:
- *                 import redis
- */
-  }
-
-  /* "jaco2_cython.pyx":27
- *     cdef bool use_redis
+  /* "jaco2_cython.pyx":28
  *     cdef Jaco2* thisptr # hold a C++ instance
+ *     # cdef class self.r
  *     def __cinit__(self, bool use_redis):             # <<<<<<<<<<<<<<
  *         self.thisptr = new Jaco2()
  *         self.use_redis = use_redis
@@ -1601,20 +1387,11 @@ static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs
 
   /* function exit code */
   __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_7);
-  __Pyx_AddTraceback("jaco2_rs485.pyJaco2.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_redis);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":40
+/* "jaco2_cython.pyx":42
  * 
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -1637,7 +1414,7 @@ static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__dealloc__", 0);
 
-  /* "jaco2_cython.pyx":41
+  /* "jaco2_cython.pyx":43
  * 
  *     def __dealloc__(self):
  *         del self.thisptr             # <<<<<<<<<<<<<<
@@ -1646,7 +1423,7 @@ static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco
  */
   delete __pyx_v_self->thisptr;
 
-  /* "jaco2_cython.pyx":40
+  /* "jaco2_cython.pyx":42
  * 
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -1658,7 +1435,7 @@ static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco
   __Pyx_RefNannyFinishContext();
 }
 
-/* "jaco2_cython.pyx":43
+/* "jaco2_cython.pyx":45
  *         del self.thisptr
  * 
  *     def Connect(self):             # <<<<<<<<<<<<<<
@@ -1684,7 +1461,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("Connect", 0);
 
-  /* "jaco2_cython.pyx":44
+  /* "jaco2_cython.pyx":46
  * 
  *     def Connect(self):
  *         self.thisptr.Connect()             # <<<<<<<<<<<<<<
@@ -1693,7 +1470,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
  */
   __pyx_v_self->thisptr->Connect();
 
-  /* "jaco2_cython.pyx":43
+  /* "jaco2_cython.pyx":45
  *         del self.thisptr
  * 
  *     def Connect(self):             # <<<<<<<<<<<<<<
@@ -1708,7 +1485,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":46
+/* "jaco2_cython.pyx":48
  *         self.thisptr.Connect()
  * 
  *     def Disconnect(self):             # <<<<<<<<<<<<<<
@@ -1734,7 +1511,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6Disconnect(struct __pyx_obj_11
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("Disconnect", 0);
 
-  /* "jaco2_cython.pyx":47
+  /* "jaco2_cython.pyx":49
  * 
  *     def Disconnect(self):
  *         self.thisptr.Disconnect()             # <<<<<<<<<<<<<<
@@ -1743,7 +1520,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6Disconnect(struct __pyx_obj_11
  */
   __pyx_v_self->thisptr->Disconnect();
 
-  /* "jaco2_cython.pyx":46
+  /* "jaco2_cython.pyx":48
  *         self.thisptr.Connect()
  * 
  *     def Disconnect(self):             # <<<<<<<<<<<<<<
@@ -1758,7 +1535,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6Disconnect(struct __pyx_obj_11
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":49
+/* "jaco2_cython.pyx":51
  *         self.thisptr.Disconnect()
  * 
  *     def GetFeedback(self):             # <<<<<<<<<<<<<<
@@ -1786,7 +1563,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8GetFeedback(struct __pyx_obj_1
   PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("GetFeedback", 0);
 
-  /* "jaco2_cython.pyx":50
+  /* "jaco2_cython.pyx":52
  * 
  *     def GetFeedback(self):
  *         return {'q': self.thisptr.pos,             # <<<<<<<<<<<<<<
@@ -1794,29 +1571,29 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8GetFeedback(struct __pyx_obj_1
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 50, __pyx_L1_error)
+  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 52, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->pos, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 50, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->pos, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 52, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_q, __pyx_t_2) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_q, __pyx_t_2) < 0) __PYX_ERR(0, 52, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "jaco2_cython.pyx":51
+  /* "jaco2_cython.pyx":53
  *     def GetFeedback(self):
  *         return {'q': self.thisptr.pos,
  *                 'dq': self.thisptr.vel}             # <<<<<<<<<<<<<<
  * 
  *     def GetTorqueLoad(self):
  */
-  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->vel, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 51, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->vel, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 53, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dq, __pyx_t_2) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dq, __pyx_t_2) < 0) __PYX_ERR(0, 52, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "jaco2_cython.pyx":49
+  /* "jaco2_cython.pyx":51
  *         self.thisptr.Disconnect()
  * 
  *     def GetFeedback(self):             # <<<<<<<<<<<<<<
@@ -1836,7 +1613,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8GetFeedback(struct __pyx_obj_1
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":53
+/* "jaco2_cython.pyx":55
  *                 'dq': self.thisptr.vel}
  * 
  *     def GetTorqueLoad(self):             # <<<<<<<<<<<<<<
@@ -1864,7 +1641,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10GetTorqueLoad(struct __pyx_ob
   PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("GetTorqueLoad", 0);
 
-  /* "jaco2_cython.pyx":55
+  /* "jaco2_cython.pyx":57
  *     def GetTorqueLoad(self):
  *         # TODO: why doesn't it work to return self.thisptr.torque_load
  *         return {'torque_load' : self.thisptr.torque_load}             # <<<<<<<<<<<<<<
@@ -1872,17 +1649,17 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10GetTorqueLoad(struct __pyx_ob
  *     def InitForceMode(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->torque_load, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->torque_load, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 57, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_torque_load, __pyx_t_2) < 0) __PYX_ERR(0, 55, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_torque_load, __pyx_t_2) < 0) __PYX_ERR(0, 57, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "jaco2_cython.pyx":53
+  /* "jaco2_cython.pyx":55
  *                 'dq': self.thisptr.vel}
  * 
  *     def GetTorqueLoad(self):             # <<<<<<<<<<<<<<
@@ -1902,7 +1679,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10GetTorqueLoad(struct __pyx_ob
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":57
+/* "jaco2_cython.pyx":59
  *         return {'torque_load' : self.thisptr.torque_load}
  * 
  *     def InitForceMode(self):             # <<<<<<<<<<<<<<
@@ -1928,7 +1705,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12InitForceMode(struct __pyx_ob
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("InitForceMode", 0);
 
-  /* "jaco2_cython.pyx":58
+  /* "jaco2_cython.pyx":60
  * 
  *     def InitForceMode(self):
  *         self.thisptr.InitForceMode()             # <<<<<<<<<<<<<<
@@ -1937,7 +1714,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12InitForceMode(struct __pyx_ob
  */
   __pyx_v_self->thisptr->InitForceMode();
 
-  /* "jaco2_cython.pyx":57
+  /* "jaco2_cython.pyx":59
  *         return {'torque_load' : self.thisptr.torque_load}
  * 
  *     def InitForceMode(self):             # <<<<<<<<<<<<<<
@@ -1952,7 +1729,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12InitForceMode(struct __pyx_ob
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":60
+/* "jaco2_cython.pyx":62
  *         self.thisptr.InitForceMode()
  * 
  *     def InitPositionMode(self):             # <<<<<<<<<<<<<<
@@ -1978,7 +1755,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14InitPositionMode(struct __pyx
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("InitPositionMode", 0);
 
-  /* "jaco2_cython.pyx":61
+  /* "jaco2_cython.pyx":63
  * 
  *     def InitPositionMode(self):
  *         self.thisptr.InitPositionMode()             # <<<<<<<<<<<<<<
@@ -1987,7 +1764,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14InitPositionMode(struct __pyx
  */
   __pyx_v_self->thisptr->InitPositionMode();
 
-  /* "jaco2_cython.pyx":60
+  /* "jaco2_cython.pyx":62
  *         self.thisptr.InitForceMode()
  * 
  *     def InitPositionMode(self):             # <<<<<<<<<<<<<<
@@ -2002,7 +1779,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14InitPositionMode(struct __pyx
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":63
+/* "jaco2_cython.pyx":65
  *         self.thisptr.InitPositionMode()
  * 
  *     def SendForces(self, np.ndarray[float, mode="c"] u):             # <<<<<<<<<<<<<<
@@ -2016,7 +1793,7 @@ static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_17SendForces(PyObject *__pyx_v_
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("SendForces (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_u), __pyx_ptype_5numpy_ndarray, 1, "u", 0))) __PYX_ERR(0, 63, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_u), __pyx_ptype_5numpy_ndarray, 1, "u", 0))) __PYX_ERR(0, 65, __pyx_L1_error)
   __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_16SendForces(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_u));
 
   /* function exit code */
@@ -2042,16 +1819,16 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_16SendForces(struct __pyx_obj_1
   __pyx_pybuffernd_u.rcbuffer = &__pyx_pybuffer_u;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_u.rcbuffer->pybuffer, (PyObject*)__pyx_v_u, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 63, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_u.rcbuffer->pybuffer, (PyObject*)__pyx_v_u, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 65, __pyx_L1_error)
   }
   __pyx_pybuffernd_u.diminfo[0].strides = __pyx_pybuffernd_u.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_u.diminfo[0].shape = __pyx_pybuffernd_u.rcbuffer->pybuffer.shape[0];
 
-  /* "jaco2_cython.pyx":64
+  /* "jaco2_cython.pyx":66
  * 
  *     def SendForces(self, np.ndarray[float, mode="c"] u):
  *         self.thisptr.SendForces(&u[0])             # <<<<<<<<<<<<<<
  * 
- *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target,
+ *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target):
  */
   __pyx_t_1 = 0;
   __pyx_t_2 = -1;
@@ -2061,11 +1838,11 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_16SendForces(struct __pyx_obj_1
   } else if (unlikely(__pyx_t_1 >= __pyx_pybuffernd_u.diminfo[0].shape)) __pyx_t_2 = 0;
   if (unlikely(__pyx_t_2 != -1)) {
     __Pyx_RaiseBufferIndexError(__pyx_t_2);
-    __PYX_ERR(0, 64, __pyx_L1_error)
+    __PYX_ERR(0, 66, __pyx_L1_error)
   }
   __pyx_v_self->thisptr->SendForces((&(*__Pyx_BufPtrCContig1d(float *, __pyx_pybuffernd_u.rcbuffer->pybuffer.buf, __pyx_t_1, __pyx_pybuffernd_u.diminfo[0].strides))));
 
-  /* "jaco2_cython.pyx":63
+  /* "jaco2_cython.pyx":65
  *         self.thisptr.InitPositionMode()
  * 
  *     def SendForces(self, np.ndarray[float, mode="c"] u):             # <<<<<<<<<<<<<<
@@ -2094,67 +1871,22 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_16SendForces(struct __pyx_obj_1
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":66
+/* "jaco2_cython.pyx":68
  *         self.thisptr.SendForces(&u[0])
  * 
- *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target,             # <<<<<<<<<<<<<<
- *                          bool use_redis):
+ *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target):             # <<<<<<<<<<<<<<
  *         target_reached = 0
+ *         self.thisptr.SendTargetAnglesSetup()
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_19SendTargetAngles(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_19SendTargetAngles(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyArrayObject *__pyx_v_q_target = 0;
-  CYTHON_UNUSED bool __pyx_v_use_redis;
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_19SendTargetAngles(PyObject *__pyx_v_self, PyObject *__pyx_v_q_target); /*proto*/
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_19SendTargetAngles(PyObject *__pyx_v_self, PyObject *__pyx_v_q_target) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("SendTargetAngles (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_q_target,&__pyx_n_s_use_redis,0};
-    PyObject* values[2] = {0,0};
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_q_target)) != 0)) kw_args--;
-        else goto __pyx_L5_argtuple_error;
-        case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_use_redis)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("SendTargetAngles", 1, 2, 2, 1); __PYX_ERR(0, 66, __pyx_L3_error)
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "SendTargetAngles") < 0)) __PYX_ERR(0, 66, __pyx_L3_error)
-      }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
-      goto __pyx_L5_argtuple_error;
-    } else {
-      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-    }
-    __pyx_v_q_target = ((PyArrayObject *)values[0]);
-    __pyx_v_use_redis = __Pyx_PyObject_IsTrue(values[1]); if (unlikely((__pyx_v_use_redis == (bool)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("SendTargetAngles", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 66, __pyx_L3_error)
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("jaco2_rs485.pyJaco2.SendTargetAngles", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-  __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_q_target), __pyx_ptype_5numpy_ndarray, 1, "q_target", 0))) __PYX_ERR(0, 66, __pyx_L1_error)
-  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), __pyx_v_q_target, __pyx_v_use_redis);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_q_target), __pyx_ptype_5numpy_ndarray, 1, "q_target", 0))) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_q_target));
 
   /* function exit code */
   goto __pyx_L0;
@@ -2165,7 +1897,7 @@ static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_19SendTargetAngles(PyObject *__
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_q_target, CYTHON_UNUSED bool __pyx_v_use_redis) {
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_q_target) {
   long __pyx_v_target_reached;
   __Pyx_LocalBuf_ND __pyx_pybuffernd_q_target;
   __Pyx_Buffer __pyx_pybuffer_q_target;
@@ -2174,12 +1906,6 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx
   int __pyx_t_1;
   Py_ssize_t __pyx_t_2;
   int __pyx_t_3;
-  PyObject *__pyx_t_4 = NULL;
-  PyObject *__pyx_t_5 = NULL;
-  PyObject *__pyx_t_6 = NULL;
-  PyObject *__pyx_t_7 = NULL;
-  Py_ssize_t __pyx_t_8;
-  PyObject *__pyx_t_9 = NULL;
   __Pyx_RefNannySetupContext("SendTargetAngles", 0);
   __pyx_pybuffer_q_target.pybuffer.buf = NULL;
   __pyx_pybuffer_q_target.refcount = 0;
@@ -2187,21 +1913,21 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx
   __pyx_pybuffernd_q_target.rcbuffer = &__pyx_pybuffer_q_target;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_q_target.rcbuffer->pybuffer, (PyObject*)__pyx_v_q_target, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 66, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_q_target.rcbuffer->pybuffer, (PyObject*)__pyx_v_q_target, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 68, __pyx_L1_error)
   }
   __pyx_pybuffernd_q_target.diminfo[0].strides = __pyx_pybuffernd_q_target.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_q_target.diminfo[0].shape = __pyx_pybuffernd_q_target.rcbuffer->pybuffer.shape[0];
 
-  /* "jaco2_cython.pyx":68
- *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target,
- *                          bool use_redis):
+  /* "jaco2_cython.pyx":69
+ * 
+ *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target):
  *         target_reached = 0             # <<<<<<<<<<<<<<
  *         self.thisptr.SendTargetAnglesSetup()
  *         while target_reached < 6:
  */
   __pyx_v_target_reached = 0;
 
-  /* "jaco2_cython.pyx":69
- *                          bool use_redis):
+  /* "jaco2_cython.pyx":70
+ *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target):
  *         target_reached = 0
  *         self.thisptr.SendTargetAnglesSetup()             # <<<<<<<<<<<<<<
  *         while target_reached < 6:
@@ -2209,23 +1935,23 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx
  */
   __pyx_v_self->thisptr->SendTargetAnglesSetup();
 
-  /* "jaco2_cython.pyx":70
+  /* "jaco2_cython.pyx":71
  *         target_reached = 0
  *         self.thisptr.SendTargetAnglesSetup()
  *         while target_reached < 6:             # <<<<<<<<<<<<<<
  *             target_reached = self.thisptr.SendTargetAngles(&q_target[0])
- *             if self.use_redis is True:
+ *             # if self.r is not None:
  */
   while (1) {
     __pyx_t_1 = ((__pyx_v_target_reached < 6) != 0);
     if (!__pyx_t_1) break;
 
-    /* "jaco2_cython.pyx":71
+    /* "jaco2_cython.pyx":72
  *         self.thisptr.SendTargetAnglesSetup()
  *         while target_reached < 6:
  *             target_reached = self.thisptr.SendTargetAngles(&q_target[0])             # <<<<<<<<<<<<<<
- *             if self.use_redis is True:
- *                 self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
+ *             # if self.r is not None:
+ *             #     self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
  */
     __pyx_t_2 = 0;
     __pyx_t_3 = -1;
@@ -2235,112 +1961,23 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx
     } else if (unlikely(__pyx_t_2 >= __pyx_pybuffernd_q_target.diminfo[0].shape)) __pyx_t_3 = 0;
     if (unlikely(__pyx_t_3 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_3);
-      __PYX_ERR(0, 71, __pyx_L1_error)
+      __PYX_ERR(0, 72, __pyx_L1_error)
     }
     __pyx_v_target_reached = __pyx_v_self->thisptr->SendTargetAngles((&(*__Pyx_BufPtrCContig1d(float *, __pyx_pybuffernd_q_target.rcbuffer->pybuffer.buf, __pyx_t_2, __pyx_pybuffernd_q_target.diminfo[0].strides))));
-
-    /* "jaco2_cython.pyx":72
- *         while target_reached < 6:
- *             target_reached = self.thisptr.SendTargetAngles(&q_target[0])
- *             if self.use_redis is True:             # <<<<<<<<<<<<<<
- *                 self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
- *                       tuple(self.thisptr.pos_rad))
- */
-    __pyx_t_1 = ((__pyx_v_self->use_redis == 1) != 0);
-    if (__pyx_t_1) {
-
-      /* "jaco2_cython.pyx":73
- *             target_reached = self.thisptr.SendTargetAngles(&q_target[0])
- *             if self.use_redis is True:
- *                 self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %             # <<<<<<<<<<<<<<
- *                       tuple(self.thisptr.pos_rad))
- * 
- */
-      __pyx_t_5 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_r); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 73, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_set); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 73, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-
-      /* "jaco2_cython.pyx":74
- *             if self.use_redis is True:
- *                 self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
- *                       tuple(self.thisptr.pos_rad))             # <<<<<<<<<<<<<<
- * 
- *     def SendTargetAnglesHand(self, bool open):
- */
-      __pyx_t_5 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->pos_rad, 6); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 74, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_5);
-      __pyx_t_7 = PySequence_Tuple(__pyx_t_5); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 74, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_7);
-      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-
-      /* "jaco2_cython.pyx":73
- *             target_reached = self.thisptr.SendTargetAngles(&q_target[0])
- *             if self.use_redis is True:
- *                 self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %             # <<<<<<<<<<<<<<
- *                       tuple(self.thisptr.pos_rad))
- * 
- */
-      __pyx_t_5 = __Pyx_PyString_Format(__pyx_kp_s_3f_3f_3f_3f_3f_3f, __pyx_t_7); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 73, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_5);
-      __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-      __pyx_t_7 = NULL;
-      __pyx_t_8 = 0;
-      if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_6))) {
-        __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_6);
-        if (likely(__pyx_t_7)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
-          __Pyx_INCREF(__pyx_t_7);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_6, function);
-          __pyx_t_8 = 1;
-        }
-      }
-      __pyx_t_9 = PyTuple_New(2+__pyx_t_8); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 73, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_9);
-      if (__pyx_t_7) {
-        __Pyx_GIVEREF(__pyx_t_7); PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_7); __pyx_t_7 = NULL;
-      }
-      __Pyx_INCREF(__pyx_n_s_q);
-      __Pyx_GIVEREF(__pyx_n_s_q);
-      PyTuple_SET_ITEM(__pyx_t_9, 0+__pyx_t_8, __pyx_n_s_q);
-      __Pyx_GIVEREF(__pyx_t_5);
-      PyTuple_SET_ITEM(__pyx_t_9, 1+__pyx_t_8, __pyx_t_5);
-      __pyx_t_5 = 0;
-      __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_9, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 73, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_4);
-      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-
-      /* "jaco2_cython.pyx":72
- *         while target_reached < 6:
- *             target_reached = self.thisptr.SendTargetAngles(&q_target[0])
- *             if self.use_redis is True:             # <<<<<<<<<<<<<<
- *                 self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
- *                       tuple(self.thisptr.pos_rad))
- */
-    }
   }
 
-  /* "jaco2_cython.pyx":66
+  /* "jaco2_cython.pyx":68
  *         self.thisptr.SendForces(&u[0])
  * 
- *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target,             # <<<<<<<<<<<<<<
- *                          bool use_redis):
+ *     def SendTargetAngles(self, np.ndarray[float, mode="c"] q_target):             # <<<<<<<<<<<<<<
  *         target_reached = 0
+ *         self.thisptr.SendTargetAnglesSetup()
  */
 
   /* function exit code */
   __pyx_r = Py_None; __Pyx_INCREF(Py_None);
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_7);
-  __Pyx_XDECREF(__pyx_t_9);
   { PyObject *__pyx_type, *__pyx_value, *__pyx_tb;
     __Pyx_PyThreadState_declare
     __Pyx_PyThreadState_assign
@@ -2358,8 +1995,8 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_18SendTargetAngles(struct __pyx
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":76
- *                       tuple(self.thisptr.pos_rad))
+/* "jaco2_cython.pyx":77
+ *             #           tuple(self.thisptr.pos_rad))
  * 
  *     def SendTargetAnglesHand(self, bool open):             # <<<<<<<<<<<<<<
  *         self.thisptr.SendTargetAnglesHand(open)
@@ -2373,7 +2010,7 @@ static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_21SendTargetAnglesHand(PyObject
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("SendTargetAnglesHand (wrapper)", 0);
   assert(__pyx_arg_open); {
-    __pyx_v_open = __Pyx_PyObject_IsTrue(__pyx_arg_open); if (unlikely((__pyx_v_open == (bool)-1) && PyErr_Occurred())) __PYX_ERR(0, 76, __pyx_L3_error)
+    __pyx_v_open = __Pyx_PyObject_IsTrue(__pyx_arg_open); if (unlikely((__pyx_v_open == (bool)-1) && PyErr_Occurred())) __PYX_ERR(0, 77, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2393,15 +2030,15 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_20SendTargetAnglesHand(struct _
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("SendTargetAnglesHand", 0);
 
-  /* "jaco2_cython.pyx":77
+  /* "jaco2_cython.pyx":78
  * 
  *     def SendTargetAnglesHand(self, bool open):
  *         self.thisptr.SendTargetAnglesHand(open)             # <<<<<<<<<<<<<<
  */
   __pyx_v_self->thisptr->SendTargetAnglesHand(__pyx_v_open);
 
-  /* "jaco2_cython.pyx":76
- *                       tuple(self.thisptr.pos_rad))
+  /* "jaco2_cython.pyx":77
+ *             #           tuple(self.thisptr.pos_rad))
  * 
  *     def SendTargetAnglesHand(self, bool open):             # <<<<<<<<<<<<<<
  *         self.thisptr.SendTargetAnglesHand(open)
@@ -4784,7 +4421,7 @@ static PyMethodDef __pyx_methods_11jaco2_rs485_pyJaco2[] = {
   {"InitForceMode", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_13InitForceMode, METH_NOARGS, 0},
   {"InitPositionMode", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_15InitPositionMode, METH_NOARGS, 0},
   {"SendForces", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_17SendForces, METH_O, 0},
-  {"SendTargetAngles", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_19SendTargetAngles, METH_VARARGS|METH_KEYWORDS, 0},
+  {"SendTargetAngles", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_19SendTargetAngles, METH_O, 0},
   {"SendTargetAnglesHand", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_21SendTargetAnglesHand, METH_O, 0},
   {0, 0, 0, 0}
 };
@@ -4870,32 +4507,20 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_kp_s_127_0_0_1, __pyx_k_127_0_0_1, sizeof(__pyx_k_127_0_0_1), 0, 0, 1, 0},
-  {&__pyx_kp_s_3f_3f_3f_3f_3f_3f, __pyx_k_3f_3f_3f_3f_3f_3f, sizeof(__pyx_k_3f_3f_3f_3f_3f_3f), 0, 0, 1, 0},
   {&__pyx_kp_u_Format_string_allocated_too_shor, __pyx_k_Format_string_allocated_too_shor, sizeof(__pyx_k_Format_string_allocated_too_shor), 0, 1, 0, 0},
   {&__pyx_kp_u_Format_string_allocated_too_shor_2, __pyx_k_Format_string_allocated_too_shor_2, sizeof(__pyx_k_Format_string_allocated_too_shor_2), 0, 1, 0, 0},
   {&__pyx_kp_u_Non_native_byte_order_not_suppor, __pyx_k_Non_native_byte_order_not_suppor, sizeof(__pyx_k_Non_native_byte_order_not_suppor), 0, 1, 0, 0},
-  {&__pyx_kp_s_Please_install_redis_to_use_vrep, __pyx_k_Please_install_redis_to_use_vrep, sizeof(__pyx_k_Please_install_redis_to_use_vrep), 0, 0, 1, 0},
   {&__pyx_n_s_RuntimeError, __pyx_k_RuntimeError, sizeof(__pyx_k_RuntimeError), 0, 0, 1, 1},
-  {&__pyx_n_s_StrictRedis, __pyx_k_StrictRedis, sizeof(__pyx_k_StrictRedis), 0, 0, 1, 1},
   {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
   {&__pyx_n_s_dq, __pyx_k_dq, sizeof(__pyx_k_dq), 0, 0, 1, 1},
-  {&__pyx_n_s_end, __pyx_k_end, sizeof(__pyx_k_end), 0, 0, 1, 1},
-  {&__pyx_n_s_file, __pyx_k_file, sizeof(__pyx_k_file), 0, 0, 1, 1},
-  {&__pyx_n_s_host, __pyx_k_host, sizeof(__pyx_k_host), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_kp_u_ndarray_is_not_C_contiguous, __pyx_k_ndarray_is_not_C_contiguous, sizeof(__pyx_k_ndarray_is_not_C_contiguous), 0, 1, 0, 0},
   {&__pyx_kp_u_ndarray_is_not_Fortran_contiguou, __pyx_k_ndarray_is_not_Fortran_contiguou, sizeof(__pyx_k_ndarray_is_not_Fortran_contiguou), 0, 1, 0, 0},
   {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
-  {&__pyx_n_s_print, __pyx_k_print, sizeof(__pyx_k_print), 0, 0, 1, 1},
   {&__pyx_n_s_q, __pyx_k_q, sizeof(__pyx_k_q), 0, 0, 1, 1},
-  {&__pyx_n_s_q_target, __pyx_k_q_target, sizeof(__pyx_k_q_target), 0, 0, 1, 1},
-  {&__pyx_n_s_r, __pyx_k_r, sizeof(__pyx_k_r), 0, 0, 1, 1},
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
-  {&__pyx_n_s_redis, __pyx_k_redis, sizeof(__pyx_k_redis), 0, 0, 1, 1},
-  {&__pyx_n_s_set, __pyx_k_set, sizeof(__pyx_k_set), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
   {&__pyx_n_s_torque_load, __pyx_k_torque_load, sizeof(__pyx_k_torque_load), 0, 0, 1, 1},
   {&__pyx_kp_u_unknown_dtype_code_in_numpy_pxd, __pyx_k_unknown_dtype_code_in_numpy_pxd, sizeof(__pyx_k_unknown_dtype_code_in_numpy_pxd), 0, 1, 0, 0},
@@ -5112,8 +4737,8 @@ PyMODINIT_FUNC PyInit_jaco2_rs485(void)
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "jaco2_cython.pyx":76
- *                       tuple(self.thisptr.pos_rad))
+  /* "jaco2_cython.pyx":77
+ *             #           tuple(self.thisptr.pos_rad))
  * 
  *     def SendTargetAnglesHand(self, bool open):             # <<<<<<<<<<<<<<
  *         self.thisptr.SendTargetAnglesHand(open)
@@ -5313,187 +4938,8 @@ static void __Pyx_RaiseArgtupleInvalid(
                  (num_expected == 1) ? "" : "s", num_found);
 }
 
-/* Import */
-static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
-    PyObject *empty_list = 0;
-    PyObject *module = 0;
-    PyObject *global_dict = 0;
-    PyObject *empty_dict = 0;
-    PyObject *list;
-    #if PY_VERSION_HEX < 0x03030000
-    PyObject *py_import;
-    py_import = __Pyx_PyObject_GetAttrStr(__pyx_b, __pyx_n_s_import);
-    if (!py_import)
-        goto bad;
-    #endif
-    if (from_list)
-        list = from_list;
-    else {
-        empty_list = PyList_New(0);
-        if (!empty_list)
-            goto bad;
-        list = empty_list;
-    }
-    global_dict = PyModule_GetDict(__pyx_m);
-    if (!global_dict)
-        goto bad;
-    empty_dict = PyDict_New();
-    if (!empty_dict)
-        goto bad;
-    {
-        #if PY_MAJOR_VERSION >= 3
-        if (level == -1) {
-            if (strchr(__Pyx_MODULE_NAME, '.')) {
-                #if PY_VERSION_HEX < 0x03030000
-                PyObject *py_level = PyInt_FromLong(1);
-                if (!py_level)
-                    goto bad;
-                module = PyObject_CallFunctionObjArgs(py_import,
-                    name, global_dict, empty_dict, list, py_level, NULL);
-                Py_DECREF(py_level);
-                #else
-                module = PyImport_ImportModuleLevelObject(
-                    name, global_dict, empty_dict, list, 1);
-                #endif
-                if (!module) {
-                    if (!PyErr_ExceptionMatches(PyExc_ImportError))
-                        goto bad;
-                    PyErr_Clear();
-                }
-            }
-            level = 0;
-        }
-        #endif
-        if (!module) {
-            #if PY_VERSION_HEX < 0x03030000
-            PyObject *py_level = PyInt_FromLong(level);
-            if (!py_level)
-                goto bad;
-            module = PyObject_CallFunctionObjArgs(py_import,
-                name, global_dict, empty_dict, list, py_level, NULL);
-            Py_DECREF(py_level);
-            #else
-            module = PyImport_ImportModuleLevelObject(
-                name, global_dict, empty_dict, list, level);
-            #endif
-        }
-    }
-bad:
-    #if PY_VERSION_HEX < 0x03030000
-    Py_XDECREF(py_import);
-    #endif
-    Py_XDECREF(empty_list);
-    Py_XDECREF(empty_dict);
-    return module;
-}
-
-/* PyObjectCall */
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw) {
-    PyObject *result;
-    ternaryfunc call = func->ob_type->tp_call;
-    if (unlikely(!call))
-        return PyObject_Call(func, arg, kw);
-    if (unlikely(Py_EnterRecursiveCall((char*)" while calling a Python object")))
-        return NULL;
-    result = (*call)(func, arg, kw);
-    Py_LeaveRecursiveCall();
-    if (unlikely(!result) && unlikely(!PyErr_Occurred())) {
-        PyErr_SetString(
-            PyExc_SystemError,
-            "NULL result without error in PyObject_Call");
-    }
-    return result;
-}
-#endif
-
-/* SaveResetException */
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE void __Pyx__ExceptionSave(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb) {
-    *type = tstate->exc_type;
-    *value = tstate->exc_value;
-    *tb = tstate->exc_traceback;
-    Py_XINCREF(*type);
-    Py_XINCREF(*value);
-    Py_XINCREF(*tb);
-}
-static CYTHON_INLINE void __Pyx__ExceptionReset(PyThreadState *tstate, PyObject *type, PyObject *value, PyObject *tb) {
-    PyObject *tmp_type, *tmp_value, *tmp_tb;
-    tmp_type = tstate->exc_type;
-    tmp_value = tstate->exc_value;
-    tmp_tb = tstate->exc_traceback;
-    tstate->exc_type = type;
-    tstate->exc_value = value;
-    tstate->exc_traceback = tb;
-    Py_XDECREF(tmp_type);
-    Py_XDECREF(tmp_value);
-    Py_XDECREF(tmp_tb);
-}
-#endif
-
-/* GetException */
-#if CYTHON_COMPILING_IN_CPYTHON
-static int __Pyx__GetException(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb) {
-#else
-static int __Pyx_GetException(PyObject **type, PyObject **value, PyObject **tb) {
-#endif
-    PyObject *local_type, *local_value, *local_tb;
-#if CYTHON_COMPILING_IN_CPYTHON
-    PyObject *tmp_type, *tmp_value, *tmp_tb;
-    local_type = tstate->curexc_type;
-    local_value = tstate->curexc_value;
-    local_tb = tstate->curexc_traceback;
-    tstate->curexc_type = 0;
-    tstate->curexc_value = 0;
-    tstate->curexc_traceback = 0;
-#else
-    PyErr_Fetch(&local_type, &local_value, &local_tb);
-#endif
-    PyErr_NormalizeException(&local_type, &local_value, &local_tb);
-#if CYTHON_COMPILING_IN_CPYTHON
-    if (unlikely(tstate->curexc_type))
-#else
-    if (unlikely(PyErr_Occurred()))
-#endif
-        goto bad;
-    #if PY_MAJOR_VERSION >= 3
-    if (local_tb) {
-        if (unlikely(PyException_SetTraceback(local_value, local_tb) < 0))
-            goto bad;
-    }
-    #endif
-    Py_XINCREF(local_tb);
-    Py_XINCREF(local_type);
-    Py_XINCREF(local_value);
-    *type = local_type;
-    *value = local_value;
-    *tb = local_tb;
-#if CYTHON_COMPILING_IN_CPYTHON
-    tmp_type = tstate->exc_type;
-    tmp_value = tstate->exc_value;
-    tmp_tb = tstate->exc_traceback;
-    tstate->exc_type = local_type;
-    tstate->exc_value = local_value;
-    tstate->exc_traceback = local_tb;
-    Py_XDECREF(tmp_type);
-    Py_XDECREF(tmp_value);
-    Py_XDECREF(tmp_tb);
-#else
-    PyErr_SetExcInfo(local_type, local_value, local_tb);
-#endif
-    return 0;
-bad:
-    *type = 0;
-    *value = 0;
-    *tb = 0;
-    Py_XDECREF(local_type);
-    Py_XDECREF(local_value);
-    Py_XDECREF(local_tb);
-    return -1;
-}
-
 /* ArgTypeTest */
-  static void __Pyx_RaiseArgumentTypeInvalid(const char* name, PyObject *obj, PyTypeObject *type) {
+static void __Pyx_RaiseArgumentTypeInvalid(const char* name, PyObject *obj, PyTypeObject *type) {
     PyErr_Format(PyExc_TypeError,
         "Argument '%.200s' has incorrect type (expected %.200s, got %.200s)",
         name, type->tp_name, Py_TYPE(obj)->tp_name);
@@ -5520,7 +4966,7 @@ static CYTHON_INLINE int __Pyx_ArgTypeTest(PyObject *obj, PyTypeObject *type, in
 }
 
 /* BufferFormatCheck */
-  static CYTHON_INLINE int __Pyx_IsLittleEndian(void) {
+static CYTHON_INLINE int __Pyx_IsLittleEndian(void) {
   unsigned int n = 1;
   return *(unsigned char*)(&n) != 0;
 }
@@ -6070,13 +5516,13 @@ static CYTHON_INLINE void __Pyx_SafeReleaseBuffer(Py_buffer* info) {
 }
 
 /* BufferIndexError */
-    static void __Pyx_RaiseBufferIndexError(int axis) {
+  static void __Pyx_RaiseBufferIndexError(int axis) {
   PyErr_Format(PyExc_IndexError,
      "Out of bounds on buffer access (axis %d)", axis);
 }
 
 /* PyErrFetchRestore */
-    #if CYTHON_COMPILING_IN_CPYTHON
+  #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE void __Pyx_ErrRestoreInState(PyThreadState *tstate, PyObject *type, PyObject *value, PyObject *tb) {
     PyObject *tmp_type, *tmp_value, *tmp_tb;
     tmp_type = tstate->curexc_type;
@@ -6100,7 +5546,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
 #endif
 
 /* GetBuiltinName */
-    static PyObject *__Pyx_GetBuiltinName(PyObject *name) {
+  static PyObject *__Pyx_GetBuiltinName(PyObject *name) {
     PyObject* result = __Pyx_PyObject_GetAttrStr(__pyx_b, name);
     if (unlikely(!result)) {
         PyErr_Format(PyExc_NameError,
@@ -6113,8 +5559,28 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
     return result;
 }
 
+/* PyObjectCall */
+  #if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw) {
+    PyObject *result;
+    ternaryfunc call = func->ob_type->tp_call;
+    if (unlikely(!call))
+        return PyObject_Call(func, arg, kw);
+    if (unlikely(Py_EnterRecursiveCall((char*)" while calling a Python object")))
+        return NULL;
+    result = (*call)(func, arg, kw);
+    Py_LeaveRecursiveCall();
+    if (unlikely(!result) && unlikely(!PyErr_Occurred())) {
+        PyErr_SetString(
+            PyExc_SystemError,
+            "NULL result without error in PyObject_Call");
+    }
+    return result;
+}
+#endif
+
 /* RaiseException */
-    #if PY_MAJOR_VERSION < 3
+  #if PY_MAJOR_VERSION < 3
 static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb,
                         CYTHON_UNUSED PyObject *cause) {
     __Pyx_PyThreadState_declare
@@ -6277,25 +5743,25 @@ bad:
 #endif
 
 /* RaiseTooManyValuesToUnpack */
-      static CYTHON_INLINE void __Pyx_RaiseTooManyValuesError(Py_ssize_t expected) {
+    static CYTHON_INLINE void __Pyx_RaiseTooManyValuesError(Py_ssize_t expected) {
     PyErr_Format(PyExc_ValueError,
                  "too many values to unpack (expected %" CYTHON_FORMAT_SSIZE_T "d)", expected);
 }
 
 /* RaiseNeedMoreValuesToUnpack */
-      static CYTHON_INLINE void __Pyx_RaiseNeedMoreValuesError(Py_ssize_t index) {
+    static CYTHON_INLINE void __Pyx_RaiseNeedMoreValuesError(Py_ssize_t index) {
     PyErr_Format(PyExc_ValueError,
                  "need more than %" CYTHON_FORMAT_SSIZE_T "d value%.1s to unpack",
                  index, (index == 1) ? "" : "s");
 }
 
 /* RaiseNoneIterError */
-      static CYTHON_INLINE void __Pyx_RaiseNoneNotIterableError(void) {
+    static CYTHON_INLINE void __Pyx_RaiseNoneNotIterableError(void) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
 }
 
 /* ExtTypeTest */
-      static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type) {
+    static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type) {
     if (unlikely(!type)) {
         PyErr_SetString(PyExc_SystemError, "Missing type object");
         return 0;
@@ -6307,8 +5773,82 @@ bad:
     return 0;
 }
 
+/* Import */
+    static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
+    PyObject *empty_list = 0;
+    PyObject *module = 0;
+    PyObject *global_dict = 0;
+    PyObject *empty_dict = 0;
+    PyObject *list;
+    #if PY_VERSION_HEX < 0x03030000
+    PyObject *py_import;
+    py_import = __Pyx_PyObject_GetAttrStr(__pyx_b, __pyx_n_s_import);
+    if (!py_import)
+        goto bad;
+    #endif
+    if (from_list)
+        list = from_list;
+    else {
+        empty_list = PyList_New(0);
+        if (!empty_list)
+            goto bad;
+        list = empty_list;
+    }
+    global_dict = PyModule_GetDict(__pyx_m);
+    if (!global_dict)
+        goto bad;
+    empty_dict = PyDict_New();
+    if (!empty_dict)
+        goto bad;
+    {
+        #if PY_MAJOR_VERSION >= 3
+        if (level == -1) {
+            if (strchr(__Pyx_MODULE_NAME, '.')) {
+                #if PY_VERSION_HEX < 0x03030000
+                PyObject *py_level = PyInt_FromLong(1);
+                if (!py_level)
+                    goto bad;
+                module = PyObject_CallFunctionObjArgs(py_import,
+                    name, global_dict, empty_dict, list, py_level, NULL);
+                Py_DECREF(py_level);
+                #else
+                module = PyImport_ImportModuleLevelObject(
+                    name, global_dict, empty_dict, list, 1);
+                #endif
+                if (!module) {
+                    if (!PyErr_ExceptionMatches(PyExc_ImportError))
+                        goto bad;
+                    PyErr_Clear();
+                }
+            }
+            level = 0;
+        }
+        #endif
+        if (!module) {
+            #if PY_VERSION_HEX < 0x03030000
+            PyObject *py_level = PyInt_FromLong(level);
+            if (!py_level)
+                goto bad;
+            module = PyObject_CallFunctionObjArgs(py_import,
+                name, global_dict, empty_dict, list, py_level, NULL);
+            Py_DECREF(py_level);
+            #else
+            module = PyImport_ImportModuleLevelObject(
+                name, global_dict, empty_dict, list, level);
+            #endif
+        }
+    }
+bad:
+    #if PY_VERSION_HEX < 0x03030000
+    Py_XDECREF(py_import);
+    #endif
+    Py_XDECREF(empty_list);
+    Py_XDECREF(empty_dict);
+    return module;
+}
+
 /* CodeObjectCache */
-      static int __pyx_bisect_code_objects(__Pyx_CodeObjectCacheEntry* entries, int count, int code_line) {
+    static int __pyx_bisect_code_objects(__Pyx_CodeObjectCacheEntry* entries, int count, int code_line) {
     int start = 0, mid = 0, end = count - 1;
     if (end >= 0 && code_line > entries[end].code_line) {
         return count;
@@ -6388,7 +5928,7 @@ static void __pyx_insert_code_object(int code_line, PyCodeObject* code_object) {
 }
 
 /* AddTraceback */
-      #include "compile.h"
+    #include "compile.h"
 #include "frameobject.h"
 #include "traceback.h"
 static PyCodeObject* __Pyx_CreateCodeObjectForTraceback(
@@ -6489,114 +6029,8 @@ static void __Pyx_ReleaseBuffer(Py_buffer *view) {
 #endif
 
 
-      /* Print */
-      #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
-static PyObject *__Pyx_GetStdout(void) {
-    PyObject *f = PySys_GetObject((char *)"stdout");
-    if (!f) {
-        PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
-    }
-    return f;
-}
-static int __Pyx_Print(PyObject* f, PyObject *arg_tuple, int newline) {
-    int i;
-    if (!f) {
-        if (!(f = __Pyx_GetStdout()))
-            return -1;
-    }
-    Py_INCREF(f);
-    for (i=0; i < PyTuple_GET_SIZE(arg_tuple); i++) {
-        PyObject* v;
-        if (PyFile_SoftSpace(f, 1)) {
-            if (PyFile_WriteString(" ", f) < 0)
-                goto error;
-        }
-        v = PyTuple_GET_ITEM(arg_tuple, i);
-        if (PyFile_WriteObject(v, f, Py_PRINT_RAW) < 0)
-            goto error;
-        if (PyString_Check(v)) {
-            char *s = PyString_AsString(v);
-            Py_ssize_t len = PyString_Size(v);
-            if (len > 0) {
-                switch (s[len-1]) {
-                    case ' ': break;
-                    case '\f': case '\r': case '\n': case '\t': case '\v':
-                        PyFile_SoftSpace(f, 0);
-                        break;
-                    default:  break;
-                }
-            }
-        }
-    }
-    if (newline) {
-        if (PyFile_WriteString("\n", f) < 0)
-            goto error;
-        PyFile_SoftSpace(f, 0);
-    }
-    Py_DECREF(f);
-    return 0;
-error:
-    Py_DECREF(f);
-    return -1;
-}
-#else
-static int __Pyx_Print(PyObject* stream, PyObject *arg_tuple, int newline) {
-    PyObject* kwargs = 0;
-    PyObject* result = 0;
-    PyObject* end_string;
-    if (unlikely(!__pyx_print)) {
-        __pyx_print = PyObject_GetAttr(__pyx_b, __pyx_n_s_print);
-        if (!__pyx_print)
-            return -1;
-    }
-    if (stream) {
-        kwargs = PyDict_New();
-        if (unlikely(!kwargs))
-            return -1;
-        if (unlikely(PyDict_SetItem(kwargs, __pyx_n_s_file, stream) < 0))
-            goto bad;
-        if (!newline) {
-            end_string = PyUnicode_FromStringAndSize(" ", 1);
-            if (unlikely(!end_string))
-                goto bad;
-            if (PyDict_SetItem(kwargs, __pyx_n_s_end, end_string) < 0) {
-                Py_DECREF(end_string);
-                goto bad;
-            }
-            Py_DECREF(end_string);
-        }
-    } else if (!newline) {
-        if (unlikely(!__pyx_print_kwargs)) {
-            __pyx_print_kwargs = PyDict_New();
-            if (unlikely(!__pyx_print_kwargs))
-                return -1;
-            end_string = PyUnicode_FromStringAndSize(" ", 1);
-            if (unlikely(!end_string))
-                return -1;
-            if (PyDict_SetItem(__pyx_print_kwargs, __pyx_n_s_end, end_string) < 0) {
-                Py_DECREF(end_string);
-                return -1;
-            }
-            Py_DECREF(end_string);
-        }
-        kwargs = __pyx_print_kwargs;
-    }
-    result = PyObject_Call(__pyx_print, arg_tuple, kwargs);
-    if (unlikely(kwargs) && (kwargs != __pyx_print_kwargs))
-        Py_DECREF(kwargs);
-    if (!result)
-        return -1;
-    Py_DECREF(result);
-    return 0;
-bad:
-    if (kwargs != __pyx_print_kwargs)
-        Py_XDECREF(kwargs);
-    return -1;
-}
-#endif
-
-/* None */
-      #if CYTHON_CCOMPLEX
+    /* None */
+    #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
     static CYTHON_INLINE __pyx_t_float_complex __pyx_t_float_complex_from_parts(float x, float y) {
       return ::std::complex< float >(x, y);
@@ -6616,7 +6050,7 @@ bad:
 #endif
 
 /* None */
-      #if CYTHON_CCOMPLEX
+    #if CYTHON_CCOMPLEX
 #else
     static CYTHON_INLINE int __Pyx_c_eqf(__pyx_t_float_complex a, __pyx_t_float_complex b) {
        return (a.real == b.real) && (a.imag == b.imag);
@@ -6718,7 +6152,7 @@ bad:
 #endif
 
 /* None */
-      #if CYTHON_CCOMPLEX
+    #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
     static CYTHON_INLINE __pyx_t_double_complex __pyx_t_double_complex_from_parts(double x, double y) {
       return ::std::complex< double >(x, y);
@@ -6738,7 +6172,7 @@ bad:
 #endif
 
 /* None */
-      #if CYTHON_CCOMPLEX
+    #if CYTHON_CCOMPLEX
 #else
     static CYTHON_INLINE int __Pyx_c_eq(__pyx_t_double_complex a, __pyx_t_double_complex b) {
        return (a.real == b.real) && (a.imag == b.imag);
@@ -6840,7 +6274,7 @@ bad:
 #endif
 
 /* CIntToPy */
-      static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
+    static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
     const int neg_one = (int) -1, const_zero = (int) 0;
     const int is_unsigned = neg_one > const_zero;
     if (is_unsigned) {
@@ -6867,7 +6301,7 @@ bad:
 }
 
 /* CIntFromPyVerify */
-      #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
+    #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 0)
 #define __PYX_VERIFY_RETURN_INT_EXC(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 1)
@@ -6889,7 +6323,7 @@ bad:
     }
 
 /* CIntToPy */
-      static CYTHON_INLINE PyObject* __Pyx_PyInt_From_enum__NPY_TYPES(enum NPY_TYPES value) {
+    static CYTHON_INLINE PyObject* __Pyx_PyInt_From_enum__NPY_TYPES(enum NPY_TYPES value) {
     const enum NPY_TYPES neg_one = (enum NPY_TYPES) -1, const_zero = (enum NPY_TYPES) 0;
     const int is_unsigned = neg_one > const_zero;
     if (is_unsigned) {
@@ -6915,45 +6349,8 @@ bad:
     }
 }
 
-/* PrintOne */
-      #if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
-static int __Pyx_PrintOne(PyObject* f, PyObject *o) {
-    if (!f) {
-        if (!(f = __Pyx_GetStdout()))
-            return -1;
-    }
-    Py_INCREF(f);
-    if (PyFile_SoftSpace(f, 0)) {
-        if (PyFile_WriteString(" ", f) < 0)
-            goto error;
-    }
-    if (PyFile_WriteObject(o, f, Py_PRINT_RAW) < 0)
-        goto error;
-    if (PyFile_WriteString("\n", f) < 0)
-        goto error;
-    Py_DECREF(f);
-    return 0;
-error:
-    Py_DECREF(f);
-    return -1;
-    /* the line below is just to avoid C compiler
-     * warnings about unused functions */
-    return __Pyx_Print(f, NULL, 0);
-}
-#else
-static int __Pyx_PrintOne(PyObject* stream, PyObject *o) {
-    int res;
-    PyObject* arg_tuple = PyTuple_Pack(1, o);
-    if (unlikely(!arg_tuple))
-        return -1;
-    res = __Pyx_Print(stream, arg_tuple, 1);
-    Py_DECREF(arg_tuple);
-    return res;
-}
-#endif
-
 /* CIntFromPy */
-      static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
+    static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
     const int neg_one = (int) -1, const_zero = (int) 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
@@ -7138,7 +6535,7 @@ raise_neg_overflow:
 }
 
 /* CIntFromPy */
-      static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *x) {
+    static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *x) {
     const size_t neg_one = (size_t) -1, const_zero = (size_t) 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
@@ -7323,7 +6720,7 @@ raise_neg_overflow:
 }
 
 /* CIntToPy */
-      static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+    static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
     const long neg_one = (long) -1, const_zero = (long) 0;
     const int is_unsigned = neg_one > const_zero;
     if (is_unsigned) {
@@ -7350,7 +6747,7 @@ raise_neg_overflow:
 }
 
 /* CIntFromPy */
-      static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {
+    static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {
     const long neg_one = (long) -1, const_zero = (long) 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
@@ -7535,7 +6932,7 @@ raise_neg_overflow:
 }
 
 /* CheckBinaryVersion */
-      static int __Pyx_check_binary_version(void) {
+    static int __Pyx_check_binary_version(void) {
     char ctversion[4], rtversion[4];
     PyOS_snprintf(ctversion, 4, "%d.%d", PY_MAJOR_VERSION, PY_MINOR_VERSION);
     PyOS_snprintf(rtversion, 4, "%s", Py_GetVersion());
@@ -7551,7 +6948,7 @@ raise_neg_overflow:
 }
 
 /* ModuleImport */
-      #ifndef __PYX_HAVE_RT_ImportModule
+    #ifndef __PYX_HAVE_RT_ImportModule
 #define __PYX_HAVE_RT_ImportModule
 static PyObject *__Pyx_ImportModule(const char *name) {
     PyObject *py_name = 0;
@@ -7569,7 +6966,7 @@ bad:
 #endif
 
 /* TypeImport */
-      #ifndef __PYX_HAVE_RT_ImportType
+    #ifndef __PYX_HAVE_RT_ImportType
 #define __PYX_HAVE_RT_ImportType
 static PyTypeObject *__Pyx_ImportType(const char *module_name, const char *class_name,
     size_t size, int strict)
@@ -7634,7 +7031,7 @@ bad:
 #endif
 
 /* InitStrings */
-      static int __Pyx_InitStrings(__Pyx_StringTabEntry *t) {
+    static int __Pyx_InitStrings(__Pyx_StringTabEntry *t) {
     while (t->p) {
         #if PY_MAJOR_VERSION < 3
         if (t->is_unicode) {

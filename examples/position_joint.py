@@ -48,6 +48,8 @@ finally:
 
     q_track = np.array(q_track)
     #TODO: fix plotting, y axis missing
+    import matplotlib
+    matplotlib.use("TKAgg")
     import matplotlib.pyplot as plt
     plt.figure()
     for ii in range(0, 5):
@@ -55,9 +57,9 @@ finally:
         plt.title('Target vs. Actual Joint Angles')
         plt.xlabel('Target Position')
         plt.ylabel('Joint Position (rad)')
-        plt.plot(np.arange(0, len(TARGET_POS)), q_track[:, ii])
+        plt.plot(np.arange(0, len(q_track[:,ii])), q_track[:, ii])
         #plt.gca().set_color_cycle(None)
-        plt.plot(np.arange(0, len(TARGET_POS)), TARGET_POS[:, ii], '--')
+        plt.plot(np.arange(0, len(TARGET_POS[:,ii])), TARGET_POS[:, ii], '--')
     plt.tight_layout()
     plt.show()
     sys.exit()

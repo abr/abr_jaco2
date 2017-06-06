@@ -25,9 +25,9 @@ ctrlr.generate(np.zeros(6), np.zeros(6))
 
 avoid = signals.AvoidJointLimits(
     robot_config,
-    min_joint_angles=[None, 0.87, 0.33, None, None, None],
-    max_joint_angles=[None, 5.41, 5.95, None, None, None],
-    max_torque=5*robot_config.N_JOINTS)
+    min_joint_angles=[None, 1.57, 1.57, None, None, None],
+    max_joint_angles=[None, 4.71, 4.71, None, None, None],
+    max_torque=[5]*robot_config.N_JOINTS)
 
 interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 interface.init_force_mode()

@@ -24,7 +24,7 @@ import abr_jaco2
 # initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
-ctrlr = Joint(robot_config, kp=20, kv=6)
+ctrlr = Joint(robot_config, kp=25, kv=12)
 
 zeros = np.zeros(robot_config.N_JOINTS)
 ctrlr.generate(zeros, zeros, zeros)
@@ -32,10 +32,7 @@ ctrlr.generate(zeros, zeros, zeros)
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
 
-TARGET_POS = np.array([[1.98, 1.86, 2.11, 4.71, 0.0, 3.0],
-                       [1.57, 2.56, 1.65, 3.42, 0.75, 1.85],
-                       [0.29, 3.75, 4.78, 4.78, 0.10, 0.0],
-                       [0.0, 2.42, 2.28, 6.22, 1.3, 1.75]], dtype='float32')
+TARGET_POS = np.array([1.98, 1.86, 2.11, 4.71, 0.0, 3.0], dtype='float32')
 TARGET_VEL = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01], dtype='float32')
 
 # connect to the jaco
@@ -46,23 +43,23 @@ interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 # set up arrays for tracking end-effector and target position
 q_track = []
 
-# threshold for a successful reach [ radians ] preset to 2degrees
-thres = 0.035
+# threshold for a successful reach [ radians ] preset to 10 degrees
+thres = 0.17
 
 try:
     interface.init_force_mode()
     ii = 0
     print_counter = 0
-    while ii < len(TARGET_POS):
+    while 1:
         feedback = interface.get_feedback()
         q = feedback['q']
         target_reached = 0
         for jj in range(0, robot_config.N_JOINTS):
-            """If current joint angle is < 2degrees from the target it adds to
+            """If current joint angle is < thres from the target it adds to
             the counter, once all joints are within tolerance the arm moves
             to the next target.
             """
-            if abs(((TARGET_POS[ii, jj] % 6.28 + 6.28)
+            if abs(((TARGET_POS[jj] % 6.28 + 6.28)
                     % 6.28)
                    - q[jj]) < thres:
                 target_reached += 1
@@ -71,10 +68,10 @@ try:
         print_counter += 1
 
         if target_reached == robot_config.N_JOINTS - 1:
-            ii += 1
+            break
 
-        u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],
-                          target_pos=TARGET_POS[ii], target_vel=TARGET_VEL)
+        u = ctrlr.generate(q=feedback['q'], dq=feedback['dq'],
+                          target_pos=TARGET_POS, target_vel=TARGET_VEL)
         interface.send_forces(np.array(u, dtype='float32'))
 
         q_track.append(np.copy(feedback['q']))
@@ -93,14 +90,18 @@ finally:
     interface.disconnect()
 
     q_track = np.array(q_track)
-
-    import matplotlib.pyplot as plt
-
-    plt.plot(q_track)
-    plt.gca().set_color_cycle(None)
-    plt.plot(np.ones(q_track.shape) *
-             ((TARGET_POS + np.pi) % (np.pi * 2) - np.pi), '--')
-    plt.legend(range(6))
-    plt.tight_layout()
-    plt.show()
-    sys.exit()
+    if q_track.shape[0] > 0:
+        import matplotlib
+        matplotlib.use("TKAgg")
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.plot((q_track + np.pi) % (np.pi * 2) - np.pi)
+        plt.plot(np.ones(q_track.shape) *
+                ((TARGET_POS + np.pi) % (np.pi * 2) - np.pi), '--')
+        plt.legend(range(robot_config.N_LINKS))
+        plt.tight_layout()
+        plt.show()
+        print("PLOTTING")
+        print('q: ', q_track)
+    else:
+        print("NO PLOTTING")
