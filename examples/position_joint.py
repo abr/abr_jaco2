@@ -32,12 +32,15 @@ interface.init_position_mode()
 interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 
 q_track = []
+target_track = []
 
 try:
     for ii in range(0, len(TARGET_POS)):
         interface.send_target_angles(TARGET_POS[ii])
         feedback = interface.get_feedback()
         q_track.append(np.copy(feedback['q']))
+        target_track.append(np.copy(TARGET_POS[ii]))
+        # wait for a second before moving to the next target
         time.sleep(1)
 
 except:
@@ -49,7 +52,7 @@ finally:
     interface.disconnect()
 
     q_track = np.array(q_track)
-    #TODO: fix plotting, y axis missing
+    target_track = np.array(target_track)
     import matplotlib
     matplotlib.use("TKAgg")
     import matplotlib.pyplot as plt
@@ -59,8 +62,10 @@ finally:
         plt.title('Target vs. Actual Joint Angles')
         plt.xlabel('Target Position')
         plt.ylabel('Joint Position (rad)')
-        plt.plot(np.arange(0, len(q_track[:, ii])), q_track[:, ii])
-        plt.plot(np.arange(0, len(TARGET_POS[:, ii])), TARGET_POS[:, ii], '--')
-    plt.tight_layout()
+        plt.plot(np.arange(0, len(q_track[:, ii])), q_track[:, ii],
+                 label="Actual")
+        plt.plot(np.arange(0, len(target_track[:, ii])), target_track[:, ii],
+                 '--', label="Target")
+        plt.legend()
     plt.show()
     sys.exit()
