@@ -1,0 +1,12 @@
+include *.rst
+include *.txt
+recursive-include abr_jaco2 *.cpp
+recursive-include abr_jaco2 *.dll
+recursive-include abr_jaco2 *.dylib
+recursive-include abr_jaco2 *.h
+recursive-include abr_jaco2 *.msim
+recursive-include abr_jaco2 *.py
+recursive-include abr_jaco2 *.pyx
+recursive-include abr_jaco2 *.so
+recursive-include abr_jaco2 *.ttt
+recursive-include examples *.py

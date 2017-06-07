@@ -89,14 +89,19 @@ finally:
     interface.disconnect()
 
     q_track = np.array(q_track)
-    if q_track.shape[0] > 0:
-        import matplotlib
-        matplotlib.use("TKAgg")
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.plot((q_track + np.pi) % (np.pi * 2) - np.pi)
-        plt.plot(np.ones(q_track.shape) *
-                 ((TARGET_POS + np.pi) % (np.pi * 2) - np.pi), '--')
-        plt.legend(range(robot_config.N_LINKS))
-        plt.tight_layout()
-        plt.show()
+    import matplotlib
+    matplotlib.use("TKAgg")
+    import matplotlib.pyplot as plt
+    plt.figure()
+    for ii in range(0, 5):
+        plt.subplot(6, 1, ii + 1)
+        plt.title('Target vs. Actual Joint Angles')
+        plt.xlabel('Target Position')
+        plt.ylabel('Joint Position (rad)')
+        plt.plot(np.arange(0, len(q_track[:, ii])), q_track[:, ii],
+                 label="Actual")
+        plt.plot(np.arange(0, len(q_track[:, ii])),
+                 np.ones(len(q_track[:, ii])) * TARGET_POS[ii],
+                 '--', label="Target")
+        plt.legend()
+    plt.show()
