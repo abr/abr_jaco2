@@ -1,4 +1,6 @@
-""" Waits for a key to be pressed (followed by enter key) and
+""" Tracks key presses for keyboard interfacing
+
+Waits for a key to be pressed (followed by enter key) and
 saves the pressed key. You can then use this input to trigger
 function calls, stop a script, etc.
 """

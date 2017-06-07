@@ -1,8 +1,10 @@
-"""
+""" An example script moving the arm to 4 targets in joint space
+
 A basic script for connecting and moving the arm to 4 targets
 in joint space. The joint angles are recorded and plotted against
 the target angles once the final target is reached, and the arm
-has moved back to its default resting position.
+has moved back to its default resting position. Using the jaco API
+to move using a noncompliant joint controller
 """
 import sys
 import numpy as np
@@ -24,7 +26,7 @@ TARGET_POS = np.array([[1.98, 1.86, 2.11, 4.71, 0.0, 3.0],
                        [0.29, 3.75, 4.78, 4.78, 0.10, 0.0],
                        [0.0, 2.42, 2.28, 6.22, 1.3, 1.75]], dtype='float32')
 
-# connect to the jaco and move to it's start  rest position
+# connect to the jaco and move to it's start rest position
 interface.connect()
 interface.init_position_mode()
 interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
@@ -57,9 +59,8 @@ finally:
         plt.title('Target vs. Actual Joint Angles')
         plt.xlabel('Target Position')
         plt.ylabel('Joint Position (rad)')
-        plt.plot(np.arange(0, len(q_track[:,ii])), q_track[:, ii])
-        #plt.gca().set_color_cycle(None)
-        plt.plot(np.arange(0, len(TARGET_POS[:,ii])), TARGET_POS[:, ii], '--')
+        plt.plot(np.arange(0, len(q_track[:, ii])), q_track[:, ii])
+        plt.plot(np.arange(0, len(TARGET_POS[:, ii])), TARGET_POS[:, ii], '--')
     plt.tight_layout()
     plt.show()
     sys.exit()

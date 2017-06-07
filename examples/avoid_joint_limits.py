@@ -11,11 +11,12 @@ import traceback
 import abr_jaco2
 from abr_control.controllers import Floating, signals
 
-# initialize our robot config for the ur5
+# initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
 
 interface = abr_jaco2.Interface(robot_config)
+# connect to the jaco and initialize position mode
 interface.connect()
 interface.init_position_mode()
 
@@ -29,6 +30,7 @@ avoid = signals.AvoidJointLimits(
     max_joint_angles=[None, 4.71, 4.71, None, None, None],
     max_torque=[5]*robot_config.N_JOINTS)
 
+# send to start position so we can switch to torque mode
 interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 interface.init_force_mode()
 try:
@@ -42,14 +44,14 @@ try:
         # add in joint limit avoidance
         u += avoid.generate(q)
 
-        # apply the control signal, step the sim forward
+        # apply the control signal
         interface.send_forces(u)
 
 except:
     print(traceback.format_exc())
 
 finally:
-    # stop and reset the simulation
+    # switch to position mode, go to rest position and disconnect
     interface.init_position_mode()
     interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
     interface.disconnect()

@@ -1,6 +1,8 @@
-"""
+""" Example script of moving the arm to 4 targets using OSC
+
 A basic script for connecting and moving the arm to 4 targets
-in operational space using force control.
+in operational space using force control. The arm will remain
+compliant while moving
 """
 
 import sys

@@ -1,20 +1,21 @@
 """
-A basic script for connecting and moving the arm to 4 targets
+Moves the arm to a  target using compliant joint control
+
+A basic script for connecting and moving the arm to a preset target
 in joint space using force control. The joint angles are recorded
 and plotted against the target angles once the final target is
 reached, and the arm has moved back to its default resting position.
 
          ----------------- WARNING --------------------
 
-To reach joint angle targets with <2deg of error use gains of kp=20
-and kv=6. The arm will remain compliant, but will move fairly quickly
+To reach joint angle targets with <2deg of error use gains of kp=25
+and kv=12. The arm will remain compliant, but will move fairly quickly
 
 The gains can be dropped (kp=4, kv=2) and the arm will move more slowly
 and be more compliant. However, due to the high stiction of the Jaco2
 it will not reach with the same accuracy
 """
 
-import sys
 import numpy as np
 import traceback
 
@@ -56,12 +57,10 @@ try:
         target_reached = 0
         for jj in range(0, robot_config.N_JOINTS):
             """If current joint angle is < thres from the target it adds to
-            the counter, once all joints are within tolerance the arm moves
-            to the next target.
+            the counter, once all joints are within tolerance the arm goes back
+            home
             """
-            if abs(((TARGET_POS[jj] % 6.28 + 6.28)
-                    % 6.28)
-                   - q[jj]) < thres:
+            if abs(((TARGET_POS[jj] % 6.28 + 6.28) % 6.28) - q[jj]) < thres:
                 target_reached += 1
             elif print_counter % 1000 == 0:
                 print('Joint %i not at target angle' % jj)
@@ -71,7 +70,7 @@ try:
             break
 
         u = ctrlr.generate(q=feedback['q'], dq=feedback['dq'],
-                          target_pos=TARGET_POS, target_vel=TARGET_VEL)
+                           target_pos=TARGET_POS, target_vel=TARGET_VEL)
         interface.send_forces(np.array(u, dtype='float32'))
 
         q_track.append(np.copy(feedback['q']))
@@ -97,11 +96,7 @@ finally:
         plt.figure()
         plt.plot((q_track + np.pi) % (np.pi * 2) - np.pi)
         plt.plot(np.ones(q_track.shape) *
-                ((TARGET_POS + np.pi) % (np.pi * 2) - np.pi), '--')
+                 ((TARGET_POS + np.pi) % (np.pi * 2) - np.pi), '--')
         plt.legend(range(robot_config.N_LINKS))
         plt.tight_layout()
         plt.show()
-        print("PLOTTING")
-        print('q: ', q_track)
-    else:
-        print("NO PLOTTING")
