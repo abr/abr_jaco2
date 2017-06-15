@@ -35,12 +35,19 @@ interface = abr_jaco2.Interface(robot_config)
 
 TARGET_XYZ = np.array([.57, .03, .87])
 
+# TODO why does this not load?
+# weights_file = ('~/.cache/abr_control/saved_weights'
+#                 + '/does_this_work/trial0/run0.npz')
+weights_file = 'run0.npz'
+weights = np.load(weights_file)['weights']
+print(weights)
+
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
     robot_config, backend='nengo_spinnaker',
     n_neurons=1000,
     n_adapt_pop=1,
-    weights_file=None,
+    weights_file=weights_file,
     pes_learning_rate=1e-3,
     intercepts=(-0.1, 1.0),
     spiking=True)
@@ -117,7 +124,7 @@ finally:
     interface.disconnect()
 
     # Save the learned weights
-    adapt.save_weights(test_name='does_this_work?')
+    adapt.save_weights(test_name='does_this_work')
 
     ee_track = np.array(ee_track)
     target_track = np.array(target_track)
