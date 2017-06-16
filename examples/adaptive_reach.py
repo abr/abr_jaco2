@@ -38,14 +38,14 @@ TARGET_XYZ = np.array([.57, .03, .87])
 # TODO why does this not load?
 # weights_file = ('~/.cache/abr_control/saved_weights'
 #                 + '/does_this_work/trial0/run0.npz')
-weights_file = 'run0.npz'
-weights = np.load(weights_file)['weights']
-print(weights)
+weights_file = ['run0.npz']
+weights = np.load(weights_file[0])['weights']
+print('WEIGHTS FILE IS: ',weights)
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
     robot_config, backend='nengo_spinnaker',
-    n_neurons=1000,
+    n_neurons=100,
     n_adapt_pop=1,
     weights_file=weights_file,
     pes_learning_rate=1e-3,
