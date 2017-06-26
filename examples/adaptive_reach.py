@@ -3,6 +3,7 @@ Move the jaco2 to a target position with an adaptive controller
 that will account for a 2lb weight in its hand
 """
 import numpy as np
+import os
 import timeit
 import traceback
 
@@ -42,7 +43,7 @@ test_name = 'test1'
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
     robot_config, backend='nengo_spinnaker',
-    n_neurons=100,
+    n_neurons=1000,
     n_adapt_pop=1,
     weights_file=weights_file,
     pes_learning_rate=1e-3,
@@ -64,8 +65,8 @@ q_track = []
 u_track = []
 adapt_track = []
 try:
-    interface.init_force_mode()
-    # get the end-effector's initial position
+    # interface.init_force_mode()
+    # # get the end-effector's initial position
     feedback = interface.get_feedback()
     count = 0
 
@@ -100,8 +101,8 @@ try:
 
 
         # send forces into VREP, step the sim forward
-        interface.send_forces(np.array(u, dtype='float32'))
-
+        # interface.send_forces(np.array(u, dtype='float32'))
+        #
         # calculate end-effector position
         ee_xyz = robot_config.Tx('EE', q=q)
 
@@ -115,6 +116,7 @@ try:
         if count % 100 == 0:
             error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
             print('error: ', error)
+            print('adapt: ', u_adapt)
 
         count += 1
 
@@ -134,12 +136,22 @@ finally:
 
     print('Average loop speed: ', sum(time_track)/len(time_track))
     print('Run number ', run_num)
-    print('Saving tracked data to ', location)
+    print('Saving tracked data to ', location + '/run%i_data' % (run_num))
 
-    np.savez_compressed(location + '/q%i' % (run_num), q=[q_track])
-    np.savez_compressed(location + '/time%i' % (run_num), time=[time_track])
-    np.savez_compressed(location + '/u%i' % (run_num), q=[u_track])
-    np.savez_compressed(location + '/adapt%i' % (run_num), q=[adapt_track])
+    time_track = np.array(time_track)
+    q_track = np.array(q_track)
+    u_track = np.array(u_track)
+    adapt_track = np.array(adapt_track)
+    TARGET_XYZ = np.array(TARGET_XYZ)
+
+    if not os.path.exists(location + '/run%i_data' % (run_num)):
+        os.makedirs(location + '/run%i_data' % (run_num))
+    np.savez_compressed(location + '/run%i_data/q%i' % (run_num, run_num), q=[q_track])
+    np.savez_compressed(location + '/run%i_data/time%i' % (run_num, run_num), time=[time_track])
+    np.savez_compressed(location + '/run%i_data/u%i' % (run_num, run_num), u=[u_track])
+    np.savez_compressed(location + '/run%i_data/adapt%i' % (run_num, run_num), adapt=[adapt_track])
+    np.savez_compressed(location + '/run%i_data/target%i' % (run_num, run_num),
+                        target=[TARGET_XYZ])
 
     # ee_track = np.array(ee_track)
     # target_track = np.array(target_track)
