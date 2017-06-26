@@ -37,9 +37,11 @@ interface = abr_jaco2.Interface(robot_config)
 
 TARGET_XYZ = np.array([.57, .03, .87])
 
+time_limit = 60 # in seconds
+
 # weights_file = '~/.cache/abr_control/saved_weights/does_this_work/trial0/run9.npz'
 weights_file = None
-test_name = 'test1'
+test_name = 'on_the_fly/nengo_spinnaker'
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
     robot_config, backend='nengo_spinnaker',
@@ -65,12 +67,13 @@ q_track = []
 u_track = []
 adapt_track = []
 try:
-    # interface.init_force_mode()
+    interface.init_force_mode()
     # # get the end-effector's initial position
     feedback = interface.get_feedback()
     count = 0
+    loop_time = 0
 
-    while 1:
+    while loop_time < time_limit:
         start = timeit.default_timer()
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
@@ -101,12 +104,13 @@ try:
 
 
         # send forces into VREP, step the sim forward
-        # interface.send_forces(np.array(u, dtype='float32'))
+        interface.send_forces(np.array(u, dtype='float32'))
         #
         # calculate end-effector position
         ee_xyz = robot_config.Tx('EE', q=q)
 
         end = timeit.default_timer() - start
+        loop_time += end
         # track data
         time_track.append(np.copy(end))
         q_track.append(np.copy(q))
@@ -116,7 +120,7 @@ try:
         if count % 100 == 0:
             error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
             print('error: ', error)
-            print('adapt: ', u_adapt)
+            # print('adapt: ', u_adapt)
 
         count += 1
 
