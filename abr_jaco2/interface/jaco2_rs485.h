@@ -38,7 +38,15 @@ using namespace std;
 #define POSITION_LIMIT 0x0021
 
 class Jaco2 {
+
     public:
+        static const unsigned char CONTROL_MODE;
+        static const unsigned char HAND_ADDRESS[3];
+        static const float MAX_TORQUE[6];
+        static const unsigned char JOINT_ADDRESS[6];
+        static const unsigned char TORQUE_DAMPING[6];
+        static const short TORQUE_KP[6];
+
         // RS485 arrays of structs
         RS485_Message clear_error_message[6];
         RS485_Message feedback_message[50];  // TODO: does this need to be 50?
@@ -72,14 +80,8 @@ class Jaco2 {
         float vel[6];
 
         // torque variables
-        unsigned char control_mode;
-        float max_torque[6];
-        unsigned char torque_damping[6];
-        unsigned short torque_kp[6];
 
         // variables used during the communication process.
-        unsigned char hand_address[3];
-        unsigned char joint_address[6];
         int packets_read;
         int packets_sent;
         int read_count;

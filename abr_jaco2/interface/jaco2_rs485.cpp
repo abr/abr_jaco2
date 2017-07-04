@@ -1,5 +1,12 @@
 #include "jaco2_rs485.h"
 
+const unsigned char Jaco2::CONTROL_MODE = 0x01;
+const unsigned char Jaco2::HAND_ADDRESS[3] = {0x16, 0x17, 0x18};
+const float Jaco2::MAX_TORQUE[6] = {40.0, 80.0, 40.0, 20.0, 20.0, 20.0};  // in Nm
+const unsigned char Jaco2::JOINT_ADDRESS[6] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15};
+const unsigned char Jaco2::TORQUE_DAMPING[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+const short Jaco2::TORQUE_KP[6] = {1000, 1500, 1000, 1750, 1750, 1750};
+
 Jaco2::Jaco2() {
 
     ctr = 0;
@@ -13,50 +20,11 @@ Jaco2::Jaco2() {
 
     memset(updated, 0, (size_t)sizeof(int)*6);
     memset(updated_hand, 0, (size_t)sizeof(int)*3);
+    memset(pos_finger, 0.0, (size_t)sizeof(float)*3);
 
     write_count = 0;
     read_count = 0;
-
-    //joint addresses from base to wrist
-    joint_address[0] = 0x10;
-    joint_address[1] = 0x11;
-    joint_address[2] = 0x12;
-    joint_address[3] = 0x13;
-    joint_address[4] = 0x14;
-    joint_address[5] = 0x15;
-
-    hand_address[0] = 0x16;
-    hand_address[1] = 0x17;
-    hand_address[2] = 0x18;
-
-    pos_finger[0] = 0.0;
-    pos_finger[1] = 0.0;
-    pos_finger[2] = 0.0;
-
-    //set torque parameters
-    //max torque in Nm
-    max_torque[0] = 40.0;
-    max_torque[1] = 80.0;
-    max_torque[2] = 40.0;
-    max_torque[3] = 20.0;
-    max_torque[4] = 20.0;
-    max_torque[5] = 20.0;
-
-    control_mode = 0x01;
-
-    torque_damping[0] = 0x00;
-    torque_damping[1] = 0x00;
-    torque_damping[2] = 0x00;
-    torque_damping[3] = 0x00;
-    torque_damping[4] = 0x00;
-    torque_damping[5] = 0x00;
-
-    torque_kp[0] = 1000;
-    torque_kp[1] = 1500;
-    torque_kp[2] = 1000;
-    torque_kp[3] = 1750;
-    torque_kp[4] = 1750;
-    torque_kp[5] = 1750;
+    unsigned short d = 0x00;
 
     // error messages from arm
     error_message.push_back("NO");
@@ -93,16 +61,12 @@ Jaco2::Jaco2() {
                                int &ReceivedQtyIn)) dlsym(commLayer_Handle,
                                "RS485_Write");
 
-    unsigned short d1 = 0x00;
-    unsigned short d2 = 0x00;
-    unsigned short d3 = 0x00;
-
     // Set up static parts of messages sent across
     // Set up the message used by SendTargetAngles
     for (int ii = 0; ii<6; ii++) {
         target_angles_message[ii].Command = POSITION_COMMAND;
         target_angles_message[ii].SourceAddress = SOURCE_ADDRESS;
-        target_angles_message[ii].DestinationAddress = joint_address[ii];
+        target_angles_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         // target_angles_message[ii].DataLong[2] = 0x1;
         target_angles_message[ii].DataLong[2] = 0x00000000;
         target_angles_message[ii].DataLong[3] = 0x00000000;
@@ -111,7 +75,7 @@ Jaco2::Jaco2() {
     for (int ii = 0; ii<3; ii++) {
         target_angles_hand_message[ii].Command = POSITION_COMMAND;
         target_angles_hand_message[ii].SourceAddress = SOURCE_ADDRESS;
-        target_angles_hand_message[ii].DestinationAddress = hand_address[ii];
+        target_angles_hand_message[ii].DestinationAddress = HAND_ADDRESS[ii];
         // target_angles_message[ii].DataLong[2] = 0x1;
         target_angles_hand_message[ii].DataLong[2] = 0x00000000;
         target_angles_hand_message[ii].DataLong[3] = 0x00000000;
@@ -122,7 +86,7 @@ Jaco2::Jaco2() {
     for (int ii = 0; ii<6; ii++) {
         clear_error_message[ii].Command = CLEAR_ERROR_FLAG;
         clear_error_message[ii].SourceAddress = SOURCE_ADDRESS;
-        clear_error_message[ii].DestinationAddress = joint_address[ii];
+        clear_error_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         clear_error_message[ii].DataLong[0] = ((unsigned long) 0);
         clear_error_message[ii].DataLong[2] = 0x00000000;
         clear_error_message[ii].DataLong[3] = 0x00000000;
@@ -132,20 +96,20 @@ Jaco2::Jaco2() {
     for (int ii=0; ii<6; ii++) {
         force_message[ii].Command =
             RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
-        force_message[ii].DestinationAddress = joint_address[ii];
+        force_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         force_message[ii].SourceAddress = SOURCE_ADDRESS;
         force_message[ii].DataLong[1] = 0x00000000; //not used
         force_message[ii].DataLong[3] = //U16|U8|U8
-            ((unsigned long) torque_kp[ii] << 16) |
-            ((unsigned long) control_mode << 8) |
-            ((unsigned long) torque_damping[ii]);
+            ((unsigned long) TORQUE_KP[ii] << 16) |
+            ((unsigned long) CONTROL_MODE << 8) |
+            ((unsigned long) TORQUE_DAMPING[ii]);
     }
 
     // Set up get position message
     for (int ii=0; ii<6; ii++) {
         get_position_message[ii].Command = 0x0001;
         get_position_message[ii].SourceAddress = SOURCE_ADDRESS;
-        get_position_message[ii].DestinationAddress = joint_address[ii];
+        get_position_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         get_position_message[ii].DataFloat[0] = 0x00000000;
         get_position_message[ii].DataLong[1] = 0x00000000;
         get_position_message[ii].DataFloat[2] = 0x00000000;
@@ -156,7 +120,7 @@ Jaco2::Jaco2() {
     for (int ii=0; ii<3; ii++) {
         get_position_hand_message[ii].Command = 0x0001;
         get_position_hand_message[ii].SourceAddress = SOURCE_ADDRESS;
-        get_position_hand_message[ii].DestinationAddress = hand_address[ii];
+        get_position_hand_message[ii].DestinationAddress = HAND_ADDRESS[ii];
         get_position_hand_message[ii].DataFloat[0] = 0x00000000;
         get_position_hand_message[ii].DataLong[1] = 0x00000000;
         get_position_hand_message[ii].DataFloat[2] = 0x00000000;
@@ -168,7 +132,7 @@ Jaco2::Jaco2() {
         //Initialize the INIT message
         init_message[ii].Command = RS485_MSG_GET_ACTUALPOSITION;
         init_message[ii].SourceAddress = SOURCE_ADDRESS;//0 means the API
-        init_message[ii].DestinationAddress = joint_address[ii];
+        init_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
 
         //Those value are not used for this command.
         init_message[ii].DataLong[0] = 0x00000000;
@@ -181,10 +145,10 @@ Jaco2::Jaco2() {
     for (int ii=0; ii<6; ii++) {
         init_position_message[ii].Command = SWITCH_CONTROL_MODE_REQUEST;
         init_position_message[ii].SourceAddress = SOURCE_ADDRESS;
-        init_position_message[ii].DestinationAddress = joint_address[ii];
+        init_position_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         init_position_message[ii].DataLong[0] = ((unsigned short)0x00 |
-          ((unsigned short)d2 << 8) | ((unsigned short)d3 << 16 |
-          ((unsigned short)d1 << 24))); //U24|U8
+          ((unsigned short) d << 8) | ((unsigned short) d << 16 |
+          ((unsigned short) d << 24))); //U24|U8
         init_position_message[ii].DataLong[1] = 0x00000000;
         init_position_message[ii].DataLong[2] = 0x00000000;
         init_position_message[ii].DataLong[3] = 0x00000000;
@@ -194,10 +158,10 @@ Jaco2::Jaco2() {
     for(int ii=0; ii<6; ii++) {
         init_torque_message[ii].Command = SWITCH_CONTROL_MODE_REQUEST;
         init_torque_message[ii].SourceAddress = SOURCE_ADDRESS;
-        init_torque_message[ii].DestinationAddress = joint_address[ii];//DESTINATION_ADDRESS;
+        init_torque_message[ii].DestinationAddress = JOINT_ADDRESS[ii];//DESTINATION_ADDRESS;
         init_torque_message[ii].DataLong[0] = ((unsigned short) 0x01 |
-            ((unsigned short) d2 << 8) | ((unsigned short) d3 << 16 |
-            ((unsigned short) d1 << 24))); //U24|U8
+            ((unsigned short) d << 8) | ((unsigned short) d << 16 |
+            ((unsigned short) d << 24))); //U24|U8
         init_torque_message[ii].DataLong[1]=0x00000000;
         init_torque_message[ii].DataLong[3]=0x00000000;
     }
@@ -206,8 +170,8 @@ Jaco2::Jaco2() {
     for (int ii=0; ii<6; ii++) {
         safety_message[ii].Command = SEND_TORQUE_CONFIG_SAFETY;
         safety_message[ii].SourceAddress = SOURCE_ADDRESS;
-        safety_message[ii].DestinationAddress = joint_address[ii];
-        safety_message[ii].DataFloat[0] = max_torque[ii]; // Nm maximum torque
+        safety_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
+        safety_message[ii].DataFloat[0] = MAX_TORQUE[ii]; // Nm maximum torque
         safety_message[ii].DataFloat[1] = 1.0; //0.75 safety factor
         safety_message[ii].DataFloat[2] = 0.0; //not used
         safety_message[ii].DataFloat[3] = 0.0; //not used
@@ -218,13 +182,13 @@ Jaco2::Jaco2() {
         test_torques_message[ii].Command =
             RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
         test_torques_message[ii].SourceAddress = SOURCE_ADDRESS;
-        test_torques_message[ii].DestinationAddress = joint_address[ii];
+        test_torques_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         test_torques_message[ii].DataLong[1] = 0x00000000;  // not used
         test_torques_message[ii].DataFloat[2] = 0; //32F torque command [Nm]
         test_torques_message[ii].DataLong[3] = //U16|U8|U8
-            ((unsigned long) torque_kp[ii] << 16) |
-            ((unsigned long) control_mode << 8) |
-            ((unsigned long) torque_damping[ii]);
+            ((unsigned long) TORQUE_KP[ii] << 16) |
+            ((unsigned long) CONTROL_MODE << 8) |
+            ((unsigned long) TORQUE_DAMPING[ii]);
     }
 
     // Set up the torque config feedforward advanced message
@@ -232,7 +196,7 @@ Jaco2::Jaco2() {
         torques_config_feedforward_advanced_message[ii].Command =
             SEND_TORQUE_CONFIG_FEEDFORWARD_ADVANCED;
         torques_config_feedforward_advanced_message[ii].SourceAddress = SOURCE_ADDRESS;
-        torques_config_feedforward_advanced_message[ii].DestinationAddress = joint_address[ii];
+        torques_config_feedforward_advanced_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         torques_config_feedforward_advanced_message[ii].DataFloat[0] = 0.8;  // feed_velocity_under_gain;
         torques_config_feedforward_advanced_message[ii].DataFloat[1] = 125.0;  // feed_current_voltage_conversion;
         torques_config_feedforward_advanced_message[ii].DataFloat[2] = 2.0;  // static friction;
@@ -245,7 +209,7 @@ Jaco2::Jaco2() {
         torque_config_filters_message[ii].Command =
             SEND_TORQUE_CONFIG_FILTERS;
         torque_config_filters_message[ii].SourceAddress = SOURCE_ADDRESS;
-        torque_config_filters_message[ii].DestinationAddress = joint_address[ii];
+        torque_config_filters_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         torque_config_filters_message[ii].DataFloat[0] = 100.0;  // velocity_filter;
         torque_config_filters_message[ii].DataFloat[1] = 400.0;  //torque_measured_filter;
         torque_config_filters_message[ii].DataFloat[2] = 2.5;  // torque_error_filter;
@@ -260,7 +224,7 @@ Jaco2::Jaco2() {
         torque_config_parameters_message[ii].Command =
             SEND_TORQUE_CONFIG_CONTROL_PARAM_2;
         torque_config_parameters_message[ii].SourceAddress = SOURCE_ADDRESS;
-        torque_config_parameters_message[ii].DestinationAddress = joint_address[ii];
+        torque_config_parameters_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         torque_config_parameters_message[ii].DataFloat[0] = 4.0;  // switch_threshold;
         torque_config_parameters_message[ii].DataFloat[1] = 5.0;  // pos_lim_distance;
         torque_config_parameters_message[ii].DataFloat[2] = 1.0;  // error_deadband;
