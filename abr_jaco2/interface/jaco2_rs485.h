@@ -60,12 +60,12 @@ class Jaco2 {
         int current_motor;
         int delay;
         vector<string> error_message;
-        int updated[6];
-        int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
+        int updated[6]; // for switching to torque mode
+        int updated2[6]; // for switching to position mode
         int updated_hand[3];
 
         // read variables
-        float pos[6]; //From Halls sensor
+        float pos[6]; // from Halls sensor
         float pos_finger[3];
         float pos_rad[6];
         float torque_load[6];
