@@ -3,7 +3,7 @@ cimport numpy as np
 from libcpp cimport bool
 import redis
 
-# TODO: clean this up jeeeez
+# TODO: clean this up
 r = redis.StrictRedis(host='127.0.0.1')
 
 cdef extern from "jaco2_rs485.h":
@@ -44,7 +44,7 @@ cdef class pyJaco2:
                 'dq': self.thisptr.vel}
 
     def GetTorqueLoad(self):
-        # TODO: why doesn't it work to return self.thisptr.torque_load
+        # TODO: doesn't work returning self.thisptr.torque_load
         return {'torque_load' : self.thisptr.torque_load}
 
     def InitForceMode(self):
