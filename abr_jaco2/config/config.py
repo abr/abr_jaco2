@@ -4,6 +4,7 @@ import sympy as sp
 
 import abr_control
 from abr_control.arms.base_config import BaseConfig
+from abr_control.utils.paths import cache_dir
 
 
 class Config(BaseConfig):
@@ -12,13 +13,8 @@ class Config(BaseConfig):
     Parameters
     ----------
     hand_attached : boolean, optional (Default: True)
-        if false will set the last wrist joint as the end effector
-        if true will set the palm of the hand as the end effector
-    N_JOINTS : int, optional (Default: 6)
-        the number of joint in the jaco arm
-    N_LINKS : int, optional (Default: 6 or 7 depending on hand_attached)
-        the number of links in the jaco2, 6 without hand, 7 with
-    ROBOT_NAME : string, optional (Default: jaco2)
+        if False will set the last wrist joint as the end effector
+        if True will set the palm of the hand as the end effector
         name of robot
 
     Attributes
@@ -34,33 +30,34 @@ class Config(BaseConfig):
         segment lengths of arm [meters]
     L_HANDCOM : numpy.array
         offset to the center of mass of the hand [meters]
-    KZ : sympy.Matrix
-        z isolation vector in orientational part of Jacobian
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 reference frame to link 1
-    some transforms are broken up into two matrices for simplification
+    ex: Tj1l1 tranforms from joint 1 to link 1
+
+    Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
-    rotations and the latter accounts for translations and axes flips
+    joint rotations and the latter accounts for static rotations
+    and translations
     """
 
     def __init__(self, hand_attached=True, **kwargs):
-        """ Initialize robot class with constant values"""
+
         self.hand_attached = hand_attached
         N_LINKS = 7 if hand_attached is True else 6
         super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
                                      ROBOT_NAME='jaco2', **kwargs)
-        # Move from hand COM to fingers
         if self.hand_attached is True:
+            # if hand is attached, include an offset that
+            # moves the EE position from hand COM to fingertips
             self.OFFSET = np.array([0.0, 0.0, 0.12])
         else:
+            # if hand not attached, no need to offset EE position
             self.OFFSET = np.array([0.0, 0.0, 0.0])
 
         self._T = {}  # dictionary for storing calculated transforms
 
         # set up saved functions folder to be in the abr_jaco repo
-        self.config_folder = (os.path.dirname(__file__) +
-                              '/saved_functions_')
+        self.config_folder = (cache_dir + '/abr_jaco2/saved_functions_')
         self.config_folder += ('with_hand' if self.hand_attached is True
                                else 'no_hand')
         self.config_folder += '_' + self.config_hash
@@ -72,15 +69,14 @@ class Config(BaseConfig):
             [1.22, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
 
         # for the null space controller, keep arm near these angles
-        # currently set to the center of the limits
+        # set to be the center of the Jaco^2 joint's limits
         self.REST_ANGLES = np.array(
             [None, 2.42, 2.42, 4.67, 0.02, 3.05], dtype='float32')
 
-        # a gain to help the robot compensate for gravity due to imperfect
-        # model
+        # gain to help compensate for gravity due to imperfect model
         self.MASS_MULTIPLIER = 1.2
 
-        # create the inertia matrices for each link of the kinova jaco2
+        # create inertia matrices for each link of the Kinova Jaco^2
         self._M_LINKS = [
             sp.Matrix([  # link0
                 [0.640, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -133,6 +129,7 @@ class Config(BaseConfig):
                 [0.0, 0.0, 0.0, -2.51e-5, 9e-6, 1.04e-6],
                 [0.0, 0.0, 0.0, 5.13e-7, 0.0, 5.25e-5]]))
 
+        # create inertia matrices for each joint (motor) of the Kinova Jaco^2
         self._M_JOINTS = [  # mass of rings added
             sp.Matrix([  # motor 0
                 [0.586, 0.0, 0.0, 0.0, 0.0, 0.0],
