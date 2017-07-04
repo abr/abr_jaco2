@@ -347,6 +347,23 @@ class robot_config(robot_config):
             self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
             self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
 
+        # dictionaries used for scaling input into neural systems.
+        # Calculate by recording data from movement of interest
+        self.MEANS= {
+            'q': np.ones(self.num_joints) * np.pi,
+            'dq': np.array([-0.01337, 0.00192, 0.00324,
+                            0.02502, -0.02226, -0.01342])
+            }
+
+        # normalize the signal from -1 to 1 by dividing by the expected
+        # range of values, then normalize to account for the 12D vector
+        self.SCALES = {
+            'q': np.ones(self.num_joints) * np.pi * np.sqrt(self.num_joints),
+            'dq': (np.array([1.22826, 2.0, 1.42348,
+                            2.58221, 2.50768, 1.27004])
+                   * np.sqrt(self.num_joints))
+            }
+
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
