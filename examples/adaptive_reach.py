@@ -27,8 +27,8 @@ R_func = robot_config._calc_R('EE')
 
 # instantiate controller
 ctrlr = OSC(robot_config, kp=20, kv=6, vmax=1, null_control=True)
-#path = path_planners.SecondOrder(robot_config)
-n_timesteps = 1000
+path = path_planners.SecondOrder(robot_config)
+n_timesteps = 500
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
@@ -84,7 +84,7 @@ try:
     w = 1e4/n_timesteps
     zeta = 2
     for ii in range(0,len(TARGET_XYZ)):
-        # # get the end-effector's initial position
+        # get the end-effector's initial position
         feedback = interface.get_feedback()
         count = 0
         loop_time = 0
@@ -94,15 +94,16 @@ try:
         dq = feedback['dq']
         # calculate end-effector position
         ee_xyz = robot_config.Tx('EE', q=q, x= robot_config.OFFSET)
-
         interface.init_force_mode()
+        dt = 0.003
 
         while loop_time < time_limit:
         #while count < n_timesteps:
             start = timeit.default_timer()
-            target = [.57, .03, .87, 0.1, 0.1, 0.1]
-            # target = path.step(y=q, dy=dq, target=TARGET_XYZ[ii], w=w,
-            #                       zeta=zeta, dt = 0.003)
+            prev_xyz = ee_xyz
+            target = path.step(y=ee_xyz, dy=(ee_xyz-prev_xyz)/dt, target=TARGET_XYZ[ii], w=w,
+                               zeta=zeta, dt = dt)
+            # target = [.57, .03, .87, .1, .1, .1]
             # self.redis_server.set('norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
             #                       % tuple(target[:3]))
             # get joint angle and velocity feedback
@@ -116,7 +117,7 @@ try:
                 q=q,
                 dq=dq ,
                 target_pos=target[:3],
-                # target_vel=target[3:],
+                target_vel=target[3:],
                 offset = robot_config.OFFSET)
             if u_base[0] > 0:
                 u_base[0] *= 3.0
@@ -162,6 +163,7 @@ try:
                 # print('u: ', u_base)
 
             count += 1
+            # dt = timeit.default_timer() - start
 
 except:
     print(traceback.format_exc())
