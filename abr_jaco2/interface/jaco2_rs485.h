@@ -34,6 +34,7 @@ using namespace std;
 #define SEND_TORQUE_CONFIG_SAFETY 0x0208
 #define SEND_TORQUE_CONFIG_FILTERS 0x209
 #define SEND_TORQUE_CONFIG_FEEDFORWARD_ADVANCED 0x213
+#define SEND_TORQUE_CONFIG_CONTROL_PARAM_1 0x214
 #define SEND_TORQUE_CONFIG_CONTROL_PARAM_2 0x215
 #define POSITION_LIMIT 0x0021
 
@@ -62,7 +63,8 @@ class Jaco2 {
         RS485_Message test_torques_message[6];
         RS485_Message torques_config_feedforward_advanced_message[6];
         RS485_Message torque_config_filters_message[6];
-        RS485_Message torque_config_parameters_message[6];
+        RS485_Message torque_config_parameters_message1[6];
+        RS485_Message torque_config_parameters_message2[6];
 
         // misc variables
         int current_motor;
