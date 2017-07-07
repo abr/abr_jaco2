@@ -1,8 +1,7 @@
-"""
-floating controller with obstacle avoidance for joint limits
+""" Floating controller with obstacle avoidance for joint limits
 
 The arm will remain compliant and float in its current position,
-unless it approaches the set joint limits which it will avoid
+until it approaches the specified joint limits
 """
 
 import numpy as np
@@ -36,16 +35,15 @@ interface.init_force_mode()
 try:
     while 1:
         feedback = interface.get_feedback()
-        q = np.array(feedback['q'])
-        dq = np.array(feedback['dq'])
 
-        u = ctrlr.generate(q=q, dq=dq)
-
+        u = ctrlr.generate(q=feedback['q'], dq=feedback['dq'])
         # add in joint limit avoidance
         u += avoid.generate(q)
-
         # apply the control signal
         interface.send_forces(u)
+
+        # track data
+        q_track.append(np.copy(feedback['q']))
 
 except:
     print(traceback.format_exc())
@@ -55,3 +53,14 @@ finally:
     interface.init_position_mode()
     interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
     interface.disconnect()
+
+    # plot joint angles throughout trial
+    q_track = np.array(q_track)
+    import matplotlib
+    matplotlib.use("TKAgg")
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.title('Joint Angles')
+    plt.plot(q_track)
+    plt.legend(range(robot_config.N_JOINTS))
+    plt.show()

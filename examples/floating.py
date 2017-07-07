@@ -44,6 +44,7 @@ finally:
     interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
     interface.disconnect()
 
+    # plot joint angles throughout trial
     q_track = np.array(q_track)
     import matplotlib
     matplotlib.use("TKAgg")
