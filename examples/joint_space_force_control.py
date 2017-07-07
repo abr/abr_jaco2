@@ -1,4 +1,4 @@
-""" Moves the arm to a  target using compliant joint control
+""" Moves the arm to a target using compliant joint control
 
 A basic script for moving the arm to a preset target in joint space
 using force control. The joint angles are recorded and plotted against
