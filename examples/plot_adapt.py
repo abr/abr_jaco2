@@ -12,8 +12,9 @@ import matplotlib.pyplot as plt
 folder = ('~/.cache/abr_control/saved_weights/repeated/')
 folder = os.path.expanduser(folder)
 
-num_trials = 20
+num_trials = 100
 t_num =0
+plt_step = 10
 time = []
 q = []
 u = []
@@ -22,7 +23,7 @@ target = []
 error = []
 error_avg = []
 training_track = []
-labels = ['nengo_spinnaker']#, 'nengo_cpu', 'non_adaptive']
+labels = ['nengo']#, 'nengo_cpu', 'non_adaptive']
 
 plt.figure()
 # plt.subplot(2,2,1)
@@ -30,7 +31,8 @@ plt.title('Error')
 for nn in range(0, len(labels)):
     for ii in range(0, num_trials):
         # q[ii] = np.squeeze(np.load(folder + labels[nn] + '/trial%i/run0_data/q0.npz'%(ii))['q'])
-        # u[ii] = np.squeeze(np.load(folder + labels[nn] + '/trial%i/run0_data/u0.npz'%(ii))['u'])
+        u.append(np.squeeze(np.load(folder + labels[nn]
+            + '/trial%i/run%i_data/u%i.npz'%(t_num,ii,ii))['u']))
         # adapt[ii] = np.squeeze(np.load(folder + labels[nn]
         #                    + '/trial%i/run0_data/adapt0.npz'%(ii))['adapt'])
         # time.append((np.load(folder + labels[nn]
@@ -45,7 +47,11 @@ for nn in range(0, len(labels)):
 
     # plt.plot(np.cumsum((time)),
     #     (error), label = labels[nn])
+    x = range(num_trials)[::plt_step]
+    plt.xticks(x, x)
     plt.plot(error_avg)
+    # plt.plot(u[4])
+    # plt.legend(range(0,6))
 # plt.plot(error)
 # plt.plot(time)
 # plt.subplot(2,2,2)

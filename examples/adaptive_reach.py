@@ -8,16 +8,13 @@ import timeit
 import traceback
 import redis
 
-from abr_control.controllers import OSC, signals, path_planners
+from abr_control.controllers import OSC, signals, path_planners, Sliding
 import abr_jaco2
 
-# redis_server = redis.StrictRedis(host='localhost')
 # initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
 
-# redis_server.set('norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
-#                       % tuple(robot_config.INIT_TORQUE_POSITION))
 # get Jacobians to each link for calculating perturbation
 J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
            for ii in range(robot_config.N_LINKS)]
@@ -27,8 +24,9 @@ R_func = robot_config._calc_R('EE')
 
 # instantiate controller
 ctrlr = OSC(robot_config, kp=20, kv=6, vmax=1, null_control=True)
+# ctrlr = Sliding(robot_config, kd=0.5, lamb=0.03)
 path = path_planners.SecondOrder(robot_config)
-n_timesteps = 500
+n_timesteps = 4000
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
@@ -39,30 +37,29 @@ robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
 interface = abr_jaco2.Interface(robot_config)
 
-TARGET_XYZ = np.array([[.57, .03, .87]]) # ,
-                       # [.52, .22, .52],
-                       # [.12, -.45, .70],
-                       # [-.30, -.10, .79]])
+TARGET_XYZ = np.array([[.03, -.57, .87]]) #,
+                       # [.42, .12, .62],
+                       # [.32, .52, .75],
+                       # [.15, .60, .87]])
 
 time_limit = 10 # in seconds
 
 # loop speed ~3ms, so 1ms in real time takes ~3ms
-time_scale = 1/750
+time_scale = 1 # 1/750
 
-# weights_file = '~/.cache/abr_control/saved_weights/does_this_work/trial0/run9.npz'
 weights_file = None
 trial = 0
 run = None
-test_name = 'repeated/nengo_spinnaker'
+test_name = 'repeated/nengo'
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
-    n_input=robot_config.N_JOINTS,
-    n_output=robot_config.N_JOINTS,
+    n_input=6,
+    n_output=3,
     n_neurons=1000,
-    pes_learning_rate=1e-3,
+    pes_learning_rate=1e-6,
     intercepts=(-0.1, 1.0),
     weights_file=weights_file,
-    backend='nengo_spinnaker',
+    backend='nengo',
     trial=trial,
     run=run,
     test_name=test_name,
@@ -83,7 +80,10 @@ training_track = []
 try:
     w = 1e4/n_timesteps
     zeta = 2
+    interface.init_force_mode()
     for ii in range(0,len(TARGET_XYZ)):
+        print('Target %i/%i:' % (ii+1, len(TARGET_XYZ)), TARGET_XYZ[ii])
+
         # get the end-effector's initial position
         feedback = interface.get_feedback()
         count = 0
@@ -94,18 +94,21 @@ try:
         dq = feedback['dq']
         # calculate end-effector position
         ee_xyz = robot_config.Tx('EE', q=q, x= robot_config.OFFSET)
-        interface.init_force_mode()
         dt = 0.003
+
+        # path.generate_path(
+        #         state=ee_xyz, target=TARGET_XYZ[ii],
+        #         n_timesteps=n_timesteps, dt=dt)
+
+        target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
         while loop_time < time_limit:
         #while count < n_timesteps:
             start = timeit.default_timer()
             prev_xyz = ee_xyz
-            target = path.step(y=ee_xyz, dy=(ee_xyz-prev_xyz)/dt, target=TARGET_XYZ[ii], w=w,
+            target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ[ii], w=w,
                                zeta=zeta, dt = dt)
-            # target = [.57, .03, .87, .1, .1, .1]
-            # self.redis_server.set('norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
-            #                       % tuple(target[:3]))
+            # target = path.next_target()
             # get joint angle and velocity feedback
             feedback = interface.get_feedback()
             q = feedback['q']
@@ -119,40 +122,35 @@ try:
                 target_pos=target[:3],
                 target_vel=target[3:],
                 offset = robot_config.OFFSET)
+            # u_base = ctrlr.generate(q=q, dq=dq,
+            #                         target_pos=target[:3],
+            #                         target_vel=target[3:])
             if u_base[0] > 0:
                 u_base[0] *= 3.0
             else:
                 u_base[0] *= 2.0
-            # ctrlr2.generate(q=q, dq=dq, target_pos=target[:3],
-            #     offset=robot_config.OFFSET)
+            training_signal = ctrlr.training_signal[:3]
+            # training_signal = -ctrlr.s[:3]
             u_adapt = adapt.generate(
-                input_signal=robot_config.scaledown('q',q),
-                training_signal=ctrlr.training_signal)
-            u = u_base + (u_adapt * time_scale
-                          * np.array([1,1,1,0.05,0.05,0.05]))
-            #
-            # add an additional force for the controller to adapt to if unable
-            # to add mass to arm
-            # fake_gravity = np.arra if unable
-            # to add mass to army([[0, -4.0, 0, 0, 0, 0]]).T
-            # g = np.zeros((robot_config.N_JOINTS, 1))
-            # for ii in range(robot_config.N_LINKS):
-            #     pars = tuple(feedback['q']) + tuple([0, 0, 0])
-            #     g += np.dot(J_links[ii](*pars).T, fake_gravity)
-            # u += g.squeeze()
+                        input_signal=np.concatenate((robot_config.scaledown('q',q)[:3],
+                                                    robot_config.scaledown('dq',dq)[:3]),
+                                                    axis=0),
+                        training_signal=training_signal)
+            u = u_base + np.concatenate(((u_adapt * time_scale),
+                                        np.array([0,0,0])), axis=0)
 
 
             # send forces into VREP, step the sim forward
             interface.send_forces(np.array(u, dtype='float32'))
             #
-            error = np.sqrt(np.sum((ee_xyz - target[:3])**2))
+            error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ[ii])**2))
 
             # track data
             q_track.append(np.copy(q))
             u_track.append(np.copy(u))
             adapt_track.append(np.copy(u_adapt))
             error_track.append(np.copy(error))
-            training_track.append(np.copy(ctrlr.training_signal))
+            training_track.append(np.copy(training_signal))
             end = timeit.default_timer() - start
             loop_time += end
             time_track.append(np.copy(end))
@@ -160,6 +158,8 @@ try:
             if count % 1000 == 0:
                 print('error: ', error)
                 print('adapt: ', u_adapt*time_scale)
+                #print('hand: ', ee_xyz)
+                #print('target: ', target)
                 # print('u: ', u_base)
 
             count += 1

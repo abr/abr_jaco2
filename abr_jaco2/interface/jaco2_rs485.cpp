@@ -218,17 +218,27 @@ Jaco2::Jaco2() {
     //joint1 is different from the rest, for now to avoid array...
     torque_config_filters_message[1].DataFloat[3] = 20.0;
 
+    // Set up the torque config parameters 1
+    for (int ii=0; ii<6; ii++) {
+        torque_config_parameters_message1[ii].Command = 0x214;
+        torque_config_parameters_message1[ii].SourceAddress = SOURCE_ADDRESS;
+        torque_config_parameters_message1[ii].DestinationAddress = JOINT_ADDRESS[ii];
+        torque_config_parameters_message1[ii].DataFloat[0] = 50.0;  // velocity safety limit filter
+        torque_config_parameters_message1[ii].DataFloat[1] = 1.0;  // feedforward filter
+        torque_config_parameters_message1[ii].DataFloat[2] = 201.0;  // inactivity time message
+        torque_config_parameters_message1[ii].DataFloat[3] = 200.0;  // error resend time
+    }
 
     // Set up the torque config parameters 2
     for (int ii=0; ii<6; ii++) {
-        torque_config_parameters_message[ii].Command =
+        torque_config_parameters_message2[ii].Command =
             SEND_TORQUE_CONFIG_CONTROL_PARAM_2;
-        torque_config_parameters_message[ii].SourceAddress = SOURCE_ADDRESS;
-        torque_config_parameters_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
-        torque_config_parameters_message[ii].DataFloat[0] = 4.0;  // switch_threshold;
-        torque_config_parameters_message[ii].DataFloat[1] = 5.0;  // pos_lim_distance;
-        torque_config_parameters_message[ii].DataFloat[2] = 1.0;  // error_deadband;
-        torque_config_parameters_message[ii].DataFloat[3] = 0.0;  // torque_brake;
+        torque_config_parameters_message2[ii].SourceAddress = SOURCE_ADDRESS;
+        torque_config_parameters_message2[ii].DestinationAddress = JOINT_ADDRESS[ii];
+        torque_config_parameters_message2[ii].DataFloat[0] = 4.0;  // switch_threshold;
+        torque_config_parameters_message2[ii].DataFloat[1] = 5.0;  // pos_lim_distance;
+        torque_config_parameters_message2[ii].DataFloat[2] = 1.0;  // error_deadband;
+        torque_config_parameters_message2[ii].DataFloat[3] = 0.0;  // torque_brake;
     }
 }
 
@@ -292,11 +302,17 @@ void Jaco2::InitForceMode() {
     // returned, this is lacking a lot of documentation
     SendAndReceive(torques_config_feedforward_advanced_message, false);
 
-    // Set advanced torque parameters 2
-    cout << "STEP 1b/4: Set advanced torque parameters 2" << endl;
+    // Set advanced torque parameters 1
+    cout << "STEP 1b/4: Set advanced torque parameters 1" << endl;
     // no need for a response, because I have no idea what's supposed to be
     // returned, this is lacking a lot of documentation
-    SendAndReceive(torque_config_parameters_message, false);
+    SendAndReceive(torque_config_parameters_message1, false);
+
+    // Set advanced torque parameters 2
+    cout << "STEP 1c/4: Set advanced torque parameters 2" << endl;
+    // no need for a response, because I have no idea what's supposed to be
+    // returned, this is lacking a lot of documentation
+    SendAndReceive(torque_config_parameters_message2, false);
 
     // Set torque config filters
     //cout << "STEP 1c/4: Set advanced torque parameters 2" << endl;
