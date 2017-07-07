@@ -51,11 +51,6 @@ try:
     while 1:
         feedback = interface.get_feedback()
 
-        error = np.sqrt(np.sum(((target_pos - q) % (2*np.pi))**2))
-        # when the error is within .17 radians (~10 degrees), we're done!
-        if error < 0.17:
-            break
-
         u = ctrlr.generate(
             q=feedback['q'], dq=feedback['dq'],
             target_pos=target_pos, target_vel=target_vel)
@@ -63,9 +58,15 @@ try:
 
         # track data
         q_track.append(np.copy(feedback['q']))
+        error = np.sqrt(np.sum(((target_pos - q) % (2*np.pi))**2))
 
-        if count % 1000 == 0:
-            print('------------------------')
+        if count % 100 == 0:
+            print('error: ', error)
+
+        # when within .17 radians (~10 degrees) of target, exit
+        if error < 0.17:
+            break
+
         count += 1
 
 except:
