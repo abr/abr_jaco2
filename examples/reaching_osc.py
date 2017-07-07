@@ -1,9 +1,4 @@
-""" Example script of moving the arm to 4 targets using OSC
-
-A basic script for connecting and moving the arm to 4 targets
-in operational space using force control. The arm will remain
-compliant while moving
-"""
+""" Example script of moving the arm to 3 targets using OSC """
 
 import sys
 import numpy as np
@@ -16,25 +11,21 @@ import abr_jaco2
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
 
-# account for wrist to fingers offset
-R_func = robot_config._calc_R('EE')
-
 # instantiate operation space controller
 ctrlr = OSC(robot_config, kp=25, kv=5, vmax=1, null_control=False)
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
 zeros = np.zeros(robot_config.N_JOINTS)
 ctrlr.generate(zeros, zeros, np.zeros(3))
-
+# offset to move control point from palm to fingers
 robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
 
-TARGET_XYZ = np.array([[.57, .03, .87],
+target_xyz = np.array([[.57, .03, .87],
                        [.4, -.4, .78],
                        [.467, -.22, .78]], dtype='float32')
-TARGET_VEL = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01], dtype='float32')
 
 # connect to the jaco
 interface.connect()
@@ -46,21 +37,20 @@ ee_track = []
 target_track = []
 
 try:
-    interface.init_force_mode()
-    ii = 0
     count = 0
-    at_target_count = 0 #  must stay at target for 200 loop cycles for success
+    count_at_target = 0 #  must stay at target for 200 loop cycles for success
+    target_index = 0
 
-    while ii < len(TARGET_XYZ):
+    interface.init_force_mode()
+    while target_index < len(target_xyz):
         feedback = interface.get_feedback()
-        q = feedback['q']
-        dq = feedback['dq']
-
-        xyz = robot_config.Tx('EE', q=q, x=robot_config.OFFSET)
+        xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
 
         # generate the control signal
-        u = ctrlr.generate(q=q, dq=dq, target_pos=TARGET_XYZ[ii],
-                                offset=robot_config.OFFSET)
+        u = ctrlr.generate(
+            q=feedback['q'], dq=feedback['dq'],
+            target_pos=target_xyz[target_index],
+            offset=robot_config.OFFSET)
 
         # additional gain term due to high stiction of jaco base joint
         if u[0] > 0:
@@ -69,21 +59,23 @@ try:
             u[0] *= 2.0
 
         interface.send_forces(np.array(u, dtype='float32'))
-        error = np.sqrt(np.sum((xyz - TARGET_XYZ[ii])**2))
+        error = np.sqrt(np.sum((xyz - target_xyz[target_index])**2))
 
         # print out the error every so often
         if count % 100 == 0:
             print('error: ', error)
 
+        # if within 5cm of target for 200 time steps move to next target
+        if error < .05:
+            count_at_target += 1
+            if count_at_target >= 200:
+                count_at_target = 0
+                target_index += 1
+
         # track data
         ee_track.append(np.copy(xyz))
-        target_track.append(np.copy(TARGET_XYZ[ii]))
+        target_track.append(np.copy(target_xyz[target_index]))
 
-        if error < .05:
-            at_target_count += 1
-            if at_target_count >= 200:
-                at_target_count = 0
-                ii += 1
         count+=1
 
 except:

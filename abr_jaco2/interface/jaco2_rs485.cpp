@@ -61,6 +61,8 @@ Jaco2::Jaco2() {
                                int &ReceivedQtyIn)) dlsym(commLayer_Handle,
                                "RS485_Write");
 
+    // TODO: make a message initialization function
+
     // Set up static parts of messages sent across
     // Set up the message used by SendTargetAngles
     for (int ii = 0; ii<6; ii++) {
