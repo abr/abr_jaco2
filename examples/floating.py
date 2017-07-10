@@ -19,6 +19,8 @@ ctrlr.generate(zeros, zeros)
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
 
+q_track = []
+
 # connect to the jaco
 interface.connect()
 interface.init_position_mode()

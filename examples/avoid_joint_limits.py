@@ -29,6 +29,8 @@ avoid = signals.AvoidJointLimits(
     max_joint_angles=[None, 4.71, 4.71, None, None, None],
     max_torque=[5]*robot_config.N_JOINTS)
 
+q_track = []
+
 # send to start position so we can switch to torque mode
 interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 interface.init_force_mode()
@@ -38,7 +40,7 @@ try:
 
         u = ctrlr.generate(q=feedback['q'], dq=feedback['dq'])
         # add in joint limit avoidance
-        u += avoid.generate(q)
+        u += avoid.generate(feedback['q'])
         # apply the control signal
         interface.send_forces(u)
 

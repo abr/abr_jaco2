@@ -48,7 +48,7 @@ try:
     interface.init_force_mode()
     ii = 0
     count = 0
-    while 1:
+    while count<2000:
         feedback = interface.get_feedback()
 
         u = ctrlr.generate(
@@ -58,7 +58,7 @@ try:
 
         # track data
         q_track.append(np.copy(feedback['q']))
-        error = np.sqrt(np.sum(((target_pos - q) % (2*np.pi))**2))
+        error = np.sqrt(np.sum(((target_pos - feedback['q']) % (2*np.pi))**2))
 
         if count % 100 == 0:
             print('error: ', error)

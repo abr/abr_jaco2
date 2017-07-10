@@ -8,7 +8,7 @@ import timeit
 import traceback
 import redis
 
-from abr_control.controllers import OSC, signals, path_planners, Sliding
+from abr_control.controllers import OSC, signals, path_planners
 import abr_jaco2
 
 # initialize our robot config
@@ -44,13 +44,10 @@ TARGET_XYZ = np.array([[.03, -.57, .87]]) #,
 
 time_limit = 10 # in seconds
 
-# loop speed ~3ms, so 1ms in real time takes ~3ms
-time_scale = 1 # 1/750
-
 weights_file = None
-trial = 0
+trial = None
 run = None
-test_name = 'repeated/nengo'
+test_name = 'adaptive_example'
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
     n_input=6,
@@ -63,7 +60,7 @@ adapt = signals.DynamicsAdaptation(
     trial=trial,
     run=run,
     test_name=test_name,
-    autoload=True)
+    autoload=False)
 
 # connect to and initialize the arm
 interface.connect()
@@ -96,19 +93,13 @@ try:
         ee_xyz = robot_config.Tx('EE', q=q, x= robot_config.OFFSET)
         dt = 0.003
 
-        # path.generate_path(
-        #         state=ee_xyz, target=TARGET_XYZ[ii],
-        #         n_timesteps=n_timesteps, dt=dt)
-
         target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
         while loop_time < time_limit:
-        #while count < n_timesteps:
             start = timeit.default_timer()
             prev_xyz = ee_xyz
             target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ[ii], w=w,
                                zeta=zeta, dt = dt)
-            # target = path.next_target()
             # get joint angle and velocity feedback
             feedback = interface.get_feedback()
             q = feedback['q']
@@ -122,21 +113,17 @@ try:
                 target_pos=target[:3],
                 target_vel=target[3:],
                 offset = robot_config.OFFSET)
-            # u_base = ctrlr.generate(q=q, dq=dq,
-            #                         target_pos=target[:3],
-            #                         target_vel=target[3:])
             if u_base[0] > 0:
                 u_base[0] *= 3.0
             else:
                 u_base[0] *= 2.0
             training_signal = ctrlr.training_signal[:3]
-            # training_signal = -ctrlr.s[:3]
             u_adapt = adapt.generate(
                         input_signal=np.concatenate((robot_config.scaledown('q',q)[:3],
                                                     robot_config.scaledown('dq',dq)[:3]),
                                                     axis=0),
-                        training_signal=training_signal)
-            u = u_base + np.concatenate(((u_adapt * time_scale),
+                        training_signal=training_signal[:3])
+            u = u_base + np.concatenate((u_adapt,
                                         np.array([0,0,0])), axis=0)
 
 
@@ -157,13 +144,8 @@ try:
 
             if count % 1000 == 0:
                 print('error: ', error)
-                print('adapt: ', u_adapt*time_scale)
-                #print('hand: ', ee_xyz)
-                #print('target: ', target)
-                # print('u: ', u_base)
 
             count += 1
-            # dt = timeit.default_timer() - start
 
 except:
     print(traceback.format_exc())
@@ -207,23 +189,3 @@ finally:
                         error=[error_track])
     np.savez_compressed(location + '/run%i_data/training%i' % (run_num, run_num),
                         training=[training_track])
-
-    # ee_track = np.array(ee_track)
-    # target_track = np.array(target_track)
-    #
-    # if ee_track.shape[0] > 0:
-    #     # plot distance from target and 3D trajectory
-    #     import matplotlib
-    #     matplotlib.use("TKAgg")
-    #     import matplotlib.pyplot as plt
-    #     from abr_control.utils.plotting import plot_3D
-    #
-    #     plt.figure()
-    #     plt.plot(np.sqrt(np.sum((np.array(target_track) -
-    #                              np.array(ee_track))**2, axis=1)))
-    #     plt.ylabel('Distance (m)')
-    #     plt.xlabel('Time (ms)')
-    #     plt.title('Distance to target')
-    #
-    #     plot_3D(ee_track, target_track)
-    #     plt.show()

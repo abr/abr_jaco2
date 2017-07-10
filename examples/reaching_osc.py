@@ -12,7 +12,7 @@ robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
 
 # instantiate operation space controller
-ctrlr = OSC(robot_config, kp=25, kv=5, vmax=1, null_control=False)
+ctrlr = OSC(robot_config, kp=30, kv=6, vmax=1, null_control=False)
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
 zeros = np.zeros(robot_config.N_JOINTS)
@@ -65,16 +65,16 @@ try:
         if count % 100 == 0:
             print('error: ', error)
 
+        # track data
+        ee_track.append(np.copy(xyz))
+        target_track.append(np.copy(target_xyz[target_index]))
+
         # if within 5cm of target for 200 time steps move to next target
         if error < .05:
             count_at_target += 1
             if count_at_target >= 200:
                 count_at_target = 0
                 target_index += 1
-
-        # track data
-        ee_track.append(np.copy(xyz))
-        target_track.append(np.copy(target_xyz[target_index]))
 
         count+=1
 
