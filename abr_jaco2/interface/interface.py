@@ -18,9 +18,24 @@ class Interface(BaseInterface):
         of links, mass information etc.
     """
 
-    def __init__(self, robot_config):
+    def __init__(self, robot_config, display_error_level=2):
+        """ Constructor
+
+        Parameters
+        ----------
+        display_error_level: int, optional (Default: 3)
+            set the level of messages that will be printed to screen
+            4: errors only
+            3: errors and warnings
+            2. errors, warnings, and info
+            1. errors, warnings, info, and debugging
+            any other int to not display any messages * it is highly
+            recommended to set this to at least 4 to see important error
+            messages
+        """
+
         super(Interface, self).__init__(robot_config)
-        self.jaco2 = jaco2_rs485.pyJaco2()
+        self.jaco2 = jaco2_rs485.pyJaco2(display_error_level)
 
     def connect(self):
         """ All initial setup, establish RS485 connection

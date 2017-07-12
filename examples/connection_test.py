@@ -5,7 +5,7 @@ import abr_jaco2
 # initialize our robot config for neural controllers
 robot_config = abr_jaco2.Config()
 # create our interface for the jaco2
-interface = abr_jaco2.Interface(robot_config)
+interface = abr_jaco2.Interface(robot_config, display_error_level=3)
 
 try:
     interface.connect()
