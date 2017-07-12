@@ -53,6 +53,7 @@ finally:
     import matplotlib.pyplot as plt
     plt.figure()
     plt.title('Joint Angles')
+    plt.ylabel('Degrees [rad]')
     plt.plot(q_track)
     plt.legend(range(robot_config.N_JOINTS))
     plt.show()

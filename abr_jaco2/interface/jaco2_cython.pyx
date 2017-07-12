@@ -4,7 +4,7 @@ from libcpp cimport bool
 
 cdef extern from "jaco2_rs485.h":
     cdef cppclass Jaco2:
-        Jaco2()
+        Jaco2(int display_error_level)
         # main functions
         void Connect()
         void Disconnect()
@@ -24,8 +24,8 @@ cdef extern from "jaco2_rs485.h":
 cdef class pyJaco2:
     cdef Jaco2* thisptr # hold a C++ instance
 
-    def __cinit__(self):
-        self.thisptr = new Jaco2()
+    def __cinit__(self, display_error_level):
+        self.thisptr = new Jaco2(display_error_level)
 
     def __dealloc__(self):
         del self.thisptr

@@ -73,6 +73,10 @@ class Jaco2 {
         int updated[6]; // for switching to torque mode
         int updated2[6]; // for switching to position mode
         int updated_hand[3];
+        vector<string> msg_log;
+        char start_time[];
+        int display_error_level;
+        vector<string> types;
 
         // read variables
         float pos[6]; // from Halls sensor
@@ -111,8 +115,9 @@ class Jaco2 {
         void SendTargetAnglesHand(bool open);
         void PrintError(int index, int current_motor);
         void ProcessFeedback();
+        void log_msg(int type, string msg);
 
-        Jaco2(); //constructor
+        Jaco2(int a_display_error_level); //constructor
         ~Jaco2(); // deconstructor
 
         // A handle needed to open the API(library).

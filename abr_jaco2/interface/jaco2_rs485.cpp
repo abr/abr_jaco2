@@ -7,17 +7,26 @@ const unsigned char Jaco2::JOINT_ADDRESS[6] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x1
 const unsigned char Jaco2::TORQUE_DAMPING[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 const short Jaco2::TORQUE_KP[6] = {1000, 1500, 1000, 1750, 1750, 1750};
 
-Jaco2::Jaco2() {
+Jaco2::Jaco2(int a_display_error_level) {
 
     ctr = 0;
-
     //set common variables
     delay = 1250;
     packets_sent = 6;
     packets_read = 18; //3 responses (14, 15, 16) expected per motor
     current_motor = 6; // only 6 joints so if source address is not < 6 after
                       // reading should receive error due do array size
+    display_error_level = a_display_error_level;
+    types.push_back("DEBUG");
+    types.push_back("INFO");
+    types.push_back("WARNING");
+    types.push_back("ERROR");
 
+    // get the current date and time
+    // TODO: get date and time with ctime for first line of log and name of
+    // file
+
+    msg_log.push_back("Current date and time");
     memset(updated, 0, (size_t)sizeof(int)*6);
     memset(updated_hand, 0, (size_t)sizeof(int)*3);
     memset(pos_finger, 0.0, (size_t)sizeof(float)*3);
@@ -247,7 +256,7 @@ Jaco2::Jaco2() {
 Jaco2::~Jaco2() { }
 
 void Jaco2::Connect() {
-    cout << "RS-485 communication Initialization" << endl;
+    log_msg(1, "Initializing RS-485 Communication...");
     //Flag used during initialization.
     int result;
 
@@ -259,7 +268,7 @@ void Jaco2::Connect() {
 
         //If API's initialization is correct.
         if(result == NO_ERROR_KINOVA) {
-            cout << "USB initialization completed" << endl << endl;
+            log_msg(2, "RS485 initialization completed");
 
             /*We activate the RS-485 comm API. From here you cannot control the
               robot with the Joystick or with the normal USB function. Only
@@ -269,68 +278,63 @@ void Jaco2::Connect() {
             MyRS485_Activate();
 
             // If we did not receive the answer, continue reading until done
-            cout << "Initializing Jaco2...";
+            log_msg(2, "Activating Jaco2...");
             SendAndReceive(init_message, true);
         }
         else {
-            cout << "Error " << result << " while Initializing" << endl;
+            log_msg(4, string("Error " + result) + " while Initializing");
         }
     }
     else {
-        cout << "Errors while loading API's function" << endl;
+        log_msg(4, "Could not load API's functions");
     }
-    cout << "Connection successful";
+    log_msg(2, "Connection successful");
 }
 
 void Jaco2::Disconnect() {
     fptrCloseCommunication();
-    cout << "Connection closed" << endl;
+    log_msg(2, "Connection closed");
 }
 
 void Jaco2::InitPositionMode() {
-    cout << "Initialize position control mode..." << endl;
+    log_msg(1, "Initializing position control mode...");
     SendAndReceive(init_position_message, true);
-    cout << "Position control mode activated" << endl;
+    log_msg(2, "Position control mode activated");
 }
 
 void Jaco2::InitForceMode() {
-    // STEP 0: Get current position
-    cout << "STEP 0/4: Get current position" << endl;
+    // STEP 1: Get current position
+    log_msg(1, "Initializing force mode");
+    log_msg(1, "STEP 1/7: Getting current position...");
     SendAndReceive(get_position_message, true);
 
+    // STEP 2-4: set control parameters
     // Let's also try setting the static friction parameter
-    cout << "STEP 1a/4: Set torque config feedforward advanced parameters" << endl;
+    log_msg(1,"STEP 2/7: Setting torque config feedforward advanced parameters...");
     // no need for a response, because I have no idea what's supposed to be
     // returned, this is lacking a lot of documentation
     SendAndReceive(torques_config_feedforward_advanced_message, false);
 
     // Set advanced torque parameters 1
-    cout << "STEP 1b/4: Set advanced torque parameters 1" << endl;
+    log_msg(1, "STEP 3/7: Setting advanced torque parameters 1...");
     // no need for a response, because I have no idea what's supposed to be
     // returned, this is lacking a lot of documentation
     SendAndReceive(torque_config_parameters_message1, false);
 
     // Set advanced torque parameters 2
-    cout << "STEP 1c/4: Set advanced torque parameters 2" << endl;
+    log_msg(1, "STEP 4/7: Setting advanced torque parameters 2...");
     // no need for a response, because I have no idea what's supposed to be
     // returned, this is lacking a lot of documentation
     SendAndReceive(torque_config_parameters_message2, false);
 
-    // Set torque config filters
-    //cout << "STEP 1c/4: Set advanced torque parameters 2" << endl;
-    // no need for a response, because I have no idea what's supposed to be
-    // returned, this is lacking a lot of documentation
-    //SendAndReceive(torque_config_filters_message, false);
-
-    // STEP 1: Set torque safety parameters
-    cout << "STEP 2/4: Set torque safety parameters" << endl;
+    // STEP 5: Set torque safety parameters
+    log_msg(1, "STEP 5/7: Setting torque safety parameters...");
     SendAndReceive(safety_message, true);
 
     int joints_updated0 = 0;
     while (joints_updated0 < 6) {
-        // STEP 2: Send torque values to compare with sensor readings
-        cout << "STEP 3/4: Send torque values to compare with sensor readings"
-             << endl;
+        // STEP 6: Send torque values to compare with sensor readings
+        log_msg(1, "STEP 6/7: Checking torque sensor calibration...");
         int joints_updated1 = 0;
         while(joints_updated1 < 6) {
             // NOTE: motor 1 is flipped so input torques need to be * - 1
@@ -342,13 +346,12 @@ void Jaco2::InitForceMode() {
             joints_updated1 = SendAndReceive(test_torques_message, false);
         }
 
-        // STEP 3: Send request to switch to torque control mode
-        cout << "STEP 4/4: Send request to switch to torque control mode"
-             << endl;
+        // STEP 7: Send request to switch to torque control mode
+        log_msg(1, "STEP 7/7: Sending request to switch to torque control mode...");
         joints_updated0 = SendAndReceive(init_torque_message, false);
     }
 
-    cout << "SUCCESS: Switching to Torque Mode" << endl;
+    log_msg(2, "Force control mode activated");
 }
 
 void Jaco2::SendTargetAnglesSetup() {
@@ -383,9 +386,10 @@ int Jaco2::SendTargetAngles(float q_target[6]) {
             target_angle[ii] -= 0.05;
         }
         if (ctr % 1000 == 0) {
-            cout << "Actuator: " << ii << " position is: " << pos[ii]
-                 << " with target: " << q_target[ii]
-                 << " mod 360: " << mod_pos << endl;
+            char buffer [100];
+            sprintf(buffer, "Actuator: %d position is: %f with target: %f mod 360: %f",
+                    ii, pos[ii], q_target[ii], mod_pos);
+            log_msg(1, buffer);
         }
         // assign the new target (increment added)
         target_angles_message[ii].DataFloat[0] = target_angle[ii];
@@ -467,8 +471,9 @@ int Jaco2::SendAndReceive(RS485_Message message[6], bool loop) {
         for (int ii = 0; ii < 6; ii++) {
             joints_updated += updated[ii];
             if (updated[ii] == 0) {
-                cout << "Warning: Data for joint " << ii << " not updated."
-                    << endl;
+                char buffer [100];
+                sprintf(buffer, "Data for joint %d not updated, checking again...", ii);
+                log_msg(1, buffer);
             }
         }
 
@@ -505,8 +510,9 @@ int Jaco2::SendAndReceiveHand(RS485_Message message[3], bool loop) {
         for (int ii = 0; ii < 3; ii++) {
             hand_updated += updated_hand[ii];
             if (updated_hand[ii] == 0) {
-                cout << "Warning: Data for finger " << ii << " not updated."
-                    << endl;
+                char buffer [100];
+                sprintf(buffer, "Data for finger %d not updated, checking again...", ii);
+                log_msg(1, buffer);
             }
         }
 
@@ -526,14 +532,15 @@ void Jaco2::ProcessFeedback() {
 
     // reset variables for this time through
     memset(updated, 0, (size_t)sizeof(int)*6);
+    // buffer for error logging
+    char buffer [100];
     // cycle through all of the received messages and
     // assign the received values to the corresponding joint
     for(int ii = 0; ii < read_count; ii++) {
         // actuator 0 is 16
         current_motor = feedback_message[ii].SourceAddress - 16;
         if (current_motor > 5) {
-            cout << "JOINT FEEDBACK RECEIVED FOR UNKNOWN JOINT "
-                << current_motor << endl;
+            log_msg(3, "Joint feedback received for unknown joint");
             continue;
         }
 
@@ -580,22 +587,22 @@ void Jaco2::ProcessFeedback() {
                 switch (feedback_message[ii].DataLong[0]) {
 
                     case 0:
-                        cout << "Torque Validation False for Servo "
-                            << current_motor << " , Response: "
-                            << feedback_message[ii].DataLong[0] << endl;
+                        sprintf(buffer, "Torque validation False for servo %d, Response: %u",
+                                current_motor, feedback_message[ii].DataLong[0]);
+                        log_msg(1, buffer);
                         break;
 
                     case 1:
-                        cout << "Torque Validation True for Servo "
-                            << current_motor << " , Response: "
-                            << feedback_message[ii].DataLong[0] << endl;
+                        sprintf(buffer, "Torque validation True for servo %d, Response: %u",
+                                current_motor, feedback_message[ii].DataLong[0]);
+                        log_msg(1, buffer);
                         updated[current_motor] = 1;
                         break;
 
                     default:
-                        cout << "ERROR READING TORQUE VALIDATION REPLY FOR SERVO: "
-                            << current_motor << " , RESPONSE: "
-                            << feedback_message[ii].DataLong[0] << endl;
+                        sprintf(buffer, "Torque validation not received for servo %d, Response: %u",
+                                current_motor, feedback_message[ii].DataLong[0]);
+                        log_msg(1, buffer);
                 }
 
                 break;
@@ -605,44 +612,40 @@ void Jaco2::ProcessFeedback() {
                 switch (feedback_message[ii].DataLong[0]) {
 
                     case 0:
-                        cout << "Switch Control Mode False for Servo "
-                            << current_motor << " , Response: "
-                            << feedback_message[ii].DataLong[0] << endl;
+                        sprintf(buffer, "Switch control mode False for servo %d, Response: %u",
+                                current_motor, feedback_message[ii].DataLong[0]);
+                        log_msg(1, buffer);
                         break;
 
                     case 1:
-                        cout << "Switch Control Mode POSITION True for Servo "
-                                << current_motor << " , Response: "
-                                << feedback_message[ii].DataLong[0] << endl;
+                        sprintf(buffer, "Switch control mode to Position control True for servo %d, Response: %u",
+                                current_motor, feedback_message[ii].DataLong[0]);
+                        log_msg(1, buffer);
                         updated[current_motor] = 1;
                         break;
 
                     case 257:
-                        cout << "Switch Control Mode TORQUE True for Servo "
-                                << current_motor << " , Response: "
-                                << feedback_message[ii].DataLong[0] << endl;
+                        sprintf(buffer, "Switch control mode to Force control True for servo %d, Response: %u",
+                                current_motor, feedback_message[ii].DataLong[0]);
+                        log_msg(1, buffer);
+                        // TODO: should we not have updated and update2 to
+                        // specify which modes we switched to? look into this
                         updated[current_motor] = 1;
                         break;
 
                     default:
-
-                        cout << "ERROR READING SWITCH CONTROL MODE REPLY FOR SERVO "
-                            << current_motor << " , RESPONSE: "
-                            << feedback_message[ii].DataLong[0] << endl;
+                        sprintf(buffer, "No response to control mode switch request for servo %d, Response: %u",
+                                current_motor, feedback_message[ii].DataLong[0]);
+                        log_msg(1, buffer);
                 }
                 break;
 
             case GET_TORQUE_CONFIG_SAFETY:
 
                 updated[current_motor] = 1;
-                cout << "Safety passed for servo " << current_motor << endl;
-
+                sprintf(buffer, "Torque config safety test passed for servo %d", current_motor);
+                log_msg(1, buffer);
                 break;
-
-            //default:
-
-                //cout << "Unknown command: " << feedback_message[ii].Command
-                //     << endl;
         }
     }
 }
@@ -651,9 +654,42 @@ void Jaco2::ProcessFeedback() {
 // information (it is possible that an error message is not an actual error)
 void Jaco2::PrintError(int index, int current_motor) {
     if (feedback_message[index].DataLong[1] != 0) {
-        cout << "\nERROR\n";
-        cout << feedback_message[index].DataLong[1] << " ";
-        cout << error_message[feedback_message[index].DataLong[1]] << " ";
-        cout << "for motor " << current_motor << endl;
+        char buffer [100];
+        sprintf(buffer, "Message: %u %s for motor %d", feedback_message[index].DataLong[1],
+                error_message[feedback_message[index].DataLong[1]].c_str(), current_motor);
+        log_msg(4, buffer);
     }
+}
+
+void Jaco2::log_msg(int type, string msg)
+{
+    // check if message level based off enum, is higher than warning level, if
+    // so print out message
+    if (type >= display_error_level){
+        cout << types[type-1].c_str() << ": " << msg << endl;
+    }
+    // append message log to save later
+    msg_log.push_back(type + ": " + msg + "\n");
+    // switch (type) {
+    //     case 1:
+    //         msg_log.push_back("Debug: " + msg + "\n");
+    //         break;
+    //
+    //     case 2:
+    //         msg_log.push_back("Info: " + msg + "\n");
+    //         break;
+    //
+    //     case 3:
+    //         msg_log.push_back("WARNING: " + msg + "\n");
+    //         break;
+    //
+    //     case 4:
+    //         msg_log.push_back("ERROR: " + msg + "\n");
+    //         break;
+    //
+    //     default:
+    //         msg_log.push_back("Type not specified: " + msg + "\n");
+    //         break;
+    //
+    // }
 }
