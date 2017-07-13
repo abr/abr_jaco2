@@ -99,3 +99,6 @@ saved_functions*
 
 *.swo
 *data*
+
+# log file
+.jaco2_log.txt
