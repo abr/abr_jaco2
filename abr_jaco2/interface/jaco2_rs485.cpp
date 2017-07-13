@@ -567,7 +567,7 @@ void Jaco2::ProcessFeedback() {
         // actuator 0 is 16
         current_motor = feedback_message[ii].SourceAddress - 16;
         if (current_motor > 5) {
-            log_msg(3, "Joint feedback received for unknown joint");
+            log_msg(1, "Joint feedback received for unknown joint");
             continue;
         }
 
