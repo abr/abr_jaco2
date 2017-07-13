@@ -9,6 +9,29 @@ const short Jaco2::TORQUE_KP[6] = {1000, 1500, 1000, 1750, 1750, 1750};
 
 Jaco2::Jaco2(int a_display_error_level) {
 
+    // get current date and time for error logging
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer[80];
+
+    time (&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(buffer,sizeof(buffer),"%d-%m-%Y %I:%M:%S",timeinfo);
+    string currentdatetime(buffer);
+    datetime = currentdatetime;
+
+    // check the current log file size, if greater than 5Mb, delete it
+    file_limit = 5e6;
+    log_save_location = ".jaco2_log.txt";
+
+    ifstream file(log_save_location.c_str(), ios::binary | ios::ate);
+    if (file.tellg() > file_limit)
+    {
+       remove(log_save_location.c_str());
+       log_msg(1, "File size exceeded, log file deleted");
+    }
+
     ctr = 0;
     //set common variables
     delay = 1250;
@@ -26,7 +49,6 @@ Jaco2::Jaco2(int a_display_error_level) {
     // TODO: get date and time with ctime for first line of log and name of
     // file
 
-    msg_log.push_back("Current date and time");
     memset(updated, 0, (size_t)sizeof(int)*6);
     memset(updated_hand, 0, (size_t)sizeof(int)*3);
     memset(pos_finger, 0.0, (size_t)sizeof(float)*3);
@@ -294,6 +316,11 @@ void Jaco2::Connect() {
 void Jaco2::Disconnect() {
     fptrCloseCommunication();
     log_msg(2, "Connection closed");
+
+    ofstream myfile;
+    myfile.open (log_save_location.c_str(), fstream::app);
+    myfile << "------------------------------------------------------\n";
+    myfile.close();
 }
 
 void Jaco2::InitPositionMode() {
@@ -661,7 +688,7 @@ void Jaco2::PrintError(int index, int current_motor) {
     }
 }
 
-void Jaco2::log_msg(int type, string msg)
+int Jaco2::log_msg(int type, string msg)
 {
     // check if message level based off enum, is higher than warning level, if
     // so print out message
@@ -669,27 +696,9 @@ void Jaco2::log_msg(int type, string msg)
         cout << types[type-1].c_str() << ": " << msg << endl;
     }
     // append message log to save later
-    msg_log.push_back(type + ": " + msg + "\n");
-    // switch (type) {
-    //     case 1:
-    //         msg_log.push_back("Debug: " + msg + "\n");
-    //         break;
-    //
-    //     case 2:
-    //         msg_log.push_back("Info: " + msg + "\n");
-    //         break;
-    //
-    //     case 3:
-    //         msg_log.push_back("WARNING: " + msg + "\n");
-    //         break;
-    //
-    //     case 4:
-    //         msg_log.push_back("ERROR: " + msg + "\n");
-    //         break;
-    //
-    //     default:
-    //         msg_log.push_back("Type not specified: " + msg + "\n");
-    //         break;
-    //
-    // }
+    ofstream myfile;
+    myfile.open (log_save_location.c_str(), fstream::app);
+    myfile << datetime << " " << types[type-1].c_str() << ": " << msg << "\n";
+    myfile.close();
+    return 0;
 }

@@ -1,20 +1,22 @@
 #ifndef JACO2_RS485
 #define JACO2_RS485
 
-#include <iostream>
+#include <ctime>
 #include <dlfcn.h>
-#include <time.h>
-#include <sys/time.h>
-#include <unistd.h>
+#include <fstream>
+#include <iostream>
+#include <math.h>
 #include <pthread.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
+#include <vector>
 #include "kinova-api/Kinova.API.CommLayerUbuntu.h"
 #include "kinova-api/Kinova.API.UsbCommandLayerUbuntu.h"
 #include "kinova-api/KinovaTypes.h"
-#include <string.h>
-#include <vector>
-#include <math.h>
 
 using namespace std;
 
@@ -73,10 +75,11 @@ class Jaco2 {
         int updated[6]; // for switching to torque mode
         int updated2[6]; // for switching to position mode
         int updated_hand[3];
-        vector<string> msg_log;
-        char start_time[];
+        string datetime;
         int display_error_level;
         vector<string> types;
+        int file_limit;
+        string log_save_location;
 
         // read variables
         float pos[6]; // from Halls sensor
@@ -115,7 +118,7 @@ class Jaco2 {
         void SendTargetAnglesHand(bool open);
         void PrintError(int index, int current_motor);
         void ProcessFeedback();
-        void log_msg(int type, string msg);
+        int log_msg(int type, string msg);
 
         Jaco2(int a_display_error_level); //constructor
         ~Jaco2(); // deconstructor
