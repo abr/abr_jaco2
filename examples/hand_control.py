@@ -45,4 +45,3 @@ kb.set_normal_term()
 # close the connection to the arm
 interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
 interface.disconnect()
-

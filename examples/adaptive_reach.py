@@ -29,13 +29,6 @@ plot_error = True
 # initialize our robot config
 robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
 
-# get Jacobians to each link for calculating perturbation
-J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
-           for ii in range(robot_config.N_LINKS)]
-
-# account for wrist to fingers offset
-R_func = robot_config._calc_R('EE')
-
 # instantiate controller
 ctrlr = OSC(robot_config, kp=20, kv=6, vmax=1, null_control=True)
 
@@ -55,7 +48,7 @@ robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
 interface = abr_jaco2.Interface(robot_config)
 
-TARGET_XYZ = np.array([.03, -.57, .87])
+target_xyz = np.array([.03, -.57, .87])
 
 time_limit = 30 # in seconds
 
@@ -103,11 +96,8 @@ try:
 
     # get joint angle and velocity feedback
     feedback = interface.get_feedback()
-    q = feedback['q']
-    dq = feedback['dq']
-
     # calculate end-effector position
-    ee_xyz = robot_config.Tx('EE', q=q, x= robot_config.OFFSET)
+    ee_xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
 
     target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
@@ -115,14 +105,14 @@ try:
         start = timeit.default_timer()
 
         # get next step along trajectory
-        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
-                           zeta=zeta, dt = dt)
+        target = path.step(y=target[:3], dy=target[3:], target=target_xyz,
+                           w=w, zeta=zeta, dt=dt)
 
         feedback = interface.get_feedback()
         q = feedback['q']
         dq = feedback['dq']
 
-        ee_xyz = robot_config.Tx('EE', q=q, x= robot_config.OFFSET)
+        ee_xyz = robot_config.Tx('EE', q=q, x=robot_config.OFFSET)
 
         # calculate the control signal
         u_base = ctrlr.generate(
@@ -142,17 +132,15 @@ try:
 
         # calculate teh adaptive control signal
         u_adapt = adapt.generate(
-                    input_signal=np.concatenate((robot_config.scaledown('q',q)[:3],
-                                                robot_config.scaledown('dq',dq)[:3]),
-                                                axis=0),
+                    input_signal=np.concatenate(
+                        (robot_config.scaledown('q',q)[:3],
+                         robot_config.scaledown('dq',dq)[:3]), axis=0),
                     training_signal=training_signal[:3])
 
-        u = u_base + np.concatenate((u_adapt,
-                                    np.array([0,0,0])), axis=0)
-
+        u = u_base + np.concatenate((u_adapt, np.array([0,0,0])), axis=0)
 
         interface.send_forces(np.array(u, dtype='float32'))
-        error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
+        error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
 
         end = timeit.default_timer() - start
         loop_time += end
@@ -170,7 +158,6 @@ try:
 
         if count % 1000 == 0:
             print('error: ', error)
-
         count += 1
 
 except:
@@ -188,8 +175,8 @@ finally:
         # Save the learned weights
         adapt.save_weights(test_name=test_name, trial=trial, run=run)
         # get save location of weights to save tracked data in same directory
-        [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
-                                                     trial=trial)
+        [location, run_num] = adapt.weights_location(
+            test_name=test_name, run=run, trial=trial)
 
         time_track = np.array(time_track)
         q_track = np.array(q_track)
@@ -203,20 +190,27 @@ finally:
         if not os.path.exists(location + '/run%i_data' % (run_num)):
             os.makedirs(location + '/run%i_data' % (run_num))
 
-        np.savez_compressed(location + '/run%i_data/q%i' % (run_num, run_num),
-                            q=[q_track])
-        np.savez_compressed(location + '/run%i_data/time%i' % (run_num, run_num),
-                            time=[time_track])
-        np.savez_compressed(location + '/run%i_data/u%i' % (run_num, run_num),
-                            u=[u_track])
-        np.savez_compressed(location + '/run%i_data/adapt%i' % (run_num, run_num),
-                            adapt=[adapt_track])
-        np.savez_compressed(location + '/run%i_data/target%i' % (run_num, run_num),
-                            target=[TARGET_XYZ])
-        np.savez_compressed(location + '/run%i_data/error%i' % (run_num, run_num),
-                            error=[error_track])
-        np.savez_compressed(location + '/run%i_data/training%i' % (run_num, run_num),
-                            training=[training_track])
+        np.savez_compressed(
+            location + '/run%i_data/q%i' % (run_num, run_num),
+            q=[q_track])
+        np.savez_compressed(
+            location + '/run%i_data/time%i' % (run_num, run_num),
+            time=[time_track])
+        np.savez_compressed(
+            location + '/run%i_data/u%i' % (run_num, run_num),
+            u=[u_track])
+        np.savez_compressed(
+            location + '/run%i_data/adapt%i' % (run_num, run_num),
+            adapt=[adapt_track])
+        np.savez_compressed(
+            location + '/run%i_data/target%i' % (run_num, run_num),
+            target=[target_xyz])
+        np.savez_compressed(
+            location + '/run%i_data/error%i' % (run_num, run_num),
+            error=[error_track])
+        np.savez_compressed(
+            location + '/run%i_data/training%i' % (run_num, run_num),
+            training=[training_track])
 
     if plot_error:
         import matplotlib
