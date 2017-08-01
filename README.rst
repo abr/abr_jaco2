@@ -11,7 +11,7 @@ ABR_Jaco2 depends on the ABR_Control repo. The repo can be found
 at https://github.com/abr/abr_control with install instructions in the README.
 
 Additionally, ABR_Jaco2 library depends on Numpy, Sympy, CloudPickle,
-Matplotlib, Scipy, and Nengo, and we recommend that you install these libraries
+Matplotlib, and Scipy, and we recommend that you install these libraries
 before ABR_Jaco2. If you're not sure how to do this, we recommend using
 `Anaconda <https://store.continuum.io/cshop/anaconda/>`_.
 Note that installing in a clean environment will require compiling of the

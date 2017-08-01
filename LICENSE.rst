@@ -20,6 +20,13 @@ ABR_Jaco2 imports several open source libraries.
   `BSD license <http://www.numpy.org/license.html>`__
 * `matplotlib <http://matplotlib.org/>`_ - Used under
   `modified PSF license <http://matplotlib.org/users/license.html>`__
+* `Sympy <https://github.com/sympy/sympy/>`_ Used under
+  `BSD license <https://github.com/sympy/sympy/blob/master/LICENSE>`__
+* `Cloudpickle <https://github.com/cloudpipe/cloudpickle/>`_ - Used under
+  `BSD 3-clause new license
+   <https://github.com/cloudpipe/cloudpickle/blob/master/LICENSE>`__
+* `matplotlib <http://matplotlib.org/>`_ - Used under
+  `modified PSF license <http://matplotlib.org/users/license.html>`__
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
