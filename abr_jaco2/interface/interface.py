@@ -7,15 +7,14 @@ from . import jaco2_rs485
 class Interface(BaseInterface):
     """ Interface class for the Jaco2 Kinova arm.
 
-    Handles the overhead of interacting with the cython code,
-    conforms the functions to the abr_control interface system.
+    Handles the overhead of interacting with the Cython code,
+    conforms the functions to the ABR_Control interface API.
 
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm such as:
+        number of joints, number of links, mass information etc.
     """
 
     def __init__(self, robot_config, display_error_level=2):
@@ -25,13 +24,13 @@ class Interface(BaseInterface):
         ----------
         display_error_level: int, optional (Default: 3)
             set the level of messages that will be printed to screen
-            4: errors only
-            3: errors and warnings
-            2. errors, warnings, and info
             1. errors, warnings, info, and debugging
-            any other int to not display any messages * it is highly
-            recommended to set this to at least 4 to see important error
-            messages
+            2. errors, warnings, and info
+            3: errors and warnings
+            4: errors only
+            any other int to not display any messages
+            NOTE: it is highly recommended to set display_error_level
+            to at least 4 to see important error messages
         """
 
         super(Interface, self).__init__(robot_config)
@@ -73,9 +72,8 @@ class Interface(BaseInterface):
         """ Changes the arm to torque control mode
 
         To switch to torque mode the arm must be in a position where the
-        torque load at the joints is minimized. Pointing straight up or at
-        minimal angles works best. Using Config.INIT_TORQUE_POSITION works
-        the best
+        torque load at the joints is minimized. Suggested to use the
+        Config.INIT_TORQUE_POSITION
         """
 
         self.jaco2.InitForceMode()
@@ -83,17 +81,14 @@ class Interface(BaseInterface):
     def init_position_mode(self):
         """ Changes the arm into position control mode
 
-        Changes the arm into position control mode, where
-        target joint angles can be provided, and the on-board PD
-        controller will move the arm.
+        Changes the arm into position control mode, where target joint
+        angles can be provided, and the motors switch into servo mode.
         """
 
         self.jaco2.InitPositionMode()
 
     def open_hand(self, hand_open):
-        """ Opens and closes the hand incrementally
-
-        moves in increments for each function call
+        """ Incrementally open or close the hand
 
         Parameters
         ----------
@@ -106,9 +101,9 @@ class Interface(BaseInterface):
     def send_forces(self, u):
         """ Applies the set of torques u to the arm.
 
-        NOTE: if a torque is not applied every 200ms then
-        the arm reverts back to position control and the
-        InitForceMode function must be called again.
+        NOTE: As part of the Kinova RS485 API, if a torque is not
+        applied every 200ms then the arm reverts back to position
+        control and the InitForceMode function must be called again.
 
         Parameters
         ----------
