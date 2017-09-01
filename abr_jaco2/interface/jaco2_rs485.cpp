@@ -120,7 +120,8 @@ Jaco2::Jaco2(int a_display_error_level) {
         clear_error_message[ii].Command = CLEAR_ERROR_FLAG;
         clear_error_message[ii].SourceAddress = SOURCE_ADDRESS;
         clear_error_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
-        clear_error_message[ii].DataLong[0] = ((unsigned long) 0);
+        clear_error_message[ii].DataFloat[0] = 0x00;
+        clear_error_message[ii].DataLong[1] = 0; // 0 to clear all errors
         clear_error_message[ii].DataLong[2] = 0x00000000;
         clear_error_message[ii].DataLong[3] = 0x00000000;
     }
@@ -205,7 +206,7 @@ Jaco2::Jaco2(int a_display_error_level) {
         safety_message[ii].SourceAddress = SOURCE_ADDRESS;
         safety_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
         safety_message[ii].DataFloat[0] = MAX_TORQUE[ii]; // Nm maximum torque
-        safety_message[ii].DataFloat[1] = 1.0; //0.75 safety factor
+        safety_message[ii].DataFloat[1] = 1.0; //0.75 safety factor, fraction of max speed before error sent, 1=off
         safety_message[ii].DataFloat[2] = 0.0; //not used
         safety_message[ii].DataFloat[3] = 0.0; //not used
     }
@@ -258,7 +259,7 @@ Jaco2::Jaco2(int a_display_error_level) {
         torque_config_parameters_message1[ii].DestinationAddress = JOINT_ADDRESS[ii];
         torque_config_parameters_message1[ii].DataFloat[0] = 50.0;  // velocity safety limit filter
         torque_config_parameters_message1[ii].DataFloat[1] = 1.0;  // feedforward filter
-        torque_config_parameters_message1[ii].DataFloat[2] = 201.0;  // inactivity time message
+        torque_config_parameters_message1[ii].DataFloat[2] = 501.0;  // inactivity time message
         torque_config_parameters_message1[ii].DataFloat[3] = 200.0;  // error resend time
     }
 
@@ -477,7 +478,11 @@ void Jaco2::SendForces(float u[6]) {
             }
         }
         else if(feedback_message[ii].Command == REPORT_ERROR) {
+            //cout << "PRINTING ERROR" << endl;
             PrintError(ii, current_motor);
+            //cout << "SEND CLEAR ERROR MESSAGE" << endl;
+            SendAndReceive(clear_error_message, false);
+            //updated[current_motor] = 0;
         }
     }
 }
@@ -596,11 +601,12 @@ void Jaco2::ProcessFeedback() {
                 PrintError(ii, current_motor);
                 // in case of an error, go on to the next packet
 
-                for (int jj = 0; jj < 6; jj++) {
-                    clear_error_message[jj].DataLong[1] =
-                        ((unsigned long) feedback_message[ii].DataLong[0]);
-                }
-                SendAndReceive(clear_error_message, false);
+                // preset to 0 to clear all errors
+                // for (int jj = 0; jj < 6; jj++) {
+                //     clear_error_message[jj].DataLong[1] =
+                //         ((unsigned long) feedback_message[ii].DataLong[0]);
+                // }
+                SendAndReceive(clear_error_message, true);
                 updated[current_motor] = 0;
                 break;
 
@@ -680,12 +686,12 @@ void Jaco2::ProcessFeedback() {
 // Process the error message, if it's an actual error then print out
 // information (it is possible that an error message is not an actual error)
 void Jaco2::PrintError(int index, int current_motor) {
-    if (feedback_message[index].DataLong[1] != 0) {
-        char buffer [100];
-        sprintf(buffer, "Message: %u %s for motor %d", feedback_message[index].DataLong[1],
-                error_message[feedback_message[index].DataLong[1]].c_str(), current_motor);
-        log_msg(4, buffer);
-    }
+    //if (feedback_message[index].DataLong[1] != 0) {
+    char buffer [100];
+    sprintf(buffer, "Message: %u %s for motor %d", feedback_message[index].DataLong[1],
+            error_message[feedback_message[index].DataLong[1]].c_str(), current_motor);
+    log_msg(4, buffer);
+    //}
 }
 
 int Jaco2::log_msg(int type, string msg)
