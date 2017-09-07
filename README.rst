@@ -53,37 +53,37 @@ A script for basic control of the Jaco2 looks like::
 
     import abr_jaco2
     from abr_control.controllers import OSC
-
+    
     robot_config = abr_jaco2.Config()
     interface = abr_jaco2.Interface(robot_config)
     ctrlr = OSC(robot_config)
-    # run controller once out of main loop to avoid auto exit after 200ms delay
+    # instantiate things to avoid creating 200ms delay in main loop
     zeros = np.zeros(robot_config.N_LINKS)
     ctrlr.generate(q=zeros, dq=zeros, target=zeros(3))
-    # run once outside main loop as well, this will return the cartesian
+    # run once outside main loop as well, returns the cartesian
     # coordinates of the end effector
-    robot_config.Tx('EE', q=zeros
-
+    robot_config.Tx('EE', q=zeros)
+    
     interface.connect()
-    # need to switch to a position where the torque on the joints is known to
-    # successfully switch to force mode. Use the default in the Config to do so
     interface.init_position_mode()
     interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
-
+    
     target_xyz = [.57, .03 .87]  # (x, y, z) target (metres)
     interface.init_force_mode()
-
+    
     while 1:
-        feedback = interface.get_feedback()  # returns a dictionary with q, dq
-        xyz = robot_config.Tx('EE', q=q, target_pos = target_xyz) # ee position
+        # returns a dictionary with q, dq
+        feedback = interface.get_feedback() 
+        # ee position
+        xyz = robot_config.Tx('EE', q=q, target_pos = target_xyz)
         u = ctrlr.generate(feedback['q'], feedback['dq'], target_xyz)
         interface.send_forces(u, dtype='float32')
-
+    
         error = np.sqrt(np.sum((xyz - TARGET_XYZ[ii])**2))
-
+    
         if error < 0.02:
             break
-
+    
     # switch back to position mode to move home and disconnect
     interface.init_position_mode()
     interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
