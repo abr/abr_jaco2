@@ -66,7 +66,7 @@ class Config(BaseConfig):
 
         # position to move to before switching to torque mode
         self.INIT_TORQUE_POSITION = np.array(
-            [1.22, 2.79, 2.62, 4.71, 0.0, 3.14], dtype="float32")
+            [0.0, 2.79, 2.62, 4.71, 0.0, 3.04], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # set to be the center of the Jaco^2 joint's limits
