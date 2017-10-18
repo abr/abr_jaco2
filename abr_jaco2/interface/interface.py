@@ -17,7 +17,7 @@ class Interface(BaseInterface):
         number of joints, number of links, mass information etc.
     """
 
-    def __init__(self, robot_config, display_error_level=2):
+    def __init__(self, robot_config, display_error_level=2): #, use_redis=False):
         """ Constructor
 
         Parameters
@@ -31,10 +31,14 @@ class Interface(BaseInterface):
             any other int to not display any messages
             NOTE: it is highly recommended to set display_error_level
             to at least 4 to see important error messages
+        use_redis: boolean, optional (Default: False)
+            True: send joint info to redis server during position mode which is
+                  otherwise unavailable during movement
+            False: do no import or use redis
         """
 
         super(Interface, self).__init__(robot_config)
-        self.jaco2 = jaco2_rs485.pyJaco2(display_error_level)
+        self.jaco2 = jaco2_rs485.pyJaco2(display_error_level) #, use_redis)
 
     def connect(self):
         """ All initial setup, establish RS485 connection

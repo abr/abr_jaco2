@@ -25,9 +25,11 @@ ctrlr.generate(np.zeros(6), np.zeros(6))
 
 avoid = signals.AvoidJointLimits(
     robot_config,
-    min_joint_angles=[None, 1.57, 1.57, None, None, None],
-    max_joint_angles=[None, 4.71, 4.71, None, None, None],
-    max_torque=[5]*robot_config.N_JOINTS)
+    min_joint_angles=[0.97, 1.1, 1.25, 3.3, 1.46, 1.6],
+    max_joint_angles=[4.06, 3.65, 5.45, 6.12, 4.84, 4.6],
+    max_torque=[5]*robot_config.N_JOINTS,
+    cross_zero=[True, False, False, False, True, False],
+    gradient = [False, False, False, False, False, False])
 
 q_track = []
 
@@ -37,15 +39,14 @@ interface.init_force_mode()
 try:
     while 1:
         feedback = interface.get_feedback()
-
         u = ctrlr.generate(q=feedback['q'], dq=feedback['dq'])
         # add in joint limit avoidance
         u += avoid.generate(feedback['q'])
         # apply the control signal
         interface.send_forces(u)
-
         # track data
         q_track.append(np.copy(feedback['q']))
+        print(feedback['q'])
 
 except:
     print(traceback.format_exc())
