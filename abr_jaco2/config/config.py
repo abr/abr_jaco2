@@ -387,10 +387,10 @@ class Config(BaseConfig):
             }
 
         self.SCALES = {  # expected variance of joint angles / velocities
-            'q': np.ones(self.N_JOINTS) * np.pi * np.sqrt(self.N_JOINTS),
-            'dq': (np.array([1.22826, 2.0, 1.42348,
-                            2.58221, 2.50768, 1.27004])
-                   * np.sqrt(self.N_JOINTS))
+            'q': np.ones(self.N_JOINTS) * np.pi,
+            'dq': np.ones(self.N_JOINTS) * 0.5
+            # 'dq': (np.array([1.22826, 2.0, 1.42348,
+            #                 2.58221, 2.50768, 1.27004]))
             }
 
     def _calc_T(self, name):  # noqa C907
