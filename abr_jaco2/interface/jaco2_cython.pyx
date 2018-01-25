@@ -6,7 +6,7 @@ from libcpp cimport bool
 
 cdef extern from "jaco2_rs485.h":
     cdef cppclass Jaco2:
-        Jaco2(int display_error_level, bool use_redis)
+        Jaco2(int display_error_level)
         # main functions
         void Connect()
         void Disconnect()
@@ -22,20 +22,22 @@ cdef extern from "jaco2_rs485.h":
         float pos_rad[6]
         float torque_load[6]
         float vel[6]
+        bool use_redis
 
 cdef class pyJaco2:
     cdef Jaco2* thisptr # hold a C++ instance
 
-    def __cinit__(self, display_error_level, use_redis):
-        # if use_redis:
+    def __cinit__(self, display_error_level, use_redis=False):
+        if use_redis:
             try:
                 import redis
                 self.r = redis.StrictRedis(host='localhost')
+                self.use_redis = True
             except ImportError:
                 print('Please install redis to get joint information during'
                       + ' position control movement')
                 use_redis = False
-        self.thisptr = new Jaco2(display_error_level, use_redis)
+        self.thisptr = new Jaco2(display_error_level)
 
     def __dealloc__(self):
         del self.thisptr
@@ -68,8 +70,8 @@ cdef class pyJaco2:
         self.thisptr.SendTargetAnglesSetup()
         while target_reached < 6:
             target_reached = self.thisptr.SendTargetAngles(&q_target[0])
-            if self.thisptr.use_redis:
-                r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
+            if self.use_redis:
+                self.r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
                       tuple(self.thisptr.pos_rad))
 
     def SendTargetAnglesHand(self, bool open):
