@@ -17,7 +17,7 @@ class Interface(BaseInterface):
         number of joints, number of links, mass information etc.
     """
 
-    def __init__(self, robot_config, display_error_level=2): #, use_redis=False):
+    def __init__(self, robot_config, display_error_level=2, use_redis=False):
         """ Constructor
 
         Parameters
@@ -38,7 +38,7 @@ class Interface(BaseInterface):
         """
 
         super(Interface, self).__init__(robot_config)
-        self.jaco2 = jaco2_rs485.pyJaco2(display_error_level) #, use_redis)
+        self.jaco2 = jaco2_rs485.pyJaco2(display_error_level, use_redis)
 
     def connect(self):
         """ All initial setup, establish RS485 connection

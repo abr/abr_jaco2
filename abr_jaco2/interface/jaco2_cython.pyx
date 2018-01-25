@@ -22,21 +22,29 @@ cdef extern from "jaco2_rs485.h":
         float pos_rad[6]
         float torque_load[6]
         float vel[6]
-        bool use_redis
+        # bool use_redis
 
 cdef class pyJaco2:
     cdef Jaco2* thisptr # hold a C++ instance
+    cdef bool use_redis
+    try:
+        import redis
+        r = redis.StrictRedis(host='localhost')
+    except ImportError:
+        pass
 
     def __cinit__(self, display_error_level, use_redis=False):
         if use_redis:
-            try:
-                import redis
-                self.r = redis.StrictRedis(host='localhost')
-                self.use_redis = True
-            except ImportError:
-                print('Please install redis to get joint information during'
-                      + ' position control movement')
-                use_redis = False
+            # try:
+            #     import redis
+            #     cdef redis.StrictRedis self.r = redis.StrictRedis(host='localhost')
+            #     self.r = redis.StrictRedis(host='localhost')
+            self.use_redis = True
+            # except ImportError:
+            #     print('Please install redis to get joint information during'
+            #           + ' position control movement')
+        else:
+            self.use_redis = False
         self.thisptr = new Jaco2(display_error_level)
 
     def __dealloc__(self):
