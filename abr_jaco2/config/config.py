@@ -40,7 +40,39 @@ class Config(BaseConfig):
     and translations
     """
 
-    def __init__(self, hand_attached=True, **kwargs):
+    def __init__(self, hand_attached=True, MEANS=None,
+            SCALES=None, **kwargs):
+
+        if MEANS is None:
+            print('Using Default MEANS')
+            # dictionaries used for scaling input into neural systems.
+            # Calculate by recording data from movement of interest
+            self.MEANS = {  # expected mean of joint angles / velocities
+                # 'q': np.ones(self.N_JOINTS) * np.pi,
+                'q': np.array([np.pi, 2.05, 2.06, np.pi, np.pi, np.pi]),
+                'dq': np.array([-0.01337, 0.50, 0.5,
+                                0.02502, -0.02226, -0.01342])
+                # 'dq': np.array([-0.01337, 0.00192, 0.00324,
+                #                 0.02502, -0.02226, -0.01342])
+                }
+        else:
+            print('MEANS: ', MEANS)
+            self.MEANS = MEANS
+
+        if SCALES is None:
+            print('Using Default SCALES')
+            self.SCALES = {  # expected variance of joint angles / velocities
+                # 'q': np.ones(self.N_JOINTS) * np.pi,
+                # 'dq': np.ones(self.N_JOINTS) * 0.5
+                'q': np.array([np.pi, 1.0, 0.5, np.pi, np.pi, np.pi]),
+                'dq': np.array([np.pi, 1.0, 1.0, np.pi, np.pi, np.pi])
+
+                # 'dq': (np.array([1.22826, 2.0, 1.42348,
+                #                 2.58221, 2.50768, 1.27004]))
+                }
+        else:
+            print('SCALES: ', SCALES)
+            self.SCALES = SCALES
 
         self.hand_attached = hand_attached
         N_LINKS = 7 if hand_attached is True else 6
@@ -377,19 +409,6 @@ class Config(BaseConfig):
             self._calc_T('joint3')[:3, :3] * KZ,  # joint 3 orientation
             self._calc_T('joint4')[:3, :3] * KZ,  # joint 4 orientation
             self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
-
-        # dictionaries used for scaling input into neural systems.
-        # Calculate by recording data from movement of interest
-        self.MEANS = {  # expected mean of joint angles / velocities
-            'q': np.array([np.pi, 2.05, 2.06, np.pi, np.pi, np.pi]),
-            'dq': np.array([-0.01337, 0.50, 0.5,
-                            0.02502, -0.02226, -0.01342])
-            }
-
-        self.SCALES = {  # expected variance of joint angles / velocities
-            'q': np.array([np.pi, 1.0, 0.5, np.pi, np.pi, np.pi]),
-            'dq': np.array([np.pi, 1.0, 1.0, np.pi, np.pi, np.pi])
-            }
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link

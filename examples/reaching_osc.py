@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import traceback
 
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, path_planners
 import abr_jaco2
 
 # initialize our robot config
@@ -12,7 +12,8 @@ robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
 
 # instantiate operation space controller
-ctrlr = OSC(robot_config, kp=30, kv=6, vmax=1, null_control=False)
+ctrlr = OSC(robot_config, kp=30, kv=6, ki=0.02, vmax=1,
+            null_control=True, int_err=[0,0,0])
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
 zeros = np.zeros(robot_config.N_JOINTS)
@@ -22,10 +23,21 @@ robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
+target_xyz = np.array([[.56, -.09, .95],
+                       [.12, .15, .80],
+                       [.80, .26, .61],
+                       [.38, .46, .81]])
 
-target_xyz = np.array([[.57, .03, .87],
-                       [.4, -.4, .78],
-                       [.467, -.22, .78]], dtype='float32')
+# target_xyz = np.array([[.57, .03, .87],
+#                        [.4, -.4, .78],
+#                        [.467, -.22, .78]], dtype='float32')
+
+# instantiate path planner and set parameters
+n_timesteps = 2000
+w = 1e4/n_timesteps
+zeta = 2
+dt = 0.003
+path = path_planners.SecondOrder(robot_config)
 
 # connect to the jaco
 interface.connect()
@@ -41,15 +53,23 @@ try:
     count_at_target = 0 #  must stay at target for 200 loop cycles for success
     target_index = 0
 
+    feedback = interface.get_feedback()
+    xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
+    filtered_target = np.concatenate((xyz, np.array([0, 0, 0])), axis=0)
+
     interface.init_force_mode()
     while target_index < len(target_xyz):
         feedback = interface.get_feedback()
         xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
 
+        filtered_target = path.step(y=filtered_target[:3], dy=filtered_target[3:],
+                                    target=target_xyz[target_index],
+                                    w=w, zeta=zeta, threshold=0.08)
         # generate the control signal
         u = ctrlr.generate(
             q=feedback['q'], dq=feedback['dq'],
-            target_pos=target_xyz[target_index],
+            target_pos=filtered_target[:3],
+            target_vel=filtered_target[3:],
             offset=robot_config.OFFSET)
 
         # additional gain term due to high stiction of jaco base joint

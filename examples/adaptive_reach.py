@@ -26,39 +26,48 @@ import abr_jaco2
 plot_error = True
 
 # initialize our robot config
-robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
+robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)#,
+        # MEANS = {
+        #         'q': np.ones(6) * np.pi,
+        #         'dq': np.array([-0.01337, 0.00192, 0.00324,
+        #                         0.02502, -0.02226, -0.01342])
+        #         },
+        # SCALES = {
+        #          'q': np.ones(6) * np.pi,
+        #          'dq': np.ones(6) * 0.5
+        #          })
 
 # instantiate controller
 ctrlr = OSC(robot_config, kp=20, kv=6, vmax=1, null_control=True)
 
 # instantiate path planner and set parameters
 n_timesteps = 4000
-w = 1e4
+w = 1e4/n_timesteps
 zeta = 2
 dt = 0.003
-path = path_planners.SecondOrder(robot_config, w=w, zeta=zeta, dt=dt,
-                                 n_timesteps=n_timesteps)
+path = path_planners.SecondOrder(robot_config)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
 zeros = np.zeros(robot_config.N_JOINTS)
-ctrlr.generate(zeros, zeros, np.zeros(3))
 
 robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
+ctrlr.generate(zeros, zeros, np.zeros(3), offset=robot_config.OFFSET)
+
 interface = abr_jaco2.Interface(robot_config)
 
-target_xyz = np.array([.03, -.57, .87])
+target_xyz = np.array([.57, 0.03, .87])
 
 time_limit = 30 # in seconds
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
-    n_input=6,
-    n_output=3,
+    n_input=4,
+    n_output=2,
     n_neurons=1000,
-    pes_learning_rate=5e-6,
-    intercepts=(-0.1, 1.0),
+    pes_learning_rate=5e-4,
+    intercepts=(-0.5, -0.2),
     weights_file=None,
     backend='nengo')
 
@@ -83,13 +92,14 @@ try:
     # calculate end-effector position
     ee_xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
 
-    target = np.hstack((ee_xyz, np.zeros(3)))
+    target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
     while loop_time < time_limit:
         start = timeit.default_timer()
 
         # get next step along trajectory
-        target = path.step(state=target, target=target_xyz)
+        target = path.step(y=target[:3], dy=target[3:], target=target_xyz,
+                           w=w, zeta=zeta, threshold=0.05)
 
         feedback = interface.get_feedback()
         q = feedback['q']
@@ -111,16 +121,23 @@ try:
         else:
             u_base[0] *= 2.0
 
-        training_signal = ctrlr.training_signal[:3]
-
         # calculate teh adaptive control signal
-        u_adapt = adapt.generate(
-                    input_signal=np.concatenate(
-                        (robot_config.scaledown('q',q)[:3],
-                         robot_config.scaledown('dq',dq)[:3]), axis=0),
-                    training_signal=training_signal[:3])
+        input_signal = np.array([robot_config.scaledown('q',q)[1],
+                                   robot_config.scaledown('q',q)[2],
+                                   robot_config.scaledown('dq',dq)[1],
+                                   robot_config.scaledown('dq',dq)[2]])
+        training_signal = np.array([ctrlr.training_signal[1],
+                                    ctrlr.training_signal[2]])
+        u_adapt = adapt.generate(input_signal=input_signal,
+                    training_signal=training_signal)
 
-        u = u_base + np.concatenate((u_adapt, np.array([0,0,0])), axis=0)
+        u_adapt = np.array([0,
+                            u_adapt[0],
+                            u_adapt[1],
+                            0,
+                            0,
+                            0])
+        u = u_base + u_adapt
 
         interface.send_forces(np.array(u, dtype='float32'))
         error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
