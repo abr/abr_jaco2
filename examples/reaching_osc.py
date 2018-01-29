@@ -1,6 +1,5 @@
 """ Example script of moving the arm to 3 targets using OSC """
 
-import sys
 import numpy as np
 import traceback
 
@@ -33,11 +32,10 @@ target_xyz = np.array([[.56, -.09, .95],
 #                        [.467, -.22, .78]], dtype='float32')
 
 # instantiate path planner and set parameters
-n_timesteps = 2000
-w = 1e4/n_timesteps
-zeta = 2
+path = path_planners.SecondOrder(
+    robot_config, n_timesteps=2000,
+    w=1e4, zeta=2, threshold=0.08)
 dt = 0.003
-path = path_planners.SecondOrder(robot_config)
 
 # connect to the jaco
 interface.connect()
@@ -62,14 +60,13 @@ try:
         feedback = interface.get_feedback()
         xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
 
-        filtered_target = path.step(y=filtered_target[:3], dy=filtered_target[3:],
-                                    target=target_xyz[target_index],
-                                    w=w, zeta=zeta, threshold=0.08)
+        filtered_target = path.step(
+            state=filtered_target, target_pos=target_xyz[target_index])
         # generate the control signal
         u = ctrlr.generate(
             q=feedback['q'], dq=feedback['dq'],
-            target_pos=filtered_target[:3],
-            target_vel=filtered_target[3:],
+            target_pos=filtered_target[:3],  # (x, y, z)
+            target_vel=filtered_target[3:],  # (dx, dy, dz)
             offset=robot_config.OFFSET)
 
         # additional gain term due to high stiction of jaco base joint
