@@ -27,10 +27,6 @@ target_xyz = np.array([[.56, -.09, .95],
                        [.80, .26, .61],
                        [.38, .46, .81]])
 
-# target_xyz = np.array([[.57, .03, .87],
-#                        [.4, -.4, .78],
-#                        [.467, -.22, .78]], dtype='float32')
-
 # instantiate path planner and set parameters
 path = path_planners.SecondOrder(
     robot_config, n_timesteps=2000,

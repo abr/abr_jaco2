@@ -26,26 +26,15 @@ import abr_jaco2
 plot_error = True
 
 # initialize our robot config
-robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)#,
-        # MEANS = {
-        #         'q': np.ones(6) * np.pi,
-        #         'dq': np.array([-0.01337, 0.00192, 0.00324,
-        #                         0.02502, -0.02226, -0.01342])
-        #         },
-        # SCALES = {
-        #          'q': np.ones(6) * np.pi,
-        #          'dq': np.ones(6) * 0.5
-        #          })
+robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
 
 # instantiate controller
 ctrlr = OSC(robot_config, kp=20, kv=6, vmax=1, null_control=True)
 
 # instantiate path planner and set parameters
-n_timesteps = 4000
-w = 1e4/n_timesteps
-zeta = 2
+path = path_planners.SecondOrder(robot_config, n_timesteps=4000,
+        w=1e4, zeta=2, threshold=0.05)
 dt = 0.003
-path = path_planners.SecondOrder(robot_config)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
@@ -92,14 +81,14 @@ try:
     # calculate end-effector position
     ee_xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
 
-    target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
+    filtered_target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
     while loop_time < time_limit:
         start = timeit.default_timer()
 
         # get next step along trajectory
-        target = path.step(y=target[:3], dy=target[3:], target=target_xyz,
-                           w=w, zeta=zeta, threshold=0.05)
+        filtered_target = path.step(
+                state=filtered_target, target_pos=target_xyz)
 
         feedback = interface.get_feedback()
         q = feedback['q']
@@ -111,8 +100,8 @@ try:
         u_base = ctrlr.generate(
             q=q,
             dq=dq ,
-            target_pos=target[:3],
-            target_vel=target[3:],
+            target_pos=filtered_target[:3],
+            target_vel=filtered_target[3:],
             offset = robot_config.OFFSET)
 
         # adjust for some stiction in the base
