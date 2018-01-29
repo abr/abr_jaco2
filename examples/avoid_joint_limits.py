@@ -46,7 +46,6 @@ try:
         interface.send_forces(u)
         # track data
         q_track.append(np.copy(feedback['q']))
-        print(feedback['q'])
 
 except:
     print(traceback.format_exc())
