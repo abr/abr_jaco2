@@ -21,6 +21,7 @@ import timeit
 import traceback
 
 from abr_control.controllers import OSC, signals, path_planners
+# from abr_control.controllers import OSC, signals
 import abr_jaco2
 
 plot_error = True
@@ -56,7 +57,7 @@ adapt = signals.DynamicsAdaptation(
     n_output=2,
     n_neurons=1000,
     pes_learning_rate=5e-4,
-    intercepts=(-0.5, -0.2),
+    intercepts=(-0.9, 0.0),
     weights_file=None,
     backend='nengo')
 

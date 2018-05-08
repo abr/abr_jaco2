@@ -1,10 +1,10 @@
-import abr_control
+import numpy as np
+import sympy as sp
 
+import abr_control
 from abr_control.arms.base_config import BaseConfig
 from abr_control.utils.paths import cache_dir
 
-import numpy as np
-import sympy as sp
 
 class Config(BaseConfig):
     """ Robot config file for the Kinova Jaco^2 V2 with force sensors
@@ -31,7 +31,7 @@ class Config(BaseConfig):
         offset to the center of mass of the hand [meters]
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 transforms from joint 1 to link 1
+    ex: Tj1l1 tranforms from joint 1 to link 1
 
     Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
@@ -44,36 +44,16 @@ class Config(BaseConfig):
         self.hand_attached = hand_attached
         N_LINKS = 7 if hand_attached else 6
         N_JOINTS = 6 if hand_attached else 5
-        super(Config, self).__init__(N_JOINTS=N_JOINTS, N_LINKS=N_LINKS,
-                                     ROBOT_NAME='jaco2', **kwargs)
-        if self.MEANS is None:  # pylint: disable=E0203
-            print('Using Default MEANS')
-            self.MEANS = {  # expected mean of joint angles / velocities
-                'q': np.array([np.pi, 2.05, 2.06, np.pi, np.pi, np.pi]),
-                'dq': np.array([-0.01337, 0.50, 0.5,
-                                0.02502, -0.02226, -0.01342])
-                }
-
-        if self.SCALES is None:  # pylint: disable=E0203
-            print('Using Default SCALES')
-            self.SCALES = {  # expected variance of joint angles / velocities
-                'q': np.array([np.pi, 1.0, 0.5, np.pi, np.pi, np.pi]),
-                'dq': np.array([np.pi, 1.0, 1.0, np.pi, np.pi, np.pi])
-                }
-
-        if self.hand_attached:
-            # if hand is attached, include an offset that
-            # moves the EE position from hand COM to fingertips
-            self.OFFSET = np.array([0.0, 0.0, 0.12])
-        else:
-            # if hand not attached, no need to offset EE position
-            self.OFFSET = np.array([0.0, 0.0, 0.0])
 
         self._T = {}  # dictionary for storing calculated transforms
 
+        super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
+                                     ROBOT_NAME='jaco2', **kwargs)
+
         # set up saved functions folder to be in the abr_jaco repo
         self.config_folder = (cache_dir + '/abr_jaco2/saved_functions_')
-        self.config_folder += ('with_hand' if self.hand_attached else 'no_hand')
+        self.config_folder += ('with_hand' if self.hand_attached
+                               else 'no_hand')
         self.config_folder += '_' + self.config_hash
         # make folder if it doesn't exist
         abr_control.utils.os_utils.makedirs(self.config_folder)
@@ -85,10 +65,7 @@ class Config(BaseConfig):
         # for the null space controller, keep arm near these angles
         # set to be the center of the Jaco^2 joint's limits
         self.REST_ANGLES = np.array(
-            [None, 2.42, 2.42, 4.67, 0.02, 3.05], dtype='float32')
-
-        # gain to help compensate for gravity due to imperfect model
-        self.MASS_MULTIPLIER = 1.2
+            [None, 2.42, None, None, None, None], dtype='float32')
 
         # create inertia matrices for each link of the Kinova Jaco^2
         self._M_LINKS = [
@@ -96,52 +73,52 @@ class Config(BaseConfig):
                 [0.640, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.640, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.640, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.010, 0.010, 0.010],
-                [0.0, 0.0, 0.0, 0.010, 0.010, 0.010],
-                [0.0, 0.0, 0.0, 0.010, 0.010, 0.010]]),
+                [0.0, 0.0, 0.0, 0.1, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.1, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1]]),
             sp.Matrix([  # link1
                 [0.182, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.182, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.182, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 9.99e-5, 0.0, -2.95e-5],
-                [0.0, 0.0, 0.0, 0.0, 3.216e-4, 0.0],
-                [0.0, 0.0, 0.0, 8.32e-5, 0.0, 3.519e-4]]),
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]]),
             sp.Matrix([  # link2
                 [0.424, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.424, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.424, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 0.0, 3.786e-3],
-                [0.0, 0.0, 0.0, 0.0, -3.725e-3, 0.0],
-                [0.0, 0.0, 0.0, 6.97e-5, 0.0, 0.0]]),
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]]),
             sp.Matrix([  # link3
                 [0.211, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.211, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.2113, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, -1.44e-7, 0.0, 5.11e-4],
-                [0.0, 0.0, 0.0, 0.0, -4.8e-4, 0.0],
-                [0.0, 0.0, 0.0, 4.81e-5, 0.0, 1.533e-6]]),
+                [0.0, 0.0, 0.0, 0.125, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.125, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.125]]),
             sp.Matrix([  # link4
                 [0.069, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.069, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.069, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 1.72e-5, 1.815e-5, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 0.0, -3.89e-5],
-                [0.0, 0.0, 0.0, -9.87e-6, 3.16e-5, 0.0]]),
+                [0.0, 0.0, 0.0, 0.025, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.025, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.025]]),
             sp.Matrix([  # link5
                 [0.069, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.069, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.069, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 1.72e-5, 1.815e-5, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 0.0, -3.89e-5],
-                [0.0, 0.0, 0.0, -9.87e-6, 3.16e-5, 0.0]])]
+                [0.0, 0.0, 0.0, 0.025, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.025, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.025]])]
         if self.hand_attached:
             self._M_LINKS.append(sp.Matrix([  # hand
                 [0.727, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.727, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.727, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 4.87e-6, 4.65e-5, 0.0],
-                [0.0, 0.0, 0.0, -2.51e-5, 9e-6, 1.04e-6],
-                [0.0, 0.0, 0.0, 5.13e-7, 0.0, 5.25e-5]]))
+                [0.0, 0.0, 0.0, 0.025, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.025, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.025]]))
 
         # create inertia matrices for each joint (motor) of the Kinova Jaco^2
         self._M_JOINTS = [  # mass of rings added
@@ -149,44 +126,44 @@ class Config(BaseConfig):
                 [0.586, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.586, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.586, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 2.44e-4, -2.49e-5],
-                [0.0, 0.0, 0.0, 2.44e-6, 2.2e-5, 2.77e-4],
-                [0.0, 0.0, 0.0, 2.44e-4, 0.0, -2.76e-6]]),
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]]),
             sp.Matrix([  # motor 1
                 [0.572, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.572, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.572, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 1.98e-4, -1.5e-4],
-                [0.0, 0.0, 0.0, 2.39e-6, 1.32e-4, 2.27e-4],
-                [0.0, 0.0, 0.0, 2.39e-4, 0.0, -2.37e-6]]),
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]]),
             sp.Matrix([  # motor2
                 [0.586, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.586, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.586, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 2.44e-4, -2.49e-5],
-                [0.0, 0.0, 0.0, 2.44e-6, 2.2e-5, 2.77e-4],
-                [0.0, 0.0, 0.0, 2.44e-4, 0.0, -2.76e-6]]),
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]]),
             sp.Matrix([  # motor3
-                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
-                [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
-                [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]]),
+                [0.348, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]]),
             sp.Matrix([  # motor4
-                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
-                [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
-                [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]]),
+                [0.348, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]]),
             sp.Matrix([  # motor5
-                [0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.348*self.MASS_MULTIPLIER, 0.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 3.58e-6, 5.03e-5, 1.09e-4],
-                [0.0, 0.0, 0.0, 3.22e-5, -1.05e-4, 4.79e-5],
-                [0.0, 0.0, 0.0, 1.14e-4, 2.75e-5, -1.68e-5]])]
+                [0.348, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.348, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.348, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.15, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.15, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.15]])]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -203,12 +180,13 @@ class Config(BaseConfig):
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
-        if self.hand_attached:  # add in hand offset
-            self.L.append([0.0, 0.0, 0.0])  # offset for the end of fingers
-        self.L = np.array(self.L)
 
         if self.hand_attached:  # add in hand offset
-            self.L_HAND_COM = np.array([0.0, 0.0, -0.08])  # com of the hand
+            #self.L.append([0.0, 0.0, 0.0744])  # distance to palm
+            self.L.append([0.0003, 0.00684, -0.08222])
+            self.L.append([0.0, 0.0, 0.12])  # distance to fingertips
+
+        self.L = np.array(self.L)
 
         # ---- Transform Matrices ----
 
@@ -354,17 +332,17 @@ class Config(BaseConfig):
                 [0, 0, 0, 1]])
             # account for axes changes and offsets
             self.Tj5handcomb = sp.Matrix([
-                [-1, 0, 0, self.L_HAND_COM[0]],
-                [0, 1, 0, self.L_HAND_COM[1]],
-                [0, 0, -1, self.L_HAND_COM[2]],
+                [-1, 0, 0, self.L[12, 0]],
+                [0, 1, 0, self.L[12, 1]],
+                [0, 0, -1, self.L[12, 2]],
                 [0, 0, 0, 1]])
             self.Tj5handcom = self.Tj5handcoma * self.Tj5handcomb
 
             # no axes change, account for offsets
             self.Thandcomfingers = sp.Matrix([
-                [1, 0, 0, self.L[12, 0]],
-                [0, 1, 0, self.L[12, 1]],
-                [0, 0, 1, self.L[12, 2]],
+                [1, 0, 0, self.L[13, 0]],
+                [0, 1, 0, self.L[13, 1]],
+                [0, 0, 1, self.L[13, 2]],
                 [0, 0, 0, 1]])
 
         # Transform matrix: camera -> origin
@@ -426,7 +404,7 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T('link5') * self.Tl5j5
             elif self.hand_attached is False and name == 'EE':
                 self._T[name] = self._calc_T('joint5')
-            elif self.hand_attached is True and name == 'link6':
+            elif self.hand_attached and name == 'link6':
                 self._T[name] = self._calc_T('joint5') * self.Tj5handcom
             elif self.hand_attached and name == 'EE':
                 self._T[name] = self._calc_T('link6') * self.Thandcomfingers

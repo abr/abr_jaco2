@@ -70,7 +70,7 @@ class Interface(BaseInterface):
         """ Returns the torque at each joint in Nm
         """
 
-        return self.jaco2.GetTorqueLoad()
+        return  self.jaco2.GetTorqueLoad()['torque_load']
 
     def init_force_mode(self):
         """ Changes the arm to torque control mode
