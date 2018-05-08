@@ -437,3 +437,14 @@ class Config(BaseConfig):
                 raise Exception('Invalid transformation name: %s' % name)
 
         return self._T[name]
+
+    @property
+    def params(self):
+        params = {'hand_attached': self.hand_attached,
+                  'OFFSET': self.OFFSET,
+                  'MEANS_q': self.MEANS['q'],
+                  'MEANS_dq': self.MEANS['dq'],
+                  'SCALES_q': self.SCALES['q'],
+                  'SCALES_dq': self.SCALES['dq'],
+                  }
+        return params
