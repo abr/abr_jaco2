@@ -39,12 +39,26 @@ class Config(BaseConfig):
     and translations
     """
 
-    def __init__(self, hand_attached=True, **kwargs):
+    def __init__(self, hand_attached=True, offset=None, **kwargs):
 
         self.hand_attached = hand_attached
         N_LINKS = 7 if hand_attached is True else 6
+
+        if offset is not None:
+            self.OFFSET = offset
+        elif self.hand_attached is True:
+            # if hand is attached, include an offset that
+            # moves the EE position from hand COM to fingertips
+            self.OFFSET = np.array([0.0, 0.0, 0.12])
+        else:
+            # if hand not attached, no need to offset EE position
+            self.OFFSET = np.array([0.0, 0.0, 0.0])
+
+        self._T = {}  # dictionary for storing calculated transforms
+
         super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
-                                     ROBOT_NAME='jaco2', **kwargs)
+                                     ROBOT_NAME='jaco2', offset=self.OFFSET,
+                                     **kwargs)
         if self.MEANS is None:
             print('Using Default MEANS')
             self.MEANS = {  # expected mean of joint angles / velocities
@@ -59,16 +73,6 @@ class Config(BaseConfig):
                 'q': np.array([np.pi, 1.0, 0.5, np.pi, np.pi, np.pi]),
                 'dq': np.array([np.pi, 1.0, 1.0, np.pi, np.pi, np.pi])
                 }
-
-        if self.hand_attached is True:
-            # if hand is attached, include an offset that
-            # moves the EE position from hand COM to fingertips
-            self.OFFSET = np.array([0.0, 0.0, 0.12])
-        else:
-            # if hand not attached, no need to offset EE position
-            self.OFFSET = np.array([0.0, 0.0, 0.0])
-
-        self._T = {}  # dictionary for storing calculated transforms
 
         # set up saved functions folder to be in the abr_jaco repo
         self.config_folder = (cache_dir + '/abr_jaco2/saved_functions_')
@@ -440,7 +444,8 @@ class Config(BaseConfig):
 
     @property
     def params(self):
-        params = {'hand_attached': self.hand_attached,
+        params = {'source': 'jaco2_config',
+                  'hand_attached': self.hand_attached,
                   'OFFSET': self.OFFSET,
                   'MEANS_q': self.MEANS['q'],
                   'MEANS_dq': self.MEANS['dq'],
