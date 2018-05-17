@@ -25,8 +25,13 @@ ctrlr.generate(np.zeros(6), np.zeros(6))
 
 avoid = signals.AvoidJointLimits(
     robot_config,
-    min_joint_angles=[0.97, 1.1, 1.25, 3.3, 1.46, 1.6],
-    max_joint_angles=[4.06, 3.65, 5.45, 6.12, 4.84, 4.6],
+    # avoids floor and prevents elbow from colliding with shoulder
+    min_joint_angles=[None, 1.3, 0.61, None, None, None],
+    max_joint_angles=[None, 4.99, 5.75, None, None, None],
+    # incorporates avoidance of camera post at location pi/2 wrt joint0
+    # (opposite of where all the cables connect to the jaco)
+    # min_joint_angles=[0.97, 1.1, 1.25, 3.3, 1.46, 1.6],
+    # max_joint_angles=[4.06, 3.65, 5.45, 6.12, 4.84, 4.6],
     max_torque=[5]*robot_config.N_JOINTS,
     cross_zero=[True, False, False, False, True, False],
     gradient = [False, False, False, False, False, False])
