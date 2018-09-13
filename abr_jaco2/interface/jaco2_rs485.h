@@ -22,6 +22,7 @@ using namespace std;
 
 #define SOURCE_ADDRESS 0x00
 #define SEND_ACTUAL_POSITION 0x002
+#define SEND_ID_GAINS 0x0025
 #define POSITION_COMMAND 0x0010
 #define POSITION_AND_CURRENT 0x0011
 #define RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND 0x0014
@@ -35,6 +36,7 @@ using namespace std;
 #define SWITCH_CONTROL_MODE_REPLY 0x0204
 #define SEND_TORQUE_CONFIG_SAFETY 0x0208
 #define SEND_TORQUE_CONFIG_FILTERS 0x209
+#define SEND_TORQUE_CONTROL_LIMITS 0x212
 #define SEND_TORQUE_CONFIG_FEEDFORWARD_ADVANCED 0x213
 #define SEND_TORQUE_CONFIG_CONTROL_PARAM_1 0x214
 #define SEND_TORQUE_CONFIG_CONTROL_PARAM_2 0x215
@@ -67,6 +69,7 @@ class Jaco2 {
         RS485_Message torque_config_filters_message[6];
         RS485_Message torque_config_parameters_message1[6];
         RS485_Message torque_config_parameters_message2[6];
+        RS485_Message torque_control_limits_message[6];
 
         // misc variables
         int current_motor;
