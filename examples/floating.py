@@ -6,12 +6,12 @@ import traceback
 import time
 
 import abr_jaco2
-from abr_control.controllers import FloatingTask
+from abr_control.controllers import Floating
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
     use_cython=True, hand_attached=True)
-ctrlr = FloatingTask(robot_config, dynamic=True)
+ctrlr = Floating(robot_config, dynamic=True, task_space=True)
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
 zeros = np.zeros(robot_config.N_JOINTS)
@@ -45,7 +45,7 @@ try:
         q_track.append(np.copy(feedback['q']))
         u_track.append(np.copy(u))
         q_T_track.append(np.copy(q_T))
-        run_time += time.time()-now
+        run_time += time.time() - now
 
 except Exception as e:
     print(traceback.format_exc())
@@ -66,11 +66,6 @@ finally:
     plt.ylabel('Degrees [rad]')
     plt.plot(q_track)
     plt.legend(range(robot_config.N_JOINTS))
-    # plt.subplot(212)
-    # plt.title('Joint Torque Signal')
-    # plt.ylabel('Torque [Nm]')
-    # plt.plot(u_track)
-    # plt.legend(range(robot_config.N_JOINTS))
     plt.subplot(212)
     plt.title('Joint Torque Signal')
     plt.ylabel('Torque [Nm]')

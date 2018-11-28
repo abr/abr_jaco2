@@ -1,9 +1,9 @@
 import numpy as np
-import sympy as sp
-
 import abr_control
 from abr_control.arms.base_config import BaseConfig
 from abr_control.utils.paths import cache_dir
+import sympy as sp
+
 
 
 class Config(BaseConfig):
@@ -31,7 +31,7 @@ class Config(BaseConfig):
         offset to the center of mass of the hand [meters]
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 to link 1
+    ex: Tj1l1 transforms from joint 1 to link 1
 
     Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
@@ -47,7 +47,7 @@ class Config(BaseConfig):
 
         self._T = {}  # dictionary for storing calculated transforms
 
-        super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
+        super(Config, self).__init__(N_JOINTS=N_JOINTS, N_LINKS=N_LINKS,
                                      ROBOT_NAME='jaco2', **kwargs)
 
         # set up saved functions folder to be in the abr_jaco repo
@@ -61,11 +61,6 @@ class Config(BaseConfig):
         # position to move to before switching to torque mode
         self.INIT_TORQUE_POSITION = np.array(
             [0.0, 2.79, 2.62, 4.71, 0.0, 3.04], dtype="float32")
-
-        # for the null space controller, keep arm near these angles
-        # set to be the center of the Jaco^2 joint's limits
-        self.REST_ANGLES = np.array(
-            [None, 2.42, None, None, None, None], dtype='float32')
 
         # create inertia matrices for each link of the Kinova Jaco^2
         self._M_LINKS = [
@@ -182,8 +177,7 @@ class Config(BaseConfig):
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
 
         if self.hand_attached:  # add in hand offset
-            #self.L.append([0.0, 0.0, 0.0744])  # distance to palm
-            self.L.append([0.0003, 0.00684, -0.08222])
+            self.L.append([0.0003, 0.00684, -0.08222])  # distance to palm
             self.L.append([0.0, 0.0, 0.12])  # distance to fingertips
 
         self.L = np.array(self.L)

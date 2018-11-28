@@ -1,19 +1,15 @@
 #include "jaco2_rs485.h"
-//#define BILLION 1E6
-
 const unsigned char Jaco2::CONTROL_MODE = 0x01;
 const unsigned char Jaco2::HAND_ADDRESS[3] = {0x16, 0x17, 0x18};
 const float Jaco2::MAX_TORQUE[6] = {40.0, 80.0, 40.0, 20.0, 20.0, 20.0};  // in Nm
 const unsigned char Jaco2::JOINT_ADDRESS[6] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15};
 const unsigned char Jaco2::TORQUE_DAMPING[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 const short Jaco2::TORQUE_KP[6] = {1000, 1500, 1000, 1750, 1750, 1750};
-//const short Jaco2::TORQUE_KP[6] = {150, 150, 150, 300, 300, 300};
+// const short Jaco2::TORQUE_KP[6] = {150, 150, 150, 300, 300, 300};
 // const short Jaco2::TORQUE_KI[6] = {0, 0, 0, 0, 0, 0};
 // const short Jaco2::TORQUE_KD[6] = {100, 150, 100, 175, 175, 175};
 
 Jaco2::Jaco2(int a_display_error_level) {
-
-
     // get current date and time for error logging
     time_t rawtime;
     struct tm * timeinfo;
@@ -54,7 +50,6 @@ Jaco2::Jaco2(int a_display_error_level) {
     // get the current date and time
     // TODO: get date and time with ctime for first line of log and name of
     // file
-
     memset(updated, 0, (size_t)sizeof(int)*6);
     memset(updated_hand, 0, (size_t)sizeof(int)*3);
     memset(pos_finger, 0.0, (size_t)sizeof(float)*3);
@@ -106,7 +101,6 @@ Jaco2::Jaco2(int a_display_error_level) {
         target_angles_message[ii].Command = POSITION_COMMAND;
         target_angles_message[ii].SourceAddress = SOURCE_ADDRESS;
         target_angles_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
-        // target_angles_message[ii].DataLong[2] = 0x1;
         target_angles_message[ii].DataLong[2] = 0x00000000;
         target_angles_message[ii].DataLong[3] = 0x00000000;
     }
@@ -115,11 +109,9 @@ Jaco2::Jaco2(int a_display_error_level) {
         target_angles_hand_message[ii].Command = POSITION_COMMAND;
         target_angles_hand_message[ii].SourceAddress = SOURCE_ADDRESS;
         target_angles_hand_message[ii].DestinationAddress = HAND_ADDRESS[ii];
-        // target_angles_message[ii].DataLong[2] = 0x1;
         target_angles_hand_message[ii].DataLong[2] = 0x00000000;
         target_angles_hand_message[ii].DataLong[3] = 0x00000000;
     }
-
 
     // Set up the message used by SendTargetAngles
     for (int ii = 0; ii<6; ii++) {
@@ -243,7 +235,6 @@ Jaco2::Jaco2(int a_display_error_level) {
         torques_config_feedforward_advanced_message[ii].DataFloat[2] = 2.0;  // static friction;
         torques_config_feedforward_advanced_message[ii].DataFloat[3] = 2.0;  // max static friction;
     }
-    //torques_config_feedforward_advanced_message[0].DataFloat[2] = 1.9;
 
     // Set up the torque control limits
     for (int ii=0; ii<6; ii++) {
@@ -410,8 +401,6 @@ void Jaco2::InitForceMode() {
         log_msg(1, "STEP 7/8: Checking torque sensor calibration...");
         int joints_updated1 = 0;
         while(joints_updated1 < 6) {
-            // NOTE: motor 1 is flipped so input torques need to be * - 1
-            // torque_load[1] *= -1;
             for (int ii=0; ii<6; ii++) {
                 test_torques_message[ii].DataFloat[0] = pos[ii];
                 test_torques_message[ii].DataLong[1] = torque_load[ii];
@@ -495,13 +484,9 @@ void Jaco2::SendTargetAnglesHand(bool open) {
 // Wraps the set of input torques u up into a message and sends it to the Jaco2
 void Jaco2::SendForces(float u[6]) {
     // load the torque signal into outbound message
-    // struct timespec requestStart, requestEnd;
-    // clock_gettime(CLOCK_REALTIME, &requestStart);
     for (int ii=0; ii<6; ii++) {
         force_message[ii].DataFloat[0] = pos[ii];
         force_message[ii].DataFloat[2] = u[ii]; //32F torque command [1Nm]
-        // cout << "SENT: " << u[ii] << endl;
-        // cout << "READ: " << torque_load[ii] << endl;
 
     }
 
@@ -509,59 +494,38 @@ void Jaco2::SendForces(float u[6]) {
     MyRS485_Write(force_message, packets_sent, write_count);
     updated_sum = 0;
     memset(updated, 0, (size_t)sizeof(int)*6);
-    //while (updated_sum < 6){
-        //cout << "updated sum start: " << updated_sum << endl;
-        usleep(1250); // TODO: EXPERIMENT WITH DIFFERENT DELAY
-        MyRS485_Read(feedback_message, packets_read, read_count);
 
-        // The response for a SEND_POSITION_AND_TORQUE (0x0014) command is 3
-        // messages per motor [0x0015, 0x0016, 0x0017]. Read through all
-        // feedback, and if data for a motor hasn't been received yet update
-        // then update the position and velocity variables for that motor. Use
-        // reduced processing here rather than through ProcessFeedback for speed.
-        // NOTE: torque_load is not updated while reading this feedback
-        // NOTE: should be able to work out condition to stop reading through
-        // feedback messages when 6 unique motor feedback messages have been read
-        //cout << "read count: " << read_count << endl;
-        // if(read_count == 0){
-        //     cout << "No Data, sending new packet" << endl;
-        //     break;
-        // }
-        for(int ii = 0; ii < read_count; ii++) {
-            if(feedback_message[ii].Command == RS485_MSG_SEND_ALL_VALUES_1) {
-                //actuator 0 is 16
-                current_motor = feedback_message[ii].SourceAddress - 16;
-                //cout << "current motor: " << current_motor << endl;
-                if (updated[current_motor] == 0) {
-                    pos[current_motor] = feedback_message[ii].DataFloat[1];
-                    vel[current_motor] = feedback_message[ii].DataFloat[2];
-                    torque_load[current_motor] = -1*feedback_message[ii].DataFloat[3];
-                    updated[current_motor] = 1;
-                    updated_sum++;
-                    //cout << "reading[" << current_motor << "]: " << updated[current_motor] << endl;
-                }
-            }
-            else if(feedback_message[ii].Command == REPORT_ERROR) {
-                //cout << "Error message" << endl;
-                //cout << "PRINTING ERROR" << endl;
-                PrintError(ii, current_motor);
-                //cout << "SEND CLEAR ERROR MESSAGE" << endl;
-                SendAndReceive(clear_error_message, false);
-                //updated[current_motor] = 0;
+    usleep(1250); // TODO: EXPERIMENT WITH DIFFERENT DELAY
+
+    MyRS485_Read(feedback_message, packets_read, read_count);
+
+    // The response for a SEND_POSITION_AND_TORQUE (0x0014) command is 3
+    // messages per motor [0x0015, 0x0016, 0x0017]. Read through all
+    // feedback, and if data for a motor hasn't been received yet update
+    // then update the position and velocity variables for that motor. Use
+    // reduced processing here rather than through ProcessFeedback for speed.
+    // NOTE: torque_load is not updated while reading this feedback
+    // NOTE: should be able to work out condition to stop reading through
+    // feedback messages when 6 unique motor feedback messages have been read
+    for(int ii = 0; ii < read_count; ii++) {
+        if(feedback_message[ii].Command == RS485_MSG_SEND_ALL_VALUES_1) {
+            //actuator 0 is 16
+            current_motor = feedback_message[ii].SourceAddress - 16;
+            if (updated[current_motor] == 0) {
+                pos[current_motor] = feedback_message[ii].DataFloat[1];
+                vel[current_motor] = feedback_message[ii].DataFloat[2];
+                torque_load[current_motor] = -1*feedback_message[ii].DataFloat[3];
+                updated[current_motor] = 1;
+                updated_sum++;
             }
         }
-        // for(int mm = 0; mm < 6; mm++){
-        //     updated_sum += updated[mm];
-        //     //cout << "updated sum: " << updated_sum << endl;
-        //     //cout << "updated[" << mm << "]: " << updated[mm] << endl;
-        // }
-    //}
-    //cout << "Quitting while" << endl;
-    // clock_gettime(CLOCK_REALTIME, &requestEnd);
-    // double accum = ( requestEnd.tv_sec - requestStart.tv_sec )
-    //   + ( requestEnd.tv_nsec - requestStart.tv_nsec )
-    //   / MILLION;
-    // printf( "%lf\n", accum );
+        else if(feedback_message[ii].Command == REPORT_ERROR) {
+            //cout << "PRINTING ERROR" << endl;
+            PrintError(ii, current_motor);
+            //cout << "SEND CLEAR ERROR MESSAGE" << endl;
+            SendAndReceive(clear_error_message, false);
+        }
+    }
 }
 
 // Sends a message out to the arm, reads and processes the feedback,
