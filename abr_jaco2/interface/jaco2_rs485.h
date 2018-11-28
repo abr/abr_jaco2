@@ -25,7 +25,8 @@ using namespace std;
 #define SEND_ID_GAINS 0x0025
 #define POSITION_COMMAND 0x0010
 #define POSITION_AND_CURRENT 0x0011
-#define RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND 0x0014
+//#define RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND 0x0014
+#define RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND 0x200
 #define REPORT_ERROR 0x0030
 #define CLEAR_ERROR_FLAG 0x0033
 #define GET_TORQUE_CONFIG_SAFETY 0x003F
@@ -74,6 +75,7 @@ class Jaco2 {
         // misc variables
         int current_motor;
         int delay;
+        int updated_sum;
         vector<string> error_message;
         int updated[6]; // for switching to torque mode
         int updated2[6]; // for switching to position mode
