@@ -1,4 +1,5 @@
 #include "jaco2_rs485.h"
+//#define BILLION 1E6
 
 const unsigned char Jaco2::CONTROL_MODE = 0x01;
 const unsigned char Jaco2::HAND_ADDRESS[3] = {0x16, 0x17, 0x18};
@@ -11,6 +12,7 @@ const short Jaco2::TORQUE_KP[6] = {1000, 1500, 1000, 1750, 1750, 1750};
 // const short Jaco2::TORQUE_KD[6] = {100, 150, 100, 175, 175, 175};
 
 Jaco2::Jaco2(int a_display_error_level) {
+
 
     // get current date and time for error logging
     time_t rawtime;
@@ -38,6 +40,7 @@ Jaco2::Jaco2(int a_display_error_level) {
     ctr = 0;
     //set common variables
     delay = 1250;
+    updated_sum = 0; //tracks the sum of motor feedback to know when we receive from all
     packets_sent = 6;
     packets_read = 18; //3 responses (14, 15, 16) expected per motor
     current_motor = 6; // only 6 joints so if source address is not < 6 after
@@ -304,7 +307,17 @@ Jaco2::Jaco2(int a_display_error_level) {
 
 Jaco2::~Jaco2() { }
 
+
 void Jaco2::Connect() {
+    if (RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND == 20){
+        cout << "Using Force Command 0x0014: " << RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND << endl;
+    }
+    else if (RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND == 512){
+        cout << "Using Force Command 0x200: " << RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND << endl;
+    }
+    else{
+        cout << "Using Unknown Force Command: " << RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND << endl;
+    }
     log_msg(1, "Initializing RS-485 Communication...");
     //Flag used during initialization.
     int result;
@@ -482,43 +495,73 @@ void Jaco2::SendTargetAnglesHand(bool open) {
 // Wraps the set of input torques u up into a message and sends it to the Jaco2
 void Jaco2::SendForces(float u[6]) {
     // load the torque signal into outbound message
+    // struct timespec requestStart, requestEnd;
+    // clock_gettime(CLOCK_REALTIME, &requestStart);
     for (int ii=0; ii<6; ii++) {
         force_message[ii].DataFloat[0] = pos[ii];
         force_message[ii].DataFloat[2] = u[ii]; //32F torque command [1Nm]
+        // cout << "SENT: " << u[ii] << endl;
+        // cout << "READ: " << torque_load[ii] << endl;
+
     }
 
+    //cout << "sending message" << endl;
     MyRS485_Write(force_message, packets_sent, write_count);
-    usleep(1250); // TODO: EXPERIMENT WITH DIFFERENT DELAY
-    MyRS485_Read(feedback_message, packets_read, read_count);
-
-    // The response for a SEND_POSITION_AND_TORQUE (0x0014) command is 3
-    // messages per motor [0x0015, 0x0016, 0x0017]. Read through all
-    // feedback, and if data for a motor hasn't been received yet update
-    // then update the position and velocity variables for that motor. Use
-    // reduced processing here rather than through ProcessFeedback for speed.
-    // NOTE: torque_load is not updated while reading this feedback
-    // NOTE: should be able to work out condition to stop reading through
-    // feedback messages when 6 unique motor feedback messages have been read
+    updated_sum = 0;
     memset(updated, 0, (size_t)sizeof(int)*6);
-    for(int ii = 0; ii < read_count; ii++) {
-        if(feedback_message[ii].Command == RS485_MSG_SEND_ALL_VALUES_1) {
-            //actuator 0 is 16
-            current_motor = feedback_message[ii].SourceAddress - 16;
-            if (updated[current_motor] == 0) {
-                pos[current_motor] = feedback_message[ii].DataFloat[1];
-                vel[current_motor] = feedback_message[ii].DataFloat[2];
-                torque_load[current_motor] = -1*feedback_message[ii].DataFloat[3];
-                updated[current_motor] = 1;
+    //while (updated_sum < 6){
+        //cout << "updated sum start: " << updated_sum << endl;
+        usleep(1250); // TODO: EXPERIMENT WITH DIFFERENT DELAY
+        MyRS485_Read(feedback_message, packets_read, read_count);
+
+        // The response for a SEND_POSITION_AND_TORQUE (0x0014) command is 3
+        // messages per motor [0x0015, 0x0016, 0x0017]. Read through all
+        // feedback, and if data for a motor hasn't been received yet update
+        // then update the position and velocity variables for that motor. Use
+        // reduced processing here rather than through ProcessFeedback for speed.
+        // NOTE: torque_load is not updated while reading this feedback
+        // NOTE: should be able to work out condition to stop reading through
+        // feedback messages when 6 unique motor feedback messages have been read
+        //cout << "read count: " << read_count << endl;
+        // if(read_count == 0){
+        //     cout << "No Data, sending new packet" << endl;
+        //     break;
+        // }
+        for(int ii = 0; ii < read_count; ii++) {
+            if(feedback_message[ii].Command == RS485_MSG_SEND_ALL_VALUES_1) {
+                //actuator 0 is 16
+                current_motor = feedback_message[ii].SourceAddress - 16;
+                //cout << "current motor: " << current_motor << endl;
+                if (updated[current_motor] == 0) {
+                    pos[current_motor] = feedback_message[ii].DataFloat[1];
+                    vel[current_motor] = feedback_message[ii].DataFloat[2];
+                    torque_load[current_motor] = -1*feedback_message[ii].DataFloat[3];
+                    updated[current_motor] = 1;
+                    updated_sum++;
+                    //cout << "reading[" << current_motor << "]: " << updated[current_motor] << endl;
+                }
+            }
+            else if(feedback_message[ii].Command == REPORT_ERROR) {
+                //cout << "Error message" << endl;
+                //cout << "PRINTING ERROR" << endl;
+                PrintError(ii, current_motor);
+                //cout << "SEND CLEAR ERROR MESSAGE" << endl;
+                SendAndReceive(clear_error_message, false);
+                //updated[current_motor] = 0;
             }
         }
-        else if(feedback_message[ii].Command == REPORT_ERROR) {
-            //cout << "PRINTING ERROR" << endl;
-            PrintError(ii, current_motor);
-            //cout << "SEND CLEAR ERROR MESSAGE" << endl;
-            SendAndReceive(clear_error_message, false);
-            //updated[current_motor] = 0;
-        }
-    }
+        // for(int mm = 0; mm < 6; mm++){
+        //     updated_sum += updated[mm];
+        //     //cout << "updated sum: " << updated_sum << endl;
+        //     //cout << "updated[" << mm << "]: " << updated[mm] << endl;
+        // }
+    //}
+    //cout << "Quitting while" << endl;
+    // clock_gettime(CLOCK_REALTIME, &requestEnd);
+    // double accum = ( requestEnd.tv_sec - requestStart.tv_sec )
+    //   + ( requestEnd.tv_nsec - requestStart.tv_nsec )
+    //   / MILLION;
+    // printf( "%lf\n", accum );
 }
 
 // Sends a message out to the arm, reads and processes the feedback,

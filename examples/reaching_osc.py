@@ -27,6 +27,10 @@ target_xyz = np.array([[.56, -.09, .95],
                        [.80, .26, .61],
                        [.38, .46, .81]])
 
+target_xyz = np.array([
+              #[0.55699296, -0.12282506, 0.52730214],
+              [0.54564553, 0.13975671, 0.52818036]
+             ])
 # instantiate path planner and set parameters
 path = path_planners.SecondOrder(
     robot_config, n_timesteps=2000,
@@ -62,14 +66,14 @@ try:
         u = ctrlr.generate(
             q=feedback['q'], dq=feedback['dq'],
             target_pos=filtered_target[:3],  # (x, y, z)
-            target_vel=filtered_target[3:],  # (dx, dy, dz)
+            #target_vel=filtered_target[3:],  # (dx, dy, dz)
             offset=robot_config.OFFSET)
 
         # additional gain term due to high stiction of jaco base joint
-        if u[0] > 0:
-            u[0] *= 3.0
-        else:
-            u[0] *= 2.0
+        # if u[0] > 0:
+        #     u[0] *= 3.0
+        # else:
+        #     u[0] *= 2.0
 
         interface.send_forces(np.array(u, dtype='float32'))
         error = np.sqrt(np.sum((xyz - target_xyz[target_index])**2))
