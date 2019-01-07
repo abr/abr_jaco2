@@ -54,7 +54,7 @@ class Config(BaseConfig):
         self._T = {}  # dictionary for storing calculated transforms
 
         super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
-                                     ROBOT_NAME='jaco2', offset=self.OFFSET,
+                                     ROBOT_NAME='jaco2',# offset=self.OFFSET,
                                      **kwargs)
         print('OFFSET: ', self.OFFSET)
         if self.MEANS is None:

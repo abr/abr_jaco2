@@ -28,9 +28,9 @@ using namespace std;
 //#define RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND 0x0014
 #define RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND 0x200
 #define REPORT_ERROR 0x0030
+#define START_MOTOR_CONTROL 0x03
 #define CLEAR_ERROR_FLAG 0x0033
 #define GET_TORQUE_CONFIG_SAFETY 0x003F
-#define ACK_MESSAGE 0x003F
 #define GET_TORQUE_VALIDATION_REQUEST 0x0201
 #define SEND_TORQUE_VALIDATION 0x0202
 #define SWITCH_CONTROL_MODE_REQUEST 0x0203
@@ -54,6 +54,7 @@ class Jaco2 {
         static const short TORQUE_KP[6];
 
         // RS485 arrays of structs
+        RS485_Message start_motor_control_message[6];
         RS485_Message clear_error_message[6];
         RS485_Message feedback_message[50];  // TODO: does this need to be 50?
         RS485_Message force_message[6];

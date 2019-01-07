@@ -101,6 +101,18 @@ Jaco2::Jaco2(int a_display_error_level) {
     // TODO: make a message initialization function
 
     // Set up static parts of messages sent across
+    // Set up get position message
+    for (int ii=0; ii<6; ii++) {
+        start_motor_control_message[ii].Command = START_MOTOR_CONTROL;
+        start_motor_control_message[ii].SourceAddress = SOURCE_ADDRESS;
+        start_motor_control_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
+        start_motor_control_message[ii].DataLong[0] = JOINT_ADDRESS[ii];
+        start_motor_control_message[ii].DataLong[1] = 0x00000003; // manual says it is this, not all 0
+        start_motor_control_message[ii].DataLong[2] = 0x00000000;
+        start_motor_control_message[ii].DataLong[3] = 0x00000000;
+     }
+
+
     // Set up the message used by SendTargetAngles
     for (int ii = 0; ii<6; ii++) {
         target_angles_message[ii].Command = POSITION_COMMAND;
@@ -278,7 +290,7 @@ Jaco2::Jaco2(int a_display_error_level) {
         torque_config_parameters_message1[ii].DestinationAddress = JOINT_ADDRESS[ii];
         torque_config_parameters_message1[ii].DataFloat[0] = 50.0;  // velocity safety limit filter
         torque_config_parameters_message1[ii].DataFloat[1] = 1.0;  // feedforward filter
-        torque_config_parameters_message1[ii].DataFloat[2] = 501.0;  // inactivity time message
+        torque_config_parameters_message1[ii].DataFloat[2] = 1001.0;  // inactivity time message
         torque_config_parameters_message1[ii].DataFloat[3] = 200.0;  // error resend time
     }
 
@@ -547,6 +559,7 @@ void Jaco2::SendForces(float u[6]) {
                 PrintError(ii, current_motor);
                 //cout << "SEND CLEAR ERROR MESSAGE" << endl;
                 SendAndReceive(clear_error_message, false);
+                //SendAndReceive(start_motor_control_message, false);
                 //updated[current_motor] = 0;
             }
         }
@@ -677,6 +690,7 @@ void Jaco2::ProcessFeedback() {
             case REPORT_ERROR:
                 PrintError(ii, current_motor);
                 SendAndReceive(clear_error_message, true);
+                //SendAndReceive(start_motor_control_message, false);
                 updated[current_motor] = 0;
                 break;
 
