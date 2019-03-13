@@ -36,7 +36,20 @@ def read(*filenames, **kwargs):
 root = os.path.dirname(os.path.realpath(__file__))
 version = runpy.run_path(
     os.path.join(root, 'abr_jaco2', 'version.py'))['version']
-setup_requires = ["setuptools>=18.0", "cython", "numpy"]
+
+setup_requires = [
+    "setuptools>=18.0",
+    "cython>=0.29.0",
+    "numpy>=1.16.0"]
+install_requires = [
+    "cloudpickle>=0.8.0",
+    "sympy>=1.3",
+    ]
+tests_require = [
+    "pytest>=4.3.0",
+    "pytest-xdist>=1.26.0",
+    "pytest-cov>=2.6.0",
+    "coverage>=4.5.0"]
 
 setup(
     name="abr_jaco2",
@@ -46,14 +59,13 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     scripts=[],
-    url="https://github.com/abr/jaco2",
+    url="https://github.com/abr/abr_jaco2",
     license="Free for non-commercial use",
     description="ABR Jaco2 interface and config",
     long_description=read('README.rst'),
-    install_requires=setup_requires + [
-        "sympy", "cloudpickle",
-    ],
+    install_requires=setup_requires + install_requires,
     setup_requires=setup_requires,
+    extras_require={"tests": tests_require},
     cmdclass = {'build_ext': build_ext},
     ext_modules=[
         Extension(

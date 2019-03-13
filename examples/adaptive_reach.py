@@ -110,7 +110,7 @@ try:
         else:
             u_base[0] *= 2.0
 
-        # calculate teh adaptive control signal
+        # calculate the adaptive control signal
         input_signal = np.array([robot_config.scaledown('q',q)[1],
                                    robot_config.scaledown('q',q)[2],
                                    robot_config.scaledown('dq',dq)[1],
