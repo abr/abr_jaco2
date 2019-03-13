@@ -1,10 +1,10 @@
-import numpy as np
-import sympy as sp
-
 import abr_control
+
 from abr_control.arms.base_config import BaseConfig
 from abr_control.utils.paths import cache_dir
 
+import numpy as np
+import sympy as sp
 
 class Config(BaseConfig):
     """ Robot config file for the Kinova Jaco^2 V2 with force sensors
@@ -31,7 +31,7 @@ class Config(BaseConfig):
         offset to the center of mass of the hand [meters]
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 to link 1
+    ex: Tj1l1 transforms from joint 1 to link 1
 
     Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
@@ -45,7 +45,7 @@ class Config(BaseConfig):
         N_LINKS = 7 if hand_attached is True else 6
         super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
                                      ROBOT_NAME='jaco2', **kwargs)
-        if self.MEANS is None:
+        if self.MEANS is None:  # pylint: disable=E0203
             print('Using Default MEANS')
             self.MEANS = {  # expected mean of joint angles / velocities
                 'q': np.array([np.pi, 2.05, 2.06, np.pi, np.pi, np.pi]),
@@ -53,7 +53,7 @@ class Config(BaseConfig):
                                 0.02502, -0.02226, -0.01342])
                 }
 
-        if self.SCALES is None:
+        if self.SCALES is None:  # pylint: disable=E0203
             print('Using Default SCALES')
             self.SCALES = {  # expected variance of joint angles / velocities
                 'q': np.array([np.pi, 1.0, 0.5, np.pi, np.pi, np.pi]),
