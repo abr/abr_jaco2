@@ -3,7 +3,7 @@
 Keyboard interface for opening and closing the jaco2 hand
 """
 import abr_jaco2
-from abr_control.utils import KBHit
+from abr_analyze.utils import KBHit
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
