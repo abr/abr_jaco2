@@ -3,7 +3,7 @@ import sympy as sp
 
 import abr_control
 from abr_control.arms.base_config import BaseConfig
-from abr_control.utils.paths import control_cache
+from abr_control.utils.paths import cache_dir
 
 
 class Config(BaseConfig):
@@ -77,7 +77,7 @@ class Config(BaseConfig):
                 }
 
         # set up saved functions folder to be in the abr_jaco repo
-        self.config_folder = (control_cache + '/abr_jaco2/saved_functions_')
+        self.config_folder = (cache_dir + '/abr_jaco2/saved_functions_')
         self.config_folder += ('with_hand' if self.hand_attached is True
                                else 'no_hand')
         self.config_folder += '_' + self.config_hash
