@@ -42,8 +42,9 @@ class Config(BaseConfig):
     def __init__(self, hand_attached=True, **kwargs):
 
         self.hand_attached = hand_attached
-        N_LINKS = 7 if hand_attached is True else 6
-        super(Config, self).__init__(N_JOINTS=6, N_LINKS=N_LINKS,
+        N_LINKS = 7 if hand_attached else 6
+        N_JOINTS = 6 if hand_attached else 5
+        super(Config, self).__init__(N_JOINTS=N_JOINTS, N_LINKS=N_LINKS,
                                      ROBOT_NAME='jaco2', **kwargs)
         if self.MEANS is None:  # pylint: disable=E0203
             print('Using Default MEANS')
@@ -60,7 +61,7 @@ class Config(BaseConfig):
                 'dq': np.array([np.pi, 1.0, 1.0, np.pi, np.pi, np.pi])
                 }
 
-        if self.hand_attached is True:
+        if self.hand_attached:
             # if hand is attached, include an offset that
             # moves the EE position from hand COM to fingertips
             self.OFFSET = np.array([0.0, 0.0, 0.12])
@@ -72,8 +73,7 @@ class Config(BaseConfig):
 
         # set up saved functions folder to be in the abr_jaco repo
         self.config_folder = (cache_dir + '/abr_jaco2/saved_functions_')
-        self.config_folder += ('with_hand' if self.hand_attached is True
-                               else 'no_hand')
+        self.config_folder += ('with_hand' if self.hand_attached else 'no_hand')
         self.config_folder += '_' + self.config_hash
         # make folder if it doesn't exist
         abr_control.utils.os_utils.makedirs(self.config_folder)
@@ -134,7 +134,7 @@ class Config(BaseConfig):
                 [0.0, 0.0, 0.0, 1.72e-5, 1.815e-5, 0.0],
                 [0.0, 0.0, 0.0, 0.0, 0.0, -3.89e-5],
                 [0.0, 0.0, 0.0, -9.87e-6, 3.16e-5, 0.0]])]
-        if self.hand_attached is True:
+        if self.hand_attached:
             self._M_LINKS.append(sp.Matrix([  # hand
                 [0.727, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.727, 0.0, 0.0, 0.0, 0.0],
@@ -203,11 +203,11 @@ class Config(BaseConfig):
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
-        if self.hand_attached is True:  # add in hand offset
+        if self.hand_attached:  # add in hand offset
             self.L.append([0.0, 0.0, 0.0])  # offset for the end of fingers
         self.L = np.array(self.L)
 
-        if self.hand_attached is True:  # add in hand offset
+        if self.hand_attached:  # add in hand offset
             self.L_HAND_COM = np.array([0.0, 0.0, -0.08])  # com of the hand
 
         # ---- Transform Matrices ----
@@ -344,7 +344,7 @@ class Config(BaseConfig):
             [0, -0.461245863, 0.887272337, self.L[11, 2]],
             [0, 0, 0, 1]])
 
-        if self.hand_attached is True:  # add in hand offset
+        if self.hand_attached:  # add in hand offset
             # Transform matrix: joint 5 -> hand COM
             # account for rotations due to q
             self.Tj5handcoma = sp.Matrix([
@@ -428,7 +428,7 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T('joint5')
             elif self.hand_attached is True and name == 'link6':
                 self._T[name] = self._calc_T('joint5') * self.Tj5handcom
-            elif self.hand_attached is True and name == 'EE':
+            elif self.hand_attached and name == 'EE':
                 self._T[name] = self._calc_T('link6') * self.Thandcomfingers
             elif name == 'camera':
                 self._T[name] = self.Torgcam
