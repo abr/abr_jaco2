@@ -4,10 +4,13 @@ const unsigned char Jaco2::HAND_ADDRESS[3] = {0x16, 0x17, 0x18};
 const float Jaco2::MAX_TORQUE[6] = {40.0, 80.0, 40.0, 20.0, 20.0, 20.0};  // in Nm
 const unsigned char Jaco2::JOINT_ADDRESS[6] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15};
 const unsigned char Jaco2::TORQUE_DAMPING[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+//const short Jaco2::TORQUE_KP[6] = {1, 1.5, 1, 1.75, 1.75, 1.75};
 const short Jaco2::TORQUE_KP[6] = {1000, 1500, 1000, 1750, 1750, 1750};
+//const short Jaco2::TORQUE_KP[6] = {0, 0, 0, 0, 0, 0};
 // const short Jaco2::TORQUE_KP[6] = {150, 150, 150, 300, 300, 300};
-// const short Jaco2::TORQUE_KI[6] = {0, 0, 0, 0, 0, 0};
-// const short Jaco2::TORQUE_KD[6] = {100, 150, 100, 175, 175, 175};
+const short Jaco2::TORQUE_KI[6] = {0, 0, 0, 0, 0, 0};
+const short Jaco2::TORQUE_KD[6] = {20, 20, 20, 20, 20, 20};
+//const short Jaco2::TORQUE_KD[6] = {0, 0, 0, 0, 0, 0};
 
 Jaco2::Jaco2(int a_display_error_level) {
     // get current date and time for error logging
@@ -125,6 +128,24 @@ Jaco2::Jaco2(int a_display_error_level) {
     }
 
     // set constants in force message to increase loop speed
+    // NOTE: this is how the documentation says to set up, but getting torque er
+    // for (int ii=0; ii<6; ii++) {
+    //     force_message[ii].Command =
+    //         RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
+    //     force_message[ii].DestinationAddress = JOINT_ADDRESS[ii];
+    //     force_message[ii].SourceAddress = SOURCE_ADDRESS;
+    //     force_message[ii].DataFloat[0] = 0x00000000; //not used
+    //     force_message[ii].DataFloat[1] = 0x00000000; //not used
+    //     force_message[ii].DataLong[2] = //U16|U16
+    //         ((unsigned long) TORQUE_KP[ii] << 16) |
+    //         ((unsigned long) TORQUE_DAMPING[ii]);
+    //     force_message[ii].DataLong[3] =
+    //         ((unsigned long) 0x00 << 8) |
+    //         ((unsigned long) 0x00 << 8) |
+    //         ((unsigned long) 0x00 << 8) |
+    //         ((unsigned long) CONTROL_MODE);
+    // }
+    // NOTE THIS IS HOW IT WAS SET BEFORE AND NO TORQUE ERRORS
     for (int ii=0; ii<6; ii++) {
         force_message[ii].Command =
             RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
@@ -279,21 +300,21 @@ Jaco2::Jaco2(int a_display_error_level) {
             SEND_TORQUE_CONFIG_CONTROL_PARAM_2;
         torque_config_parameters_message2[ii].SourceAddress = SOURCE_ADDRESS;
         torque_config_parameters_message2[ii].DestinationAddress = JOINT_ADDRESS[ii];
-        torque_config_parameters_message2[ii].DataFloat[0] = 4.0;  // switch_threshold;
+        torque_config_parameters_message2[ii].DataFloat[0] = 5.0;  // switch_threshold;
         torque_config_parameters_message2[ii].DataFloat[1] = 5.0;  // pos_lim_distance;
         torque_config_parameters_message2[ii].DataFloat[2] = 1.0;  // error_deadband;
         torque_config_parameters_message2[ii].DataFloat[3] = 0.0;  // torque_brake;
     }
     // Set up the send Ki and Kd message
-    // for (int ii=0; ii<6; ii++) {
-    //     kd_ki_gains[ii].Command = SEND_ID_GAINS;
-    //     kd_ki_gains[ii].SourceAddress = SOURCE_ADDRESS;
-    //     kd_ki_gains[ii].DestinationAddress = JOINT_ADDRESS[ii];
-    //     kd_ki_gains[ii].DataFloat[0] = TORQUE_KD[ii];  // kd
-    //     kd_ki_gains[ii].DataFloat[1] = TORQUE_KI[ii];  // ki
-    //     kd_ki_gains[ii].DataLong[2] = 0x00000000;
-    //     kd_ki_gains[ii].DataLong[3] = 0x00000000;
-    // }
+    for (int ii=0; ii<6; ii++) {
+        kd_ki_gains[ii].Command = SEND_ID_GAINS;
+        kd_ki_gains[ii].SourceAddress = SOURCE_ADDRESS;
+        kd_ki_gains[ii].DestinationAddress = JOINT_ADDRESS[ii];
+        kd_ki_gains[ii].DataFloat[0] = TORQUE_KD[ii];  // kd
+        kd_ki_gains[ii].DataFloat[1] = TORQUE_KI[ii];  // ki
+        kd_ki_gains[ii].DataLong[2] = 0x00000000;
+        kd_ki_gains[ii].DataLong[3] = 0x00000000;
+    }
 }
 
 Jaco2::~Jaco2() { }
@@ -356,6 +377,8 @@ void Jaco2::Disconnect() {
 
 void Jaco2::InitPositionMode() {
     log_msg(1, "Initializing position control mode...");
+    // log_msg(1, "STEP 6.5/8: Setting ki and kd gains...");
+    // SendAndReceive(kd_ki_gains, false);
     SendAndReceive(init_position_message, true);
     log_msg(2, "Position control mode activated");
 }
@@ -395,6 +418,9 @@ void Jaco2::InitForceMode() {
     log_msg(1, "STEP 6/8: Setting torque safety parameters...");
     SendAndReceive(safety_message, true);
 
+    // log_msg(1, "STEP 6.5/8: Setting ki and kd gains...");
+    // SendAndReceive(kd_ki_gains, false);
+
     int joints_updated0 = 0;
     while (joints_updated0 < 6) {
         // STEP 6: Send torque values to compare with sensor readings
@@ -403,9 +429,13 @@ void Jaco2::InitForceMode() {
         while(joints_updated1 < 6) {
             for (int ii=0; ii<6; ii++) {
                 test_torques_message[ii].DataFloat[0] = pos[ii];
+                // NOTE: doc said is float, but getting torque errs
+                // test_torques_message[ii].DataFloat[1] = torque_load[ii];
+                // NOTE: how it used to be set up, no torque errs
                 test_torques_message[ii].DataLong[1] = torque_load[ii];
             }
             joints_updated1 = SendAndReceive(test_torques_message, false);
+
         }
 
         // STEP 7: Send request to switch to torque control mode

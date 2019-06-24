@@ -21,6 +21,7 @@
 using namespace std;
 
 #define SOURCE_ADDRESS 0x00
+#define RS485_MSG_GET_ACTUALPOSITION 0x0001
 #define SEND_ACTUAL_POSITION 0x002
 #define SEND_ID_GAINS 0x0025
 #define POSITION_COMMAND 0x0010
@@ -54,6 +55,8 @@ class Jaco2 {
         static const unsigned char JOINT_ADDRESS[6];
         static const unsigned char TORQUE_DAMPING[6];
         static const short TORQUE_KP[6];
+        static const short TORQUE_KI[6];
+        static const short TORQUE_KD[6];
 
         // RS485 arrays of structs
         RS485_Message clear_error_message[6];
@@ -73,6 +76,7 @@ class Jaco2 {
         RS485_Message torque_config_parameters_message1[6];
         RS485_Message torque_config_parameters_message2[6];
         RS485_Message torque_control_limits_message[6];
+        RS485_Message kd_ki_gains[6];
 
         // misc variables
         int current_motor;
