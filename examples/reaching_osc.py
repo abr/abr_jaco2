@@ -29,8 +29,8 @@ robot_config.Tx('EE', q=zeros)
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
 target_xyz = np.array([[.56, -.09, .52],
-                       [.12, .15, .75],
-                       [.60, .26, .61],
+                       # [.12, .15, .75],
+                       # [.60, .26, .61],
                        [.38, .46, .81]])
 
 # connect to the jaco
@@ -51,14 +51,13 @@ try:
     count_at_target = 0 #  must stay at target for 200 loop cycles for success
     target_index = 0
     run_time = 0
+    times = []
 
     feedback = interface.get_feedback()
     target = robot_config.Tx('EE', q=feedback['q'])
     target_vel = np.zeros(3)
 
     interface.init_force_mode()
-    import redis
-    r = redis.StrictRedis('localhost')
     while target_index < len(target_xyz):
         start = timeit.default_timer()
         feedback = interface.get_feedback()
@@ -66,7 +65,7 @@ try:
         hand_vel = np.dot(robot_config.J('EE', feedback['q']),
                         feedback['dq'])[:3]
 
-        target, target_vel = path.step(
+        target, target_vel = path._step(
             position=target, velocity=target_vel, target_pos=target_xyz[target_index])
 
         # generate the control signal
@@ -94,7 +93,9 @@ try:
                 target_index += 1
 
         count+=1
-        run_time += timeit.default_timer() - start
+        loop_time = timeit.default_timer() - start
+        run_time += loop_time
+        times.append(loop_time*1000)
 
 
 except:
@@ -109,8 +110,15 @@ finally:
     import matplotlib
     matplotlib.use("TKAgg")
     import matplotlib.pyplot as plt
-    plt.figure()
-    plt.title("Trajectory Error")
-    plt.plot(error_track)
-    plt.ylabel("Distance to target [m]")
+    fig = plt.figure()
+    a1 = fig.add_subplot(211)
+    a1.set_title("Trajectory Error")
+    a1.plot(error_track)
+    a1.set_ylabel("Distance to target [m]")
+    a2 = fig.add_subplot(212)
+    a2.plot(times, label=np.mean(times))
+    a2.set_title('Loop Times')
+    a2.legend()
+    a2.set_ylabel('Time Steps [ms]')
+    plt.tight_layout()
     plt.show()
