@@ -47,6 +47,7 @@ class MockInterface(BaseInterface):
 
         super(MockInterface, self).__init__(robot_config)
         self.display_error_level = display_error_level
+        self.robot_config = robot_config
 
     def connect(self):
         """ All initial setup, establish RS485 connection
@@ -128,7 +129,7 @@ class MockInterface(BaseInterface):
         u : numpy.array
             float value of torques to apply to each joint [Nm]
         """
-        assert len(u) == 6
+        assert len(u) == self.robot_config.N_JOINTS
         if self.display_error_level == 1:
             print('MOCK: forces sent')
 
@@ -141,6 +142,8 @@ class MockInterface(BaseInterface):
         q : numpy.array
             the target joint angles [radians]
         """
-        assert len(q) == 6
+        print(q)
+        print(self.robot_config.N_JOINTS)
+        assert len(q) == self.robot_config.N_JOINTS
         if self.display_error_level == 1:
             print('MOCK: target angles sent')
