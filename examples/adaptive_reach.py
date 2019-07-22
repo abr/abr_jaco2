@@ -62,7 +62,7 @@ adapt = signals.DynamicsAdaptation(
 # connect to and initialize the arm
 interface.connect()
 interface.init_position_mode()
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 if plot_error:
     error_track = []
@@ -86,7 +86,7 @@ try:
         ee_xyz = robot_config.Tx('EE', q=feedback['q'])
 
         # get next step along trajectory
-        position, velocity = path.step(
+        position, velocity = path._step(
                 position=position, velocity=velocity, target_pos=target_xyz)
 
         feedback = interface.get_feedback()
@@ -127,7 +127,7 @@ except:
 finally:
     # close the connection to the arm
     interface.init_position_mode()
-    interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+    interface.send_target_angles(robot_config.START_ANGLES)
     interface.disconnect()
 
     if plot_error:

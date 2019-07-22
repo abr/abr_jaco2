@@ -36,7 +36,7 @@ target_xyz = np.array([[.56, -.09, .52],
 # connect to the jaco
 interface.connect()
 interface.init_position_mode()
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 # set up arrays for tracking end-effector and target position
 error_track = []
@@ -104,7 +104,7 @@ except:
 finally:
     # close the connection to the arm
     interface.init_position_mode()
-    interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+    interface.send_target_angles(robot_config.START_ANGLES)
     interface.disconnect()
 
     import matplotlib

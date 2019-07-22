@@ -29,7 +29,7 @@ interface.connect()
 interface.init_position_mode()
 
 # Move to home position
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 try:
     interface.init_force_mode()
     cnt = 0
@@ -52,7 +52,7 @@ except Exception as e:
 
 finally:
     interface.init_position_mode()
-    interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+    interface.send_target_angles(robot_config.START_ANGLES)
     interface.disconnect()
 
     # plot joint angles throughout trial
