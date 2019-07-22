@@ -10,7 +10,7 @@ import traceback
 import timeit
 
 import abr_jaco2
-from abr_control.controllers import Floating, OSC
+from abr_control.controllers import OSC
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
@@ -32,7 +32,7 @@ interface.connect()
 interface.init_position_mode()
 
 # Move to home position
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 try:
     print('Running loop speed test for the next 10 seconds...')
@@ -59,7 +59,7 @@ except Exception as e:
 
 finally:
     interface.init_position_mode()
-    interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+    interface.send_target_angles(robot_config.START_ANGLES)
     interface.disconnect()
 
     time_track = np.array(time_track)

@@ -25,7 +25,7 @@ target_joint_angles = np.array([
 # connect to the jaco and move to it's start rest position
 interface.connect()
 interface.init_position_mode()
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 q_track = []
 target_track = []
@@ -50,7 +50,7 @@ except:
 
 finally:
     # close the connection to the arm
-    interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+    interface.send_target_angles(robot_config.START_ANGLES)
     interface.disconnect()
 
     q_track = np.array(q_track)

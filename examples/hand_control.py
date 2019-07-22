@@ -15,7 +15,7 @@ kb = KBHit.KBHit()
 # connect to and initialize the arm
 interface.connect()
 interface.init_position_mode()
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 print('\'o\' : open hand')
 print('\'p\' : close hand')
@@ -43,5 +43,5 @@ while 1:
 kb.set_normal_term()
 
 # close the connection to the arm
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 interface.disconnect()

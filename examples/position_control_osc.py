@@ -28,7 +28,7 @@ ctrlr = OSC(robot_config, kp=20, null_controllers=[damping],
 interface = abr_jaco2.Interface(robot_config)
 interface.connect()
 interface.init_position_mode()
-interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 # set up lists for tracking data
 ee_track = []
@@ -74,7 +74,7 @@ except:
 finally:
     # stop and reset the VREP simulation
     interface.init_position_mode()
-    interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+    interface.send_target_angles(robot_config.START_ANGLES)
     interface.disconnect()
 
     print('Simulation terminated...')
