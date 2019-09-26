@@ -65,7 +65,6 @@ setup(
     long_description=read('README.rst'),
     install_requires=setup_requires + install_requires,
     setup_requires=setup_requires,
-    python_requires="<3.7",
     extras_require={"tests": tests_require},
     cmdclass = {'build_ext': build_ext},
     ext_modules=[

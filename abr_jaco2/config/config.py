@@ -18,9 +18,8 @@ class Config(BaseConfig):
 
     Attributes
     ----------
-    REST_ANGLES : numpy.array
-        the joint angles the arm tries to push towards with the
-        null controller
+    START_ANGLES : numpy.array
+        The joint angles for a safe home or rest position
     _M_LINKS : sympy.diag
         inertia matrix of the links
     _M_JOINTS : sympy.diag
@@ -59,7 +58,7 @@ class Config(BaseConfig):
         abr_control.utils.os_utils.makedirs(self.config_folder)
 
         # position to move to before switching to torque mode
-        self.INIT_TORQUE_POSITION = np.array(
+        self.START_ANGLES = np.array(
             [0.0, 2.79, 2.62, 4.71, 0.0, 3.04], dtype="float32")
 
         # create inertia matrices for each link of the Kinova Jaco^2
