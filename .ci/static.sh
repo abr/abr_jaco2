@@ -13,7 +13,7 @@ COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
     # astroid==2.2 causes an error when running pylint
-    exe pip install codespell pylint gitlint "astroid<2.2.0"
+    exe pip install codespell pylint gitlint
 elif [[ "$COMMAND" == "script" ]]; then
     exe pylint abr_jaco2 --rcfile=setup.cfg --ignore=kinova-api,jaco2_cython.cpp
     exe codespell -q 3 --skip=kinova-api,jaco2_cython.cpp
