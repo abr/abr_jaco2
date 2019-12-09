@@ -16,7 +16,7 @@ if [[ "$COMMAND" == "install" ]]; then
     exe pip install codespell pylint gitlint
 elif [[ "$COMMAND" == "script" ]]; then
     exe pylint abr_jaco2 --rcfile=setup.cfg --ignore=kinova-api,jaco2_cython.cpp
-    exe codespell -q 3 --skip=kinova-api,jaco2_cython.cpp
+    exe codespell -q 3 --skip=kinova-api,jaco2_cython.cpp --ignore-words-list="DOF,dof,hist"
     exe shellcheck -e SC2087 .ci/*.sh
     # undo single-branch cloning
     git config --replace-all remote.origin.fetch +refs/heads/*:refs/remotes/origin/*

@@ -1,10 +1,10 @@
 """
 Running operational space control. The controller will
 move the end-effector to the target object's position and orientation.
-The orientation along with the y and z cartesian target locations will
-be maintained. The x direction is not being controlled so you should
-be able to move the arm along the x axis freely while the controller
-attempts to maintain (y, z, a, b, g)
+The orientation along with z cartesian target location will
+be maintained. The x-y directions are not being controlled so you should
+be able to move the arm along the xy plane freely while the controller
+attempts to maintain (z, a, b, g)
 """
 import numpy as np
 
@@ -14,15 +14,20 @@ from abr_control.utils import transformations
 
 
 # initialize our robot config
-robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
+robot_config = abr_jaco2.Config()
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
+ctrlr_dof = [False, False, True, True, True, True]
+dof_labels = np.array(['x', 'y', 'z', 'alpha', 'beta', 'gamma'])
+print('Controlling %s dof, %s are free to be manipulated'
+       % (dof_labels[ctrlr_dof], dof_labels[[not i for i in ctrlr_dof]]))
+
 ctrlr = OSC(robot_config, kp=50, kv=20, ko=150, null_controllers=[damping],
             # vmax=[1, 1],  # [m/s, rad/s]
             # control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [False, True, True, True, True, True],
+            ctrlr_dof=ctrlr_dof,
             orientation_algorithm=0)
 
 
@@ -34,11 +39,9 @@ ee_track = []
 ee_angles_track = []
 target_track = []
 target_angles_track = []
-dr_track = []
-dr_err = []
 
 
-path = path_planners.SecondOrder(
+path = path_planners.SecondOrderFilter(
     n_timesteps=3000,
     w=1e4, zeta=3, threshold=0.1, dt=0.003)
 
@@ -60,8 +63,6 @@ target_pos = robot_config.Tx('EE', feedback['q'])
 
 try:
     count = 0
-    import redis
-    r = redis.StrictRedis('localhost')
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
@@ -85,12 +86,6 @@ try:
             target_vel=np.hstack((target_vel, np.zeros(3)))
             )
 
-        r.set(
-            'norm_target_xyz_robot_coords', '%.3f %.3f %.3f'
-            % (hand_xyz[0], target[1], target[2]))
-        r.set('q', '%.3f %.3f %.3f %.3f %.3f %.3f' %
-                             (feedback['q'][0],feedback['q'][1],feedback['q'][2],
-                              feedback['q'][3],feedback['q'][4],feedback['q'][5]))
         if count % 1000 == 0:
             print(u)
         # apply the control signal, step the sim forward
@@ -102,8 +97,6 @@ try:
             robot_config.R('EE', feedback['q'])))
         target_track.append(np.copy(target[:3]))
         target_angles_track.append(np.copy(target[3:]))
-        # dr_track.append(np.copy(ctrlr.dr))
-        # dr_err.append(np.copy(np.linalg.norm(ctrlr.dr, 2)))
         count += 1
 
 finally:
@@ -117,8 +110,6 @@ finally:
     ee_angles_track = np.array(ee_angles_track)
     target_track = np.array(target_track)
     target_angles_track = np.array(target_angles_track)
-    dr_track = np.array(dr_track)
-    dr_err = np.array(dr_err)
 
     ls = ['-', '--']
     cols = ['r', 'b', 'g']
@@ -130,39 +121,36 @@ finally:
         from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
         fig = plt.figure(figsize=(12,8))
-        ax1 = fig.add_subplot(221)
+        ax1 = fig.add_subplot(311)
         ax1.set_ylabel('3D position (m)')
         for cnt, ee in enumerate(ee_track.T):
-            ax1.plot(ee, c=cols[cnt], linestyle=ls[0],
-                    label='EE: %s' % (labelpos[cnt]))
+            if ctrlr_dof[cnt]:
+                ax1.plot(ee, c=cols[cnt], linestyle=ls[0],
+                        label='EE: %s' % (labelpos[cnt]))
         for cnt, tt in enumerate(target_track.T):
-            ax1.plot(tt, c=cols[cnt], linestyle=ls[1],
-                    label='T: %s' % (labelpos[cnt]))
+            if ctrlr_dof[cnt]:
+                ax1.plot(tt, c=cols[cnt], linestyle=ls[1],
+                        label='T: %s' % (labelpos[cnt]))
         ax1.legend()
 
-        ax2 = fig.add_subplot(222)
+        ax2 = fig.add_subplot(312)
         for cnt, ee in enumerate(ee_angles_track.T):
-            ax2.plot(ee, c=cols[cnt], linestyle=ls[0],
-                    label='EE: %s' % (labelrot[cnt]))
-        #for cnt, tat in enumerate(target_angles_track.T):
-        for cnt, tat in enumerate(dr_track.T):
-            ax2.plot(tat, c=cols[cnt], linestyle=ls[1],
-                    label='T: %s' % (labelrot[cnt]))
+            if ctrlr_dof[cnt+3]:
+                ax2.plot(ee, c=cols[cnt], linestyle=ls[0],
+                        label='EE: %s' % (labelrot[cnt]))
+                ax2.plot(target_angles_track.T[cnt], c=cols[cnt], linestyle=ls[1],
+                        label='EE T: %s' % (labelrot[cnt]))
         ax2.legend()
 
         ax2.set_ylabel('3D orientation (rad)')
         ax2.set_xlabel('Time (s)')
 
-        ax3 = fig.add_subplot(223, projection='3d')
+        ax3 = fig.add_subplot(313, projection='3d')
         ax3.set_title('End-Effector Trajectory')
         ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
         ax3.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
                     label='target', c='g')
         ax3.legend()
-
-        ax4 = fig.add_subplot(224)
-        ax4.set_title('Norm dr')
-        ax4.plot(dr_err)
 
         plt.tight_layout()
         plt.show()
