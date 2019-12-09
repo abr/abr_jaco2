@@ -13,7 +13,7 @@ from abr_control.controllers import OSC, Damping
 from abr_control.utils import transformations
 
 # initialize our robot config
-robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
+robot_config = abr_jaco2.Config(use_cython=True)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)

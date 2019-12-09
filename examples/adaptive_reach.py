@@ -18,7 +18,7 @@ import abr_jaco2
 plot_error = True
 
 # initialize our robot config
-robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
+robot_config = abr_jaco2.Config()
 
 # instantiate our null controllers
 null_controllers = []
@@ -31,7 +31,7 @@ ctrlr = OSC(robot_config, kp=30, kv=20, vmax=None,
             null_controllers=null_controllers)
 
 # instantiate path planner and set parameters
-path = path_planners.SecondOrder(
+path = path_planners.SecondOrderFilter(
     n_timesteps=3000, w=1e4, zeta=2, threshold=0.05)
 
 # run controller once to generate functions / take care of overhead

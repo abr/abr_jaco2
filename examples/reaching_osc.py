@@ -9,7 +9,7 @@ import abr_jaco2
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
-    use_cython=True, hand_attached=True)
+    use_cython=True)
 
 # instantiate operation space controller
 null_controllers = []
@@ -17,8 +17,11 @@ from abr_control.controllers import Damping
 null_controllers.append(Damping(
     robot_config=robot_config, kv=1))
 
-ctrlr = OSC(robot_config, kp=30, kv=20, ki=0.002,
-            null_controllers=null_controllers)
+ctrlr_dof = [True, True, True, False, False, False]
+
+ctrlr = OSC(robot_config, kp=14, kv=6, ki=0.002,
+            null_controllers=null_controllers,
+            ctrlr_dof=ctrlr_dof)
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
 zeros = np.zeros(robot_config.N_JOINTS)
@@ -28,23 +31,22 @@ robot_config.Tx('EE', q=zeros)
 
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
-target_xyz = np.array([[.56, -.09, .52],
-                       # [.12, .15, .75],
-                       # [.60, .26, .61],
-                       [.38, .46, .81]])
 
 # connect to the jaco
 interface.connect()
 interface.init_position_mode()
 interface.send_target_angles(robot_config.START_ANGLES)
 
+target_xyz = np.array([[.56, -.09, .72],
+                       [.12, .15, .75],
+                       [.60, .26, .61],
+                       [.38, .46, .81]])
+
 # set up arrays for tracking end-effector and target position
 error_track = []
 
 # instantiate path planner and set parameters
-path = path_planners.SecondOrder(
-    n_timesteps=4000,
-    w=1e4, zeta=3, threshold=0.1, dt=0.003)
+path = path_planners.SecondOrderDMP(n_timesteps=500, error_scale=1e-6)
 
 try:
     count = 0
@@ -53,20 +55,34 @@ try:
     run_time = 0
     times = []
 
-    feedback = interface.get_feedback()
-    target = robot_config.Tx('EE', q=feedback['q'])
-    target_vel = np.zeros(3)
+    interface.connect()
+    interface.init_position_mode()
+    interface.send_target_angles(robot_config.START_ANGLES)
 
+    feedback = interface.get_feedback()
+    hand_xyz = robot_config.Tx('EE', q=feedback['q'])
+
+    path.reset(position=hand_xyz, target_pos=target_xyz[target_index])
+    generate_path = False
+
+    # connect to the jaco
     interface.init_force_mode()
+
     while target_index < len(target_xyz):
+        if generate_path:
+            print('Generating next path')
+            path.reset(position=hand_xyz, target_pos=target_xyz[target_index])
+            generate_path = False
+            print('Ready')
+
         start = timeit.default_timer()
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
         hand_vel = np.dot(robot_config.J('EE', feedback['q']),
                         feedback['dq'])[:3]
 
-        target, target_vel = path._step(
-            position=target, velocity=target_vel, target_pos=target_xyz[target_index])
+        error = np.sqrt(np.sum((hand_xyz - target_xyz[target_index])**2))
+        target, target_vel = path._step(error)
 
         # generate the control signal
         u = ctrlr.generate(
@@ -76,7 +92,6 @@ try:
             )
 
         interface.send_forces(np.array(u, dtype='float32'))
-        error = np.sqrt(np.sum((hand_xyz - target_xyz[target_index])**2))
 
         # print out the error every so often
         if count % 100 == 0:
@@ -91,12 +106,12 @@ try:
             if count_at_target >= 200:
                 count_at_target = 0
                 target_index += 1
+                generate_path = True
 
         count+=1
         loop_time = timeit.default_timer() - start
         run_time += loop_time
         times.append(loop_time*1000)
-
 
 except:
     print(traceback.format_exc())

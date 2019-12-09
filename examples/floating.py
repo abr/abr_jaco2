@@ -10,7 +10,7 @@ from abr_control.controllers import Floating
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
-    use_cython=True, hand_attached=True)
+    use_cython=True)
 ctrlr = Floating(robot_config, dynamic=True, task_space=True)
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
@@ -38,7 +38,7 @@ try:
         feedback = interface.get_feedback()
         q_T = interface.get_torque_load()
 
-        u = ctrlr.generate(q=feedback['q'], dq=feedback['dq'])
+        u = ctrlr.generate(q=feedback['q'], dq=np.zeros(6)) #feedback['dq'])
         interface.send_forces(np.array(u, dtype='float32'))
 
         # track data

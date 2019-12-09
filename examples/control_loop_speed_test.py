@@ -14,7 +14,7 @@ from abr_control.controllers import OSC
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
-    use_cython=True, hand_attached=True)
+    use_cython=True)
 
 ctrlr = OSC(robot_config, kp=20, kv=10)
 # run controller once to generate functions / take care of overhead

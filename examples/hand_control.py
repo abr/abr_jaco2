@@ -7,7 +7,7 @@ from abr_analyze.utils import KBHit
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
-    use_cython=True, hand_attached=True)
+    use_cython=True)
 interface = abr_jaco2.Interface(robot_config)
 
 kb = KBHit.KBHit()

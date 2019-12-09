@@ -10,7 +10,7 @@ import abr_jaco2
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(
-    use_cython=True, hand_attached=True)
+    use_cython=True)
 
 # create our interface for the jaco2
 interface = abr_jaco2.Interface(robot_config)
