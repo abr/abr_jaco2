@@ -86,7 +86,7 @@ try:
 
         # get next step along trajectory
         position, velocity = path._step(
-                position=position, velocity=velocity, target_pos=target_xyz)
+                position=position, velocity=velocity, target_position=target_xyz)
 
         feedback = interface.get_feedback()
 
@@ -94,7 +94,7 @@ try:
         u_base = ctrlr.generate(
             q=feedback['q'], dq=feedback['dq'],
             target=np.hstack((position, [0, 0, 0])),
-            target_vel=np.hstack((velocity, [0, 0, 0])),
+            target_velocity=np.hstack((velocity, [0, 0, 0])),
             ref_frame='EE')
 
         # calculate the adaptive control signal

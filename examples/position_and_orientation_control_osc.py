@@ -56,7 +56,7 @@ target_angles = list(transformations.euler_from_matrix(
 target_angles[2] += 1.5
 target_angles[1] += 1.5
 
-target_vel = np.zeros(3)
+target_velocity = np.zeros(3)
 target_xyz = np.array([0, 0.4, 0.60])
 shift = 0.30
 target_pos = robot_config.Tx('EE', feedback['q'])
@@ -68,8 +68,8 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-        target_pos, target_vel = path._step(
-            position=target_pos, velocity=target_vel, target_pos=target_xyz)
+        target_pos, target_velocity = path._step(
+            position=target_pos, velocity=target_velocity, target_position=target_xyz)
 
         target = np.hstack((target_pos, target_angles))
 
@@ -83,7 +83,7 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            target_vel=np.hstack((target_vel, np.zeros(3)))
+            target_velocity=np.hstack((target_velocity, np.zeros(3)))
             )
 
         if count % 1000 == 0:

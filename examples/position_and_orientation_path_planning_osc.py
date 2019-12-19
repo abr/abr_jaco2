@@ -38,9 +38,6 @@ ctrlr = OSC(robot_config, kp=50, ko=100, kv=20, null_controllers=[damping],
             # control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
             ctrlr_dof=ctrlr_dof)
 
-from vrep_mirror_osc import VrepMirrorOSC
-mirror = VrepMirrorOSC(ctrlr_dof)
-mirror.start_thread()
 # create our interface
 interface = abr_jaco2.Interface(robot_config)
 interface.connect()
@@ -66,11 +63,11 @@ print(target_orientation)
 target_orientation_euler = transformations.euler_from_quaternion(target_orientation)
 target_position = np.array([-0.4, -0.3, 0.5]) #np.random.random(3)
 
-traj_planner.generate_path(position=hand_xyz, target_pos=target_position,
+traj_planner.generate_path(position=hand_xyz, target_position=target_position,
                            velocity=np.zeros(3))
 orientation_planner.match_position_path(
     orientation=starting_orientation, target_orientation=target_orientation,
-    position_path=traj_planner.position)
+    position_path=traj_planner.position_path)
 
 # set up lists for tracking data
 ee_track = []
@@ -114,12 +111,6 @@ try:
         count += 1
         loop = timeit.default_timer() - start
         times.append(loop)
-        mirror.update(
-            q=feedback['q'],
-            target=target[:3],
-            target_orientation=target[3:],
-            hand=hand_xyz,
-            hand_orientation=hand_orient)
 
 finally:
     # stop and reset the simulation
@@ -129,7 +120,6 @@ finally:
     print('avg time: ', np.mean(times))
     print('max time: ', max(times))
 
-    mirror.stop_thread()
     ee_track = np.array(ee_track)
     ee_angles_track = np.array(ee_angles_track)
     target_track = np.array(target_track)
@@ -139,6 +129,7 @@ finally:
     cols = ['r', 'b', 'g']
     labelpos = ['x', 'y', 'z']
     labelrot = ['a', 'b', 'g']
+
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
         import matplotlib.pyplot as plt
@@ -178,40 +169,3 @@ finally:
 
         plt.tight_layout()
         plt.show()
-    # if plot and ee_track.shape[0] > 0:
-    #     # plot distance from target and 3D trajectory
-    #     import matplotlib.pyplot as plt
-    #     from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
-    #     label_pos = ['x', 'y', 'z']
-    #     label_or = ['a', 'b', 'g']
-    #     c = ['r', 'g', 'b']
-    #
-    #     fig = plt.figure(figsize=(8,12))
-    #     ax1 = fig.add_subplot(311)
-    #     ax1.set_ylabel('3D position (m)')
-    #     for ii, ee in enumerate(ee_track):
-    #         ax1.plot(ee, label='EE: %s' % label_pos[ii], c=c[ii])
-    #         ax1.plot(target_track[ii], label='Target: %s' % label_pos[ii],
-    #                  c=c[ii], linestyle='--')
-    #     ax1.legend()
-    #
-    #     ax2 = fig.add_subplot(312)
-    #     for ii, ee in enumerate(ee_angles_track):
-    #         ax2.plot(ee, label='EE: %s' % label_or[ii], c=c[ii])
-    #         ax2.plot(target_angles_track[ii], label='Target: %s'%label_or[ii],
-    #                  c=c[ii], linestyle='--')
-    #     ax2.set_ylabel('3D orientation (rad)')
-    #     ax2.set_xlabel('Time (s)')
-    #     ax2.legend()
-    #
-    #     ee_track = ee_track.T
-    #     target_track = target_track.T
-    #     ax3 = fig.add_subplot(313, projection='3d')
-    #     ax3.set_title('End-Effector Trajectory')
-    #     ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
-    #     ax3.plot(target_track[:, 0], target_track[:, 1], target_track[:, 2],
-    #             label='ee_xyz', c='g', linestyle='--')
-    #     ax3.scatter(target_position[0], target_position[1], target_position[2],
-    #                 label='target', c='g')
-    #     ax3.legend()
-    #     plt.show()

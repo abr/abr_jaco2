@@ -62,7 +62,7 @@ try:
     feedback = interface.get_feedback()
     hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
-    path.reset(position=hand_xyz, target_pos=target_xyz[target_index])
+    path.reset(position=hand_xyz, target_position=target_xyz[target_index])
     generate_path = False
 
     # connect to the jaco
@@ -71,7 +71,7 @@ try:
     while target_index < len(target_xyz):
         if generate_path:
             print('Generating next path')
-            path.reset(position=hand_xyz, target_pos=target_xyz[target_index])
+            path.reset(position=hand_xyz, target_position=target_xyz[target_index])
             generate_path = False
             print('Ready')
 
@@ -82,13 +82,13 @@ try:
                         feedback['dq'])[:3]
 
         error = np.sqrt(np.sum((hand_xyz - target_xyz[target_index])**2))
-        target, target_vel = path._step(error)
+        target, target_velocity = path._step(error)
 
         # generate the control signal
         u = ctrlr.generate(
             q=feedback['q'], dq=feedback['dq'],
             target=np.hstack((target, [0, 0, 0])),
-            target_vel=np.hstack((target_vel, [0, 0, 0]))
+            target_velocity=np.hstack((target_velocity, [0, 0, 0]))
             )
 
         interface.send_forces(np.array(u, dtype='float32'))
