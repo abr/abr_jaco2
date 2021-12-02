@@ -12,8 +12,6 @@ COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
     exe pip install -e ".[tests]"
-elif [[ "$COMMAND" == "script" ]]; then
-    exe pytest -v -n 2 --color=yes --durations 20 --cov=abr_jaco2 abr_jaco2
 elif [[ "$COMMAND" == "after_script" ]]; then
     exe eval "bash <(curl -s https://codecov.io/bash)"
 elif [[ -z "$COMMAND" ]]; then

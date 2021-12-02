@@ -1,19 +1,20 @@
-'''
+"""
 A mock interface for the jaco to test code with the arm out of the loop
-'''
-import numpy as np
+"""
+import inspect
+import os
+import sys
 
+import numpy as np
 from abr_control.interfaces.interface import Interface as BaseInterface
 
-import os,sys,inspect
-current_dir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
 
 class MockInterface(BaseInterface):
-    """ Interface class for the Jaco2 Kinova arm.
+    """Interface class for the Jaco2 Kinova arm.
 
     Handles the overhead of interacting with the Cython code,
     conforms the functions to the ABR_Control interface API.
@@ -26,7 +27,7 @@ class MockInterface(BaseInterface):
     """
 
     def __init__(self, robot_config, display_error_level=2, use_redis=False):
-        """ Constructor
+        """Constructor
 
         Parameters
         ----------
@@ -50,19 +51,17 @@ class MockInterface(BaseInterface):
         self.robot_config = robot_config
 
     def connect(self):
-        """ All initial setup, establish RS485 connection
-        """
+        """All initial setup, establish RS485 connection"""
 
-        print('MOCK: connection made')
+        print("MOCK: connection made")
 
     def disconnect(self):
-        """ Any socket closing etc that must be done
-        """
+        """Any socket closing etc that must be done"""
 
-        print('MOCK: disconnected')
+        print("MOCK: disconnected")
 
     def get_feedback(self):
-        """ Returns a dictionary of relevant information
+        """Returns a dictionary of relevant information
 
         Returns the current joint and joint velocity information
         to the controller [radians] [radians/second] respectively
@@ -71,41 +70,40 @@ class MockInterface(BaseInterface):
         # convert from degrees from the Jaco into radians
         # Jaco API uses degrees
         if self.display_error_level == 1:
-            print('MOCK: position feedback sent')
+            print("MOCK: position feedback sent")
         feedback = {}
-        feedback['q'] = np.ones(6)
-        feedback['dq'] = np.ones(6)
+        feedback["q"] = np.ones(6)
+        feedback["dq"] = np.ones(6)
         return feedback
 
     def get_torque_load(self):
-        """ Returns the torque at each joint in Nm
-        """
+        """Returns the torque at each joint in Nm"""
 
         if self.display_error_level == 1:
-            print('MOCK: torque feedback sent')
+            print("MOCK: torque feedback sent")
         return np.ones(6)
 
     def init_force_mode(self):
-        """ Changes the arm to torque control mode
+        """Changes the arm to torque control mode
 
         To switch to torque mode the arm must be in a position where the
         torque load at the joints is minimized. Suggested to use the
         Config.INIT_TORQUE_POSITION
         """
 
-        print('MOCK: force mode started')
+        print("MOCK: force mode started")
 
     def init_position_mode(self):
-        """ Changes the arm into position control mode
+        """Changes the arm into position control mode
 
         Changes the arm into position control mode, where target joint
         angles can be provided, and the motors switch into servo mode.
         """
 
-        print('MOCK: position mode started')
+        print("MOCK: position mode started")
 
     def open_hand(self, hand_open):
-        """ Incrementally open or close the hand
+        """Incrementally open or close the hand
 
         Parameters
         ----------
@@ -115,10 +113,10 @@ class MockInterface(BaseInterface):
 
         assert type(hand_open) == bool
         if self.display_error_level == 1:
-            print('MOCK: hand opening/closing')
+            print("MOCK: hand opening/closing")
 
     def send_forces(self, u):
-        """ Applies the set of torques u to the arm.
+        """Applies the set of torques u to the arm.
 
         NOTE: As part of the Kinova RS485 API, if a torque is not
         applied every 200ms then the arm reverts back to position
@@ -131,10 +129,10 @@ class MockInterface(BaseInterface):
         """
         assert len(u) == self.robot_config.N_JOINTS
         if self.display_error_level == 1:
-            print('MOCK: forces sent')
+            print("MOCK: forces sent")
 
     def send_target_angles(self, q):
-        """ Moves the arm to the specified joint angles
+        """Moves the arm to the specified joint angles
 
         Moves the arm to the specified joint angles using
         the on-board PD controller.
@@ -146,4 +144,4 @@ class MockInterface(BaseInterface):
         print(self.robot_config.N_JOINTS)
         assert len(q) == self.robot_config.N_JOINTS
         if self.display_error_level == 1:
-            print('MOCK: target angles sent')
+            print("MOCK: target angles sent")

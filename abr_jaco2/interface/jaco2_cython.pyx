@@ -1,6 +1,8 @@
 import numpy as np
+
 cimport numpy as np
 from libcpp cimport bool
+
 
 cdef extern from "jaco2_rs485.h":
     cdef cppclass Jaco2:

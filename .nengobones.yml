@@ -1,0 +1,87 @@
+project_name: ABR Jaco2
+pkg_name: abr_jaco2
+repo_name: abr/abr_jaco2
+min_python: 3.6
+author_email: pawel.jaworski@appliedbrainresearch.com
+description: Python interface for low-level force control of Kinova Jaco2
+
+copyright_start: 2017
+
+license_rst: {
+    type: nengo
+}
+
+contributing_rst: {}
+
+setup_py:
+  url: https://github.com/abr/abr_jaco2
+  install_req:
+    - cython>=0.29.0
+    - numpy>=1.16.0
+    - setuptools>=18.0
+    - cloudpickle>=0.8.0
+    - sympy>=1.3
+  classifiers:
+    - "Development Status :: 5 - Production/Stable"
+    - "Framework :: ABR Jaco2"
+    - "Intended Audience :: Science/Research"
+    - "License :: Free for non-commercial use"
+    - "Operating System :: Ubuntu <=16.02"
+    - "Programming Language :: Python :: 3 :: Only"
+    - "Programming Language :: Python :: 3.6"
+    - "Programming Language :: Python :: 3.7"
+    - "Programming Language :: Python :: 3.8"
+    - "Topic :: Scientific/Engineering :: Artificial Intelligence"
+
+setup_cfg:
+  codespell:
+    ignore_words:
+      - DOF
+      - dof
+      - hist
+      - nd
+      - compiletime
+  flake8:
+    ignore:
+      - C901
+      - E402
+      - E722
+  pylint:
+    ignore:
+      - _vendor
+      - arm_files
+      - coppeliasim_files
+      - transformations.py
+    disable:
+      - F0001
+      - C0116
+      - C0115
+      - C0114
+      - too-many-blank-lines
+      - W504
+      - W0621
+      - W0702
+    known_third_party:
+      - mpl_toolkits
+      - nengo
+      - nengolib
+      - scipy
+
+travis_yml:
+  jobs:
+    - script: static
+    - script: test-coverage
+  pypi_user: tbekolay
+  deploy_dists:
+      - sdist
+      - bdist_wheel
+
+ci_scripts:
+  - template: test
+    output_name: test-coverage
+    coverage: true
+
+codecov_yml: {}
+
+pre_commit_config_yaml: {}
+pyproject_toml: {}
