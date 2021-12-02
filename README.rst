@@ -1,8 +1,10 @@
+.. image:: https://i.imgur.com/sWaLRjP.jpg
+
 *********
 ABR Jaco2
 *********
 
-ABR_Jaco2: Force control interface for the Kinova Jaco2 with torque sensors
+ABR_Jaco2: Low-level force control interface for the Kinova Jaco2 with torque sensors
 
 Installation
 ============
@@ -19,7 +21,7 @@ dependent libraries, and will take a few minutes.
 
 To install ABR_Jaco2, clone this repository and run::
 
-    python setup.py install
+    pip install -e .
     python setup.py develop
 
 ABR_Jaco2 is tested to work on Python 3.4+.
@@ -29,7 +31,7 @@ Usage
 
 The ABR_Jaco2 repo is comprised of an interface to communicate with
 the Kinova Jaco2, and a configuration file for use with the ABR_Control
-library. The uses Kinova's low level API to allow for direct force control
+library. This uses Kinova's low level C API to allow for direct force control
 of the torques being applied by each motor, as well as position control.
 
 1) The interface class provided here communicates with the arm through the low
@@ -43,8 +45,9 @@ frequency faster that 200ms, otherwise the arm will revert to position mode.
 2) All of the required information about an arm model is kept in that arm's
 config file. More information on the formatting of the config can be found in
 the ABR_Control repo's README. Here we provide a configuration file for the
-physical Kinova Jaco2 (as opposed to the VREP model config file provided in
-the ABR_Control repo), based off of SolidWorks CAD files and empirical tuning.
+physical Kinova Jaco2 (as opposed to the VREP and Mujoco model config file
+provided in the ABR_Control repo), based off of SolidWorks CAD files and
+empirical tuning.
 
 3) The ABR_Control library provides implementations of controllers and path
 planners that can be used on the Jaco2, with examples provided in this repo.
@@ -93,5 +96,5 @@ Examples
 ========
 
 The ABR_Jaco2 repo comes with several examples that demonstrate the use of
-the different controllers. To run simulations of the Jaco2 in VREP, please
-see the ABR_Control repo.
+the different controllers. To run simulations of the Jaco2 in VREP or Mujoco,
+please see the ABR_Control repo.

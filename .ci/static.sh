@@ -23,7 +23,7 @@ elif [[ "$COMMAND" == "script" ]]; then
     git fetch origin master
     N_COMMITS=$(git rev-list --count HEAD ^origin/master)
     for ((i=0; i<N_COMMITS; i++)) do
-        git log -n 1 --skip $i --pretty=%B | grep -v '^Co-authored-by:' | exe gitlint -vvv
+        git log -n 1 --skip "$i" --pretty=%B | grep -v '^Co-authored-by:' | exe gitlint -vvv
     done
 elif [[ -z "$COMMAND" ]]; then
     echo "$NAME requires a command like 'install' or 'script'"

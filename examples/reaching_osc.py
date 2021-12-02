@@ -4,7 +4,7 @@ import numpy as np
 import traceback
 import timeit
 
-from abr_control.controllers import OSC, path_planners, signals
+from abr_control.controllers import OSC, path_planners
 import abr_jaco2
 
 # initialize our robot config

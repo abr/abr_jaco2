@@ -3,7 +3,12 @@
 Keyboard interface for opening and closing the jaco2 hand
 """
 import abr_jaco2
-from abr_analyze.utils import KBHit
+try:
+    from abr_analyze.utils import KBHit
+except ImportError as e:
+    print(
+        "clone and install abr_analyze for the required"
+        + " keyboard interface to open and close the gripper")
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(

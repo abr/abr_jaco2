@@ -12,6 +12,12 @@ import os
 import timeit
 import traceback
 
+try:
+    import nengo
+except ImportError as e:
+    print("To run adaptive control, please 'pip install nengo' first")
+    raise e
+
 from abr_control.controllers import OSC, signals, path_planners
 import abr_jaco2
 
