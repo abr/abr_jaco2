@@ -21,7 +21,7 @@ dependent libraries, and will take a few minutes.
 
 To install ABR_Jaco2, clone this repository and run::
 
-    pip install -e .
+    pip install -e . --no-use-pep517
     python setup.py develop
 
 ABR_Jaco2 is tested to work on Python 3.4+.

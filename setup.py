@@ -5,9 +5,11 @@
 import io
 import pathlib
 import runpy
+import numpy as np
 
 try:
-    from setuptools import find_packages, setup
+    from setuptools import Extension, find_packages, setup
+    from setuptools.command.build_ext import build_ext as _build_ext
 except ImportError:
     raise ImportError(
         "'setuptools' is required but not installed. To install it, "
@@ -15,6 +17,13 @@ except ImportError:
         "https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py"
     )
 
+class build_ext(_build_ext):
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        # Prevent numpy from thinking it is still in its setup process:
+        __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+        self.include_dirs.append(numpy.get_include())
 
 def read(*filenames, **kwargs):
     encoding = kwargs.get("encoding", "utf-8")
@@ -35,6 +44,10 @@ install_req = [
     "setuptools>=18.0",
     "cloudpickle>=0.8.0",
     "sympy>=1.3",
+]
+
+setup_req = [
+    "numpy>=1.16.0",
 ]
 docs_req = []
 optional_req = []
@@ -72,4 +85,15 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
+    cmdclass = {'build_ext': build_ext},
+    ext_modules=[
+        Extension(
+            "abr_jaco2.interface.jaco2_rs485",
+            sources=["abr_jaco2/interface/jaco2_cython.pyx",
+                     "abr_jaco2/interface/jaco2_rs485.cpp"],
+            language="c++",
+            include_dirs=[np.get_include()],
+            extra_compile_args=["-ldl"],
+        )
+    ]
 )
