@@ -20,7 +20,10 @@ The target orientation is randomly generated at run time
 import numpy as np
 import timeit
 
-from abr_control.controllers import OSC, Damping, path_planners
+from abr_control.controllers import OSC, Damping
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 from abr_control.utils import transformations
 import abr_jaco2
 
@@ -44,12 +47,9 @@ interface.connect()
 interface.init_position_mode()
 interface.send_target_angles(robot_config.START_ANGLES)
 
-# pregenerate our path and orientation planners
-n_timesteps = 10000
-# traj_planner = path_planners.BellShaped(
-#     error_scale=1, n_timesteps=n_timesteps)
-traj_planner = path_planners.SecondOrderFilter(n_timesteps=n_timesteps, dt=0.004)
-orientation_planner = path_planners.Orientation()
+Pprof = Linear()
+Vprof = Gaussian(dt=0.001, acceleration=1)
+path = PathPlanner(pos_profile=Pprof, vel_profile=Vprof, verbose=True)
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
@@ -63,11 +63,15 @@ print(target_orientation)
 target_orientation_euler = transformations.euler_from_quaternion(target_orientation)
 target_position = np.array([-0.4, -0.3, 0.5]) #np.random.random(3)
 
-traj_planner.generate_path(position=hand_xyz, target_position=target_position,
-                           velocity=np.zeros(3))
-orientation_planner.match_position_path(
-    orientation=starting_orientation, target_orientation=target_orientation,
-    position_path=traj_planner.position_path)
+path.generate_path(
+    start_position=hand_xyz,
+    target_position=target_position,
+    start_orientation=starting_orientation,
+    target_orientation=target_orientation_euler,
+    max_velocity=2,
+    start_velocity=0,
+    target_velocity=0,
+)
 
 # set up lists for tracking data
 ee_track = []
@@ -87,15 +91,13 @@ try:
 
         # pos = target_position
         # orient = target_orientation_euler
-        pos, vel = traj_planner.next()
-        orient = orientation_planner.next()
-        target = np.hstack([pos, orient])
+        target = path.step()
 
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=target,
-            #target_vel=np.hstack([vel, np.zeros(3)])
+            target=np.hstack([target[:3], target[6:9]),
+                target=np.hstack([target[3:6], target[9:]),
             )
 
         # apply the control signal, step the sim forward
@@ -107,7 +109,7 @@ try:
             robot_config.R('EE', feedback['q']), axes='rxyz')
         ee_angles_track.append(np.copy(hand_orient))
         target_track.append(np.copy(target[:3]))
-        target_angles_track.append(np.copy(target[3:]))
+        target_angles_track.append(np.copy(target[6:9]))
         count += 1
         loop = timeit.default_timer() - start
         times.append(loop)
