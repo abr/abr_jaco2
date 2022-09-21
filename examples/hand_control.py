@@ -9,6 +9,7 @@ except ImportError as e:
     print(
         "clone and install abr_analyze for the required"
         + " keyboard interface to open and close the gripper")
+    print(e)
 
 # initialize our robot config
 robot_config = abr_jaco2.Config(

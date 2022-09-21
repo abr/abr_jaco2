@@ -104,7 +104,7 @@ try:
         ee_xyz = robot_config.Tx('EE', q=feedback['q'])
 
         # get next step along trajectory
-        filtered_target = path.step()
+        filtered_target = path.next()
 
         feedback = interface.get_feedback()
 

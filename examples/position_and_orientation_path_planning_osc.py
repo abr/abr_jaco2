@@ -91,13 +91,13 @@ try:
 
         # pos = target_position
         # orient = target_orientation_euler
-        target = path.step()
+        target = path.next()
 
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=np.hstack([target[:3], target[6:9]),
-                target=np.hstack([target[3:6], target[9:]),
+            target=np.hstack((target[:3], target[6:9])),
+            target_velocity=np.hstack((target[3:6], target[9:])),
             )
 
         # apply the control signal, step the sim forward
