@@ -4,7 +4,10 @@ import numpy as np
 import traceback
 import timeit
 
-from abr_control.controllers import OSC, path_planners
+from abr_control.controllers import OSC
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 import abr_jaco2
 
 # initialize our robot config
@@ -46,7 +49,9 @@ target_xyz = np.array([[.56, -.09, .72],
 error_track = []
 
 # instantiate path planner and set parameters
-path = path_planners.SecondOrderDMP(n_timesteps=500, error_scale=1e-6)
+Pprof = Linear()
+Vprof = Gaussian(dt=0.001, acceleration=1)
+path = PathPlanner(pos_profile=Pprof, vel_profile=Vprof, verbose=True)
 
 try:
     count = 0
@@ -61,9 +66,7 @@ try:
 
     feedback = interface.get_feedback()
     hand_xyz = robot_config.Tx('EE', q=feedback['q'])
-
-    path.reset(position=hand_xyz, target_position=target_xyz[target_index])
-    generate_path = False
+    generate_path = True
 
     # connect to the jaco
     interface.init_force_mode()
@@ -71,7 +74,14 @@ try:
     while target_index < len(target_xyz):
         if generate_path:
             print('Generating next path')
-            path.reset(position=hand_xyz, target_position=target_xyz[target_index])
+            path.generate_path(
+                start_position=hand_xyz,
+                target_position=target_xyz[target_index],
+                max_velocity=2,
+                start_velocity=0,
+                target_velocity=0,
+            )
+
             generate_path = False
             print('Ready')
 
@@ -82,13 +92,13 @@ try:
                         feedback['dq'])[:3]
 
         error = np.sqrt(np.sum((hand_xyz - target_xyz[target_index])**2))
-        target, target_velocity = path._step(error)
+        filtered_target = path.step()
 
         # generate the control signal
         u = ctrlr.generate(
             q=feedback['q'], dq=feedback['dq'],
-            target=np.hstack((target, [0, 0, 0])),
-            target_velocity=np.hstack((target_velocity, [0, 0, 0]))
+            target=np.hstack((filtered_target[:3], [0, 0, 0])),
+            target_velocity=np.hstack((filtered_target[3:6], [0, 0, 0]))
             )
 
         interface.send_forces(np.array(u, dtype='float32'))
